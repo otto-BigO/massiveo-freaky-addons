@@ -1,0 +1,21 @@
+# Build output
+build/
+out/
+
+# Gradle
+.gradle/
+
+# Forge run directory
+run/
+
+# IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+bin/
+.vscode/
+
+# OS
+.DS_Store

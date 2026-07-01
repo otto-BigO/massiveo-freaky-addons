@@ -1,0 +1,56 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://repo.spongepowered.org/maven' }
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '2.1.6'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+version = "1.0.0"
+group = "com.otto.cellescanner"
+archivesBaseName = "cellescanner"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// Danish text (æ ø å) is stored directly in the .java, .lang and mcmod.info
+// files, so compile and process resources as UTF-8 rather than the platform
+// default charset (which would otherwise mangle those characters).
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+compileJava.options.encoding = 'UTF-8'
+
+minecraft {
+    version = "1.8.9-11.15.1.2318-1.8.9"
+    runDir = "run"
+    // "stable_22" is the historical MCP mapping set for 1.8.9.
+    // If it has been pulled from the mapping server, swap in whatever
+    // stable/snapshot mapping your local ForgeGradle cache still has for 1.8.9.
+    mappings = "stable_22"
+}
+
+dependencies {
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // So the ${version} expansion in mcmod.info doesn't mangle its Danish text.
+    filteringCharset = 'UTF-8'
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': project.minecraft.version
+    }
+
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
