@@ -57,15 +57,15 @@ public class GuiBande extends GuiScreen {
         y += FIELD_H + ROW_GAP + 4;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(new GuiButton(ID_ADD, fieldX, y, halfW, BTN_H, "Tilføj"));
-        this.buttonList.add(new GuiButton(ID_CLEAR, fieldX + halfW + 4, y, halfW, BTN_H, "Ryd alle"));
+        this.buttonList.add(new StyledButton(ID_ADD, fieldX, y, halfW, BTN_H, "Tilføj"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, fieldX + halfW + 4, y, halfW, BTN_H, "Ryd alle"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(espButton = new GuiButton(ID_ESP, fieldX, y, halfW, BTN_H, espLabel()));
-        this.buttonList.add(autoButton = new GuiButton(ID_AUTO, fieldX + halfW + 4, y, halfW, BTN_H, autoLabel()));
+        this.buttonList.add(espButton = new StyledButton(ID_ESP, fieldX, y, halfW, BTN_H, espLabel()));
+        this.buttonList.add(autoButton = new StyledButton(ID_AUTO, fieldX + halfW + 4, y, halfW, BTN_H, autoLabel()));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new GuiButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
         y += BTN_H + ROW_GAP + 4;
 
         listHintY = y;
@@ -76,7 +76,7 @@ public class GuiBande extends GuiScreen {
         for (int i = 0; i < shown; i++) {
             String name = members.get(i);
             shownNames.add(name);
-            this.buttonList.add(new GuiButton(REMOVE_BASE + i, fieldX, y, FIELD_W, REMOVE_H, "Fjern  " + name));
+            this.buttonList.add(new StyledButton(REMOVE_BASE + i, fieldX, y, FIELD_W, REMOVE_H, "Fjern  " + name));
             y += REMOVE_H + 2;
         }
     }

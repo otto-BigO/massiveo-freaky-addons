@@ -63,8 +63,8 @@ public class GuiPriceGuide extends GuiScreen {
 
         if (!PriceGuide.isLoaded()) {
             built = false;
-            this.buttonList.add(new GuiButton(ID_BACK, left, cy + 30, HALF, BTN_H, "Tilbage"));
-            this.buttonList.add(new GuiButton(ID_REFRESH, left + HALF + 4, cy + 30, HALF, BTN_H, "Prøv igen"));
+            this.buttonList.add(new StyledButton(ID_BACK, left, cy + 30, HALF, BTN_H, "Tilbage"));
+            this.buttonList.add(new StyledButton(ID_REFRESH, left + HALF + 4, cy + 30, HALF, BTN_H, "Prøv igen"));
             return;
         }
         built = true;
@@ -84,7 +84,7 @@ public class GuiPriceGuide extends GuiScreen {
             for (int i = start; i < end; i++) {
                 PriceGuide.Cat c = list.get(i);
                 pageCats.add(c);
-                this.buttonList.add(new GuiButton(pageCats.size() - 1, left, y, PANEL_W, BTN_H, c.name == null ? "?" : c.name));
+                this.buttonList.add(new StyledButton(pageCats.size() - 1, left, y, PANEL_W, BTN_H, c.name == null ? "?" : c.name));
                 y += ROW_H;
             }
         }
@@ -94,12 +94,12 @@ public class GuiPriceGuide extends GuiScreen {
 
         int navY = listBottom + 14;
         if (curPages > 1) {
-            this.buttonList.add(new GuiButton(ID_PREV, left, navY, HALF, BTN_H, "< Forrige"));
-            this.buttonList.add(new GuiButton(ID_NEXT, left + HALF + 4, navY, HALF, BTN_H, "Næste >"));
+            this.buttonList.add(new StyledButton(ID_PREV, left, navY, HALF, BTN_H, "< Forrige"));
+            this.buttonList.add(new StyledButton(ID_NEXT, left + HALF + 4, navY, HALF, BTN_H, "Næste >"));
             navY += BTN_H + 4;
         }
-        this.buttonList.add(new GuiButton(ID_BACK, left, navY, HALF, BTN_H, "Tilbage"));
-        this.buttonList.add(new GuiButton(ID_REFRESH, left + HALF + 4, navY, HALF, BTN_H, "Genindlæs"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, navY, HALF, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_REFRESH, left + HALF + 4, navY, HALF, BTN_H, "Genindlæs"));
     }
 
     @Override

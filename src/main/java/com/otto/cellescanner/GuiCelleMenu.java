@@ -73,54 +73,54 @@ public class GuiCelleMenu extends GuiScreen {
         int y = this.height / 2 - CONTENT_H / 2;
 
         // row 0: scanner | notify
-        this.buttonList.add(toggleButton = new GuiButton(ID_TOGGLE, left, y, HALF_W, BTN_H, toggleLabel()));
-        this.buttonList.add(notifyButton = new GuiButton(ID_NOTIFY, right, y, HALF_W, BTN_H, notifyLabel()));
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, HALF_W, BTN_H, toggleLabel()));
+        this.buttonList.add(notifyButton = new StyledButton(ID_NOTIFY, right, y, HALF_W, BTN_H, notifyLabel()));
         y += ROW_H;
 
         // row 1: min stepper
-        this.buttonList.add(new GuiButton(ID_MIN_DOWN, left, y, 20, BTN_H, "-"));
-        this.buttonList.add(minLabel = new GuiButton(ID_MIN_DOWN - 1000, left + 22, y, PANEL_W - 44, BTN_H, minLabel()));
+        this.buttonList.add(new StyledButton(ID_MIN_DOWN, left, y, 20, BTN_H, "-"));
+        this.buttonList.add(minLabel = new StyledButton(ID_MIN_DOWN - 1000, left + 22, y, PANEL_W - 44, BTN_H, minLabel()));
         minLabel.enabled = false;
-        this.buttonList.add(new GuiButton(ID_MIN_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
+        this.buttonList.add(new StyledButton(ID_MIN_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
         y += ROW_H;
 
         // row 2: max stepper
-        this.buttonList.add(new GuiButton(ID_MAX_DOWN, left, y, 20, BTN_H, "-"));
-        this.buttonList.add(maxLabel = new GuiButton(ID_MAX_DOWN - 1000, left + 22, y, PANEL_W - 44, BTN_H, maxLabel()));
+        this.buttonList.add(new StyledButton(ID_MAX_DOWN, left, y, 20, BTN_H, "-"));
+        this.buttonList.add(maxLabel = new StyledButton(ID_MAX_DOWN - 1000, left + 22, y, PANEL_W - 44, BTN_H, maxLabel()));
         maxLabel.enabled = false;
-        this.buttonList.add(new GuiButton(ID_MAX_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
+        this.buttonList.add(new StyledButton(ID_MAX_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
         y += ROW_H;
 
         // row 3: reload | clear
-        this.buttonList.add(new GuiButton(ID_RELOAD, left, y, HALF_W, BTN_H, "Genindlæs"));
-        this.buttonList.add(new GuiButton(ID_CLEAR, right, y, HALF_W, BTN_H, "Ryd cache"));
+        this.buttonList.add(new StyledButton(ID_RELOAD, left, y, HALF_W, BTN_H, "Genindlæs"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, right, y, HALF_W, BTN_H, "Ryd cache"));
         y += ROW_H;
 
         // row 4: move | esp outline
-        this.buttonList.add(new GuiButton(ID_MOVE, left, y, HALF_W, BTN_H, "Flyt HUD"));
-        this.buttonList.add(espButton = new GuiButton(ID_ESP, right, y, HALF_W, BTN_H, espLabel()));
+        this.buttonList.add(new StyledButton(ID_MOVE, left, y, HALF_W, BTN_H, "Flyt HUD"));
+        this.buttonList.add(espButton = new StyledButton(ID_ESP, right, y, HALF_W, BTN_H, espLabel()));
         y += ROW_H;
 
         // row 5: debug panel | debug to chat
-        this.buttonList.add(debugPanelButton = new GuiButton(ID_DEBUG_PANEL, left, y, HALF_W, BTN_H, debugPanelLabel()));
-        this.buttonList.add(new GuiButton(ID_DEBUG_CHAT, right, y, HALF_W, BTN_H, "Debug i chat"));
+        this.buttonList.add(debugPanelButton = new StyledButton(ID_DEBUG_PANEL, left, y, HALF_W, BTN_H, debugPanelLabel()));
+        this.buttonList.add(new StyledButton(ID_DEBUG_CHAT, right, y, HALF_W, BTN_H, "Debug i chat"));
         y += ROW_H;
 
         // row 6: settings | discord bot
-        this.buttonList.add(new GuiButton(ID_SETTINGS, left, y, HALF_W, BTN_H, "Indstillinger"));
-        this.buttonList.add(new GuiButton(ID_BOT, right, y, HALF_W, BTN_H, "Discord Bot"));
+        this.buttonList.add(new StyledButton(ID_SETTINGS, left, y, HALF_W, BTN_H, "Indstillinger"));
+        this.buttonList.add(new StyledButton(ID_BOT, right, y, HALF_W, BTN_H, "Discord Bot"));
         y += ROW_H;
 
         // row 7: special celler
-        this.buttonList.add(new GuiButton(ID_SPECIAL, left, y, PANEL_W, BTN_H, "Special celler"));
+        this.buttonList.add(new StyledButton(ID_SPECIAL, left, y, PANEL_W, BTN_H, "Special celler"));
         y += ROW_H;
 
         // row 8: celle finder
-        this.buttonList.add(new GuiButton(ID_FINDER, left, y, PANEL_W, BTN_H, "Celle Finder"));
+        this.buttonList.add(new StyledButton(ID_FINDER, left, y, PANEL_W, BTN_H, "Celle Finder"));
         y += ROW_H;
 
         // row 9: back to the addons hub
-        this.buttonList.add(new GuiButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
     private String toggleLabel() {

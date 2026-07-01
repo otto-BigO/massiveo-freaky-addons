@@ -63,15 +63,15 @@ public class GuiCelleFinder extends GuiScreen {
         idField.setMaxStringLength(64);
         idField.setText(carry);
         idField.setFocused(true);
-        this.buttonList.add(new GuiButton(ID_PASTE, fieldX + FIELD_W - SMALL_BTN_W, y - 1, SMALL_BTN_W, FIELD_H + 2, "Indsæt"));
+        this.buttonList.add(new StyledButton(ID_PASTE, fieldX + FIELD_W - SMALL_BTN_W, y - 1, SMALL_BTN_W, FIELD_H + 2, "Indsæt"));
         y += FIELD_H + ROW_GAP + 6;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(new GuiButton(ID_FIND, fieldX, y, halfW, BTN_H, "Find"));
-        this.buttonList.add(new GuiButton(ID_STOP, fieldX + halfW + 4, y, halfW, BTN_H, "Stop"));
+        this.buttonList.add(new StyledButton(ID_FIND, fieldX, y, halfW, BTN_H, "Find"));
+        this.buttonList.add(new StyledButton(ID_STOP, fieldX + halfW + 4, y, halfW, BTN_H, "Stop"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new GuiButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
         y += BTN_H + ROW_GAP + 2;
 
         liveLineY = y;
@@ -86,7 +86,7 @@ public class GuiCelleFinder extends GuiScreen {
         for (int i = 0; i < recent.size(); i++) {
             String id = recent.get(i);
             recentShown.add(id);
-            this.buttonList.add(new GuiButton(RECENT_BASE + i, fieldX, y, FIELD_W, RECENT_H, id));
+            this.buttonList.add(new StyledButton(RECENT_BASE + i, fieldX, y, FIELD_W, RECENT_H, id));
             y += RECENT_H + 2;
         }
     }

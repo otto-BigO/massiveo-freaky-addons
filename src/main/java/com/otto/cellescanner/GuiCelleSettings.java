@@ -46,25 +46,25 @@ public class GuiCelleSettings extends GuiScreen {
         int left = centerX - PANEL_W / 2;
         int y = this.height / 2 - CONTENT_H / 2;
 
-        this.buttonList.add(secondsButton = new GuiButton(ID_SECONDS, left, y, PANEL_W, BTN_H, secondsLabel()));
+        this.buttonList.add(secondsButton = new StyledButton(ID_SECONDS, left, y, PANEL_W, BTN_H, secondsLabel()));
         y += ROW_H;
-        this.buttonList.add(ownerButton = new GuiButton(ID_OWNER, left, y, PANEL_W, BTN_H, ownerLabel()));
+        this.buttonList.add(ownerButton = new StyledButton(ID_OWNER, left, y, PANEL_W, BTN_H, ownerLabel()));
         y += ROW_H;
-        this.buttonList.add(statusTagButton = new GuiButton(ID_STATUS_TAG, left, y, PANEL_W, BTN_H, statusTagLabel()));
+        this.buttonList.add(statusTagButton = new StyledButton(ID_STATUS_TAG, left, y, PANEL_W, BTN_H, statusTagLabel()));
         y += ROW_H;
-        this.buttonList.add(distanceButton = new GuiButton(ID_DISTANCE, left, y, PANEL_W, BTN_H, distanceLabel()));
+        this.buttonList.add(distanceButton = new StyledButton(ID_DISTANCE, left, y, PANEL_W, BTN_H, distanceLabel()));
         y += ROW_H;
-        this.buttonList.add(espLabelsButton = new GuiButton(ID_ESP_LABELS, left, y, PANEL_W, BTN_H, espLabelsLabel()));
+        this.buttonList.add(espLabelsButton = new StyledButton(ID_ESP_LABELS, left, y, PANEL_W, BTN_H, espLabelsLabel()));
         y += ROW_H;
 
         // maxHudEntries stepper: - [label] +
-        this.buttonList.add(new GuiButton(ID_HUD_DOWN, left, y, 20, BTN_H, "-"));
-        this.buttonList.add(hudEntriesLabel = new GuiButton(ID_HUD_LABEL, left + 22, y, PANEL_W - 44, BTN_H, hudEntriesLabel()));
+        this.buttonList.add(new StyledButton(ID_HUD_DOWN, left, y, 20, BTN_H, "-"));
+        this.buttonList.add(hudEntriesLabel = new StyledButton(ID_HUD_LABEL, left + 22, y, PANEL_W - 44, BTN_H, hudEntriesLabel()));
         hudEntriesLabel.enabled = false;
-        this.buttonList.add(new GuiButton(ID_HUD_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
+        this.buttonList.add(new StyledButton(ID_HUD_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
         y += ROW_H;
 
-        this.buttonList.add(new GuiButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
         y += ROW_H + 6;
 
         legendY = y;

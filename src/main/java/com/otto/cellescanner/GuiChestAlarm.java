@@ -42,22 +42,22 @@ public class GuiChestAlarm extends GuiScreen {
         int left = centerX - FIELD_W / 2;
         int y = this.height / 2 - 80;
 
-        this.buttonList.add(toggleButton = new GuiButton(ID_TOGGLE, left, y, FIELD_W, BTN_H, toggleLabel()));
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, FIELD_W, BTN_H, toggleLabel()));
         y += BTN_H + ROW_GAP;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(toastButton = new GuiButton(ID_TOAST, left, y, halfW, BTN_H, toastLabel()));
-        this.buttonList.add(soundButton = new GuiButton(ID_SOUND, left + halfW + 4, y, halfW, BTN_H, soundLabel()));
+        this.buttonList.add(toastButton = new StyledButton(ID_TOAST, left, y, halfW, BTN_H, toastLabel()));
+        this.buttonList.add(soundButton = new StyledButton(ID_SOUND, left + halfW + 4, y, halfW, BTN_H, soundLabel()));
         y += BTN_H + ROW_GAP + 6;
 
         keywordField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 64, FIELD_H);
         keywordField.setMaxStringLength(48);
         keywordField.setText(CelleScannerMod.config.chestAlarmKeyword);
-        this.buttonList.add(new GuiButton(ID_SAVE_KEYWORD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Gem ord"));
+        this.buttonList.add(new StyledButton(ID_SAVE_KEYWORD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Gem ord"));
         y += FIELD_H + ROW_GAP + 6;
 
-        this.buttonList.add(new GuiButton(ID_TEST, left, y, halfW, BTN_H, "Test"));
-        this.buttonList.add(new GuiButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_TEST, left, y, halfW, BTN_H, "Test"));
+        this.buttonList.add(new StyledButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
     }
 
     @Override

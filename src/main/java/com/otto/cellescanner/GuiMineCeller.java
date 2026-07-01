@@ -48,21 +48,21 @@ public class GuiMineCeller extends GuiScreen {
         int left = centerX - FIELD_W / 2;
         int y = this.height / 2 - 102;
 
-        this.buttonList.add(new GuiButton(ID_FETCH, left, y, FIELD_W, BTN_H, "Hent mine celler (/ce find)"));
+        this.buttonList.add(new StyledButton(ID_FETCH, left, y, FIELD_W, BTN_H, "Hent mine celler (/ce find)"));
         y += BTN_H + ROW_GAP;
-        this.buttonList.add(espButton = new GuiButton(ID_ESP, left, y, FIELD_W, BTN_H, espLabel()));
+        this.buttonList.add(espButton = new StyledButton(ID_ESP, left, y, FIELD_W, BTN_H, espLabel()));
         y += BTN_H + ROW_GAP + 4;
 
         String carry = idField != null && idField.getText() != null ? idField.getText() : "";
         idField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 64, FIELD_H);
         idField.setMaxStringLength(64);
         idField.setText(carry);
-        this.buttonList.add(new GuiButton(ID_ADD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Tilføj"));
+        this.buttonList.add(new StyledButton(ID_ADD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Tilføj"));
         y += FIELD_H + ROW_GAP + 4;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(new GuiButton(ID_CLEAR, left, y, halfW, BTN_H, "Ryd alle"));
-        this.buttonList.add(new GuiButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, left, y, halfW, BTN_H, "Ryd alle"));
+        this.buttonList.add(new StyledButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
         y += BTN_H + ROW_GAP + 2;
 
         listHintY = y;
@@ -76,7 +76,7 @@ public class GuiMineCeller extends GuiScreen {
             shownIds.add(id);
             boolean known = CellePositions.get(id) != null;
             String label = "-> " + id + (known ? "" : " (ikke scannet)");
-            this.buttonList.add(new GuiButton(FIND_BASE + i, left, y, FIELD_W, FIELD_H, label));
+            this.buttonList.add(new StyledButton(FIND_BASE + i, left, y, FIELD_W, FIELD_H, label));
             y += FIELD_H + 2;
         }
     }

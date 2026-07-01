@@ -25,11 +25,11 @@ public class GuiItemValues extends GuiScreen {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 24;
-        this.buttonList.add(toggleButton = new GuiButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += BTN_H + 6;
-        this.buttonList.add(new GuiButton(ID_RELOAD, left, y, PANEL_W, BTN_H, "Genindlæs priser"));
+        this.buttonList.add(new StyledButton(ID_RELOAD, left, y, PANEL_W, BTN_H, "Genindlæs priser"));
         y += BTN_H + 6;
-        this.buttonList.add(new GuiButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
     private String toggleLabel() {

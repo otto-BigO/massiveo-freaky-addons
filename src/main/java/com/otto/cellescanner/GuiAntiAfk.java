@@ -40,23 +40,23 @@ public class GuiAntiAfk extends GuiScreen {
         int left = centerX - PANEL_W / 2;
         int y = this.height / 2 - CONTENT_H / 2;
 
-        this.buttonList.add(toggleButton = new GuiButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += ROW_H;
-        this.buttonList.add(swingButton = new GuiButton(ID_SWING, left, y, PANEL_W, BTN_H, swingLabel()));
+        this.buttonList.add(swingButton = new StyledButton(ID_SWING, left, y, PANEL_W, BTN_H, swingLabel()));
         y += ROW_H;
-        this.buttonList.add(rotateButton = new GuiButton(ID_ROTATE, left, y, PANEL_W, BTN_H, rotateLabel()));
+        this.buttonList.add(rotateButton = new StyledButton(ID_ROTATE, left, y, PANEL_W, BTN_H, rotateLabel()));
         y += ROW_H;
-        this.buttonList.add(jumpButton = new GuiButton(ID_JUMP, left, y, PANEL_W, BTN_H, jumpLabel()));
+        this.buttonList.add(jumpButton = new StyledButton(ID_JUMP, left, y, PANEL_W, BTN_H, jumpLabel()));
         y += ROW_H;
 
         // interval stepper: - [label] +
-        this.buttonList.add(new GuiButton(ID_INT_DOWN, left, y, 20, BTN_H, "-"));
-        this.buttonList.add(intervalLabel = new GuiButton(ID_INT_LABEL, left + 22, y, PANEL_W - 44, BTN_H, intervalLabel()));
+        this.buttonList.add(new StyledButton(ID_INT_DOWN, left, y, 20, BTN_H, "-"));
+        this.buttonList.add(intervalLabel = new StyledButton(ID_INT_LABEL, left + 22, y, PANEL_W - 44, BTN_H, intervalLabel()));
         intervalLabel.enabled = false;
-        this.buttonList.add(new GuiButton(ID_INT_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
+        this.buttonList.add(new StyledButton(ID_INT_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
         y += ROW_H;
 
-        this.buttonList.add(new GuiButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
     private String toggleLabel() {

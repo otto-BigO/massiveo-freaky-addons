@@ -40,6 +40,8 @@ public class GuiAddonsHub extends GuiScreen {
     private final List<MassiveoAddons.Addon> flatAddons = new ArrayList<MassiveoAddons.Addon>();
     private final List<GuiButton> addonButtons = new ArrayList<GuiButton>();
 
+    private int panelX1, panelY1, panelX2, panelY2;
+
     @Override
     public void initGui() {
         this.buttonList.clear();
@@ -65,7 +67,7 @@ public class GuiAddonsHub extends GuiScreen {
             headers.add(new Header(cat, y, colorForCategory(cat)));
             y += HEADER_H;
             for (MassiveoAddons.Addon addon : MassiveoAddons.addonsIn(cat)) {
-                GuiButton button = new GuiButton(id++, left, y, PANEL_W, BTN_H, labelFor(addon));
+                GuiButton button = new StyledButton(id++, left, y, PANEL_W, BTN_H, labelFor(addon));
                 this.buttonList.add(button);
                 this.addonButtons.add(button);
                 this.flatAddons.add(addon);
@@ -74,7 +76,13 @@ public class GuiAddonsHub extends GuiScreen {
             y += CAT_GAP;
         }
 
-        this.buttonList.add(new GuiButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Luk"));
+        this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Luk"));
+
+        int contentTop = headers.isEmpty() ? y : headers.get(0).y;
+        panelX1 = left - 12;
+        panelX2 = left + PANEL_W + 12;
+        panelY1 = contentTop - 34;
+        panelY2 = y + BTN_H + 10;
     }
 
     private static String labelFor(MassiveoAddons.Addon addon) {
@@ -122,6 +130,9 @@ public class GuiAddonsHub extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.panel(panelX1, panelY1, panelX2, panelY2);
+        // Accent underline beneath the title.
+        drawRect(panelX1 + 10, panelY1 + 22, panelX2 - 10, panelY1 + 23, Style.ACCENT);
 
         int titleY = (headers.isEmpty() ? this.height / 2 - 40 : headers.get(0).y) - 26;
         drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, this.width / 2, titleY, 0xFF55FF);

@@ -51,19 +51,19 @@ public class GuiCelleBot extends GuiScreen {
         urlField.setMaxStringLength(512);
         urlField.setText(cfg.reportsWebhookUrl == null ? "" : cfg.reportsWebhookUrl);
         urlField.setFocused(true);
-        this.buttonList.add(new GuiButton(ID_PASTE_URL, fieldX + FIELD_W - SMALL_BTN_W, y - 1, SMALL_BTN_W, FIELD_H + 2, "Indsæt"));
+        this.buttonList.add(new StyledButton(ID_PASTE_URL, fieldX + FIELD_W - SMALL_BTN_W, y - 1, SMALL_BTN_W, FIELD_H + 2, "Indsæt"));
         y += FIELD_H + ROW_GAP + 4;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(new GuiButton(ID_SAVE, fieldX, y, FIELD_W, BTN_H, "Gem"));
+        this.buttonList.add(new StyledButton(ID_SAVE, fieldX, y, FIELD_W, BTN_H, "Gem"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(toggleButton = new GuiButton(ID_TOGGLE, fieldX, y, halfW, BTN_H, toggleLabel()));
-        this.buttonList.add(new GuiButton(ID_TEST, fieldX + halfW + 4, y, halfW, BTN_H, "Test forbindelse"));
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, fieldX, y, halfW, BTN_H, toggleLabel()));
+        this.buttonList.add(new StyledButton(ID_TEST, fieldX + halfW + 4, y, halfW, BTN_H, "Test forbindelse"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new GuiButton(ID_CLEAR, fieldX, y, halfW, BTN_H, "Ryd"));
-        this.buttonList.add(new GuiButton(ID_BACK, fieldX + halfW + 4, y, halfW, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, fieldX, y, halfW, BTN_H, "Ryd"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX + halfW + 4, y, halfW, BTN_H, "Tilbage"));
     }
 
     @Override

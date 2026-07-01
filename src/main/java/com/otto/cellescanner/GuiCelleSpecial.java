@@ -60,11 +60,11 @@ public class GuiCelleSpecial extends GuiScreen {
         y += FIELD_H + ROW_GAP + 4;
 
         int halfW = (FIELD_W - 4) / 2;
-        this.buttonList.add(new GuiButton(ID_ADD, fieldX, y, halfW, BTN_H, "Tilføj"));
-        this.buttonList.add(new GuiButton(ID_CLEAR, fieldX + halfW + 4, y, halfW, BTN_H, "Ryd alle"));
+        this.buttonList.add(new StyledButton(ID_ADD, fieldX, y, halfW, BTN_H, "Tilføj"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, fieldX + halfW + 4, y, halfW, BTN_H, "Ryd alle"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new GuiButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
         y += BTN_H + ROW_GAP + 4;
 
         listHintY = y;
@@ -75,7 +75,7 @@ public class GuiCelleSpecial extends GuiScreen {
         for (int i = 0; i < shown; i++) {
             String id = ids.get(i);
             shownIds.add(id);
-            this.buttonList.add(new GuiButton(REMOVE_BASE + i, fieldX, y, FIELD_W, REMOVE_H, "Fjern  " + id));
+            this.buttonList.add(new StyledButton(REMOVE_BASE + i, fieldX, y, FIELD_W, REMOVE_H, "Fjern  " + id));
             y += REMOVE_H + 2;
         }
     }
