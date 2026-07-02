@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.player.EntityPlayer;
@@ -160,6 +161,10 @@ public class GuiPlayerInfo extends GuiScreen {
                 int cx = mx0 + mw / 2;
                 int feet = my0 + mh - 10;
                 int scale = (int) (mh / 3.2);
+                // Force a full-bright lightmap so the model isn't rendered dark
+                // when the player is standing somewhere dim (the "giant shadow").
+                GlStateManager.color(1f, 1f, 1f, 1f);
+                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
                 GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (my0 + mh / 3) - mouseY, entity);
             } finally {
                 mc.gameSettings.hideGUI = prevHide;
