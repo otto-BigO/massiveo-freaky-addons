@@ -42,6 +42,8 @@ public class AutoUpdater {
     private static volatile String pendingMessage = null;
 
     private boolean posted = false;
+    private boolean checkStarted = false;
+    private int tickCount = 0;
 
     public static String getLatestVersion() {
         return latestVersion;
@@ -349,14 +351,23 @@ public class AutoUpdater {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || posted || pendingMessage == null) {
+        if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null) {
-            return;
+        // Start the update check ~5s in, off the startup critical path.
+        if (!checkStarted) {
+            if (++tickCount >= 100) {
+                checkStarted = true;
+                checkAsync();
+            }
         }
-        posted = true;
-        mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
+        // Post the "downloaded, restart" message once a player is in a world.
+        if (!posted && pendingMessage != null) {
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                posted = true;
+                mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
+            }
+        }
     }
 }

@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The main menu for Massiveo's Freaky Addons - the hub you land on from the
- * keybind (default: B). It is two levels: pick a genre (Celler / PvP / World),
- * then pick an addon inside it. Each addon tile shows its live [Til]/[Fra]
- * state, and hovering shows its blurb. Driven off MassiveoAddons, so new
- * addons and genres slot in automatically.
+ * The main menu for Massiveo's Freaky Addons - the hub from the keybind (B).
+ * Two levels: the genre list (Celler / PvP / World), and, when a genre is
+ * chosen, the addons inside it. Each level is its own instance of this screen
+ * (navigation uses displayGuiScreen, never an in-place buttonList rebuild during
+ * a click - that caused clicks to "fall through" onto the newly-placed button).
  */
 public class GuiAddonsHub extends GuiScreen {
 
@@ -25,13 +25,21 @@ public class GuiAddonsHub extends GuiScreen {
     private static final int PANEL_W = 200;
 
     // null = genre level; otherwise the genre whose addons are shown.
-    private String openCategory = null;
+    private final String category;
 
     private final List<String> levelCategories = new ArrayList<String>();
     private final List<MassiveoAddons.Addon> levelAddons = new ArrayList<MassiveoAddons.Addon>();
     private final List<GuiButton> itemButtons = new ArrayList<GuiButton>();
 
     private int firstRowY;
+
+    public GuiAddonsHub() {
+        this(null);
+    }
+
+    public GuiAddonsHub(String category) {
+        this.category = category;
+    }
 
     @Override
     public void initGui() {
@@ -41,11 +49,11 @@ public class GuiAddonsHub extends GuiScreen {
         this.itemButtons.clear();
 
         int rowCount;
-        if (openCategory == null) {
+        if (category == null) {
             levelCategories.addAll(MassiveoAddons.categories());
             rowCount = levelCategories.size();
         } else {
-            levelAddons.addAll(MassiveoAddons.addonsIn(openCategory));
+            levelAddons.addAll(MassiveoAddons.addonsIn(category));
             rowCount = levelAddons.size();
         }
 
@@ -55,7 +63,7 @@ public class GuiAddonsHub extends GuiScreen {
         firstRowY = y;
 
         int id = 0;
-        if (openCategory == null) {
+        if (category == null) {
             for (String cat : levelCategories) {
                 int count = MassiveoAddons.addonsIn(cat).size();
                 String label = catColor(cat) + cat + "  " + EnumChatFormatting.GRAY + "(" + count + ")";
@@ -98,20 +106,20 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
+        // All navigation swaps to a fresh screen rather than rebuilding this
+        // one's buttons mid-click, so a click can never fall through.
         if (button.id == ID_CLOSE) {
             this.mc.displayGuiScreen(null);
             return;
         }
         if (button.id == ID_BACK) {
-            openCategory = null;
-            initGui();
+            this.mc.displayGuiScreen(new GuiAddonsHub());
             return;
         }
         if (button.id >= 0) {
-            if (openCategory == null && button.id < levelCategories.size()) {
-                openCategory = levelCategories.get(button.id);
-                initGui();
-            } else if (openCategory != null && button.id < levelAddons.size()) {
+            if (category == null && button.id < levelCategories.size()) {
+                this.mc.displayGuiScreen(new GuiAddonsHub(levelCategories.get(button.id)));
+            } else if (category != null && button.id < levelAddons.size()) {
                 levelAddons.get(button.id).open();
             }
         }
@@ -136,7 +144,7 @@ public class GuiAddonsHub extends GuiScreen {
         int cx = this.width / 2;
         int titleY = firstRowY - 34;
         drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx, titleY, 0xFF55FF);
-        String subtitle = openCategory == null ? "Vælg en kategori" : catColor(openCategory) + openCategory;
+        String subtitle = category == null ? "Vælg en kategori" : catColor(category) + category;
         drawCenteredString(this.fontRendererObj, subtitle, cx, titleY + 11, 0xAAAAAA);
         drawRect(cx - PANEL_W / 2, titleY + 22, cx + PANEL_W / 2, titleY + 23, Style.ACCENT);
 
@@ -145,7 +153,7 @@ public class GuiAddonsHub extends GuiScreen {
         int hovered = hoveredItem(mouseX, mouseY);
         if (hovered >= 0) {
             String hint;
-            if (openCategory == null) {
+            if (category == null) {
                 String cat = levelCategories.get(hovered);
                 hint = MassiveoAddons.addonsIn(cat).size() + " addons i " + cat;
             } else {

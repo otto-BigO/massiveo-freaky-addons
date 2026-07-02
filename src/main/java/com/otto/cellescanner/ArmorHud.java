@@ -18,17 +18,29 @@ public class ArmorHud {
 
     private static final int ROW_H = 20;
 
+    private static boolean errorLogged = false;
+
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL) {
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !CelleScannerMod.config.armorHudEnabled) {
             return;
         }
+        // A thrown exception in a render handler crashes the whole game, so it's
+        // contained here: the HUD just goes dark and logs once instead.
+        try {
+            render();
+        } catch (Throwable t) {
+            if (!errorLogged) {
+                errorLogged = true;
+                System.err.println("[CelleScanner] Armor HUD render failed, disabling for this session: " + t);
+            }
+        }
+    }
+
+    private void render() {
         CelleConfig cfg = CelleScannerMod.config;
-        if (!cfg.armorHudEnabled) {
-            return;
-        }
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null) {
+        if (mc.thePlayer == null || mc.thePlayer.inventory == null) {
             return;
         }
 
