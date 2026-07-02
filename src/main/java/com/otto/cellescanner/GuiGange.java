@@ -21,11 +21,13 @@ public class GuiGange extends GuiScreen {
 
     private static final int ID_BACK = 0;
     private static final int ID_REFRESH = 1;
+    private static final int ID_TOGGLE = 2;
 
     private static final int ROW_H = 11;
     private static final int PANEL_W = 240;
     private static final String UNKNOWN = "Ukendt gang";
 
+    private GuiButton toggleButton;
     private final List<Row> rows = new ArrayList<Row>();
     private int scroll = 0;
     private int listTop;
@@ -52,14 +54,20 @@ public class GuiGange extends GuiScreen {
     public void initGui() {
         this.buttonList.clear();
         listTop = 40;
-        listBottom = this.height - 34;
+        // Room for two button rows: the detector toggle, then back/refresh.
+        listBottom = this.height - 58;
 
         int left = this.width / 2 - PANEL_W / 2;
         int half = PANEL_W / 2 - 4;
+        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, this.height - 52, PANEL_W, 20, toggleLabel()));
         this.buttonList.add(new StyledButton(ID_BACK, left, this.height - 28, half, 20, "Tilbage"));
         this.buttonList.add(new StyledButton(ID_REFRESH, left + PANEL_W / 2 + 4, this.height - 28, half, 20, "Opdater gange"));
 
         buildRows();
+    }
+
+    private String toggleLabel() {
+        return "Gang-detektor: " + (CelleScannerMod.config.gangAutoQuery ? "Til" : "Fra");
     }
 
     @Override
@@ -164,11 +172,20 @@ public class GuiGange extends GuiScreen {
             case ID_BACK:
                 this.mc.displayGuiScreen(new GuiCelleMenu());
                 break;
-            case ID_REFRESH:
-                GangInfo.requestResweep();
+            case ID_TOGGLE:
+                CelleActions.toggleGangAutoQuery();
+                toggleButton.displayString = toggleLabel();
                 flash = CelleScannerMod.config.gangAutoQuery
-                        ? "Genscanner gange..."
-                        : "Auto-hentning er slået fra (slå til i indstillinger).";
+                        ? "Gang-detektor slået til."
+                        : "Gang-detektor slået fra - ingen /ce info sendes.";
+                break;
+            case ID_REFRESH:
+                if (!CelleScannerMod.config.gangAutoQuery) {
+                    flash = "Gang-detektor er slået fra - slå den til først.";
+                    break;
+                }
+                GangInfo.requestResweep();
+                flash = "Genscanner gange...";
                 break;
             default:
                 break;
