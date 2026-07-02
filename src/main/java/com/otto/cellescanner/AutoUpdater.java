@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
@@ -35,6 +36,9 @@ public class AutoUpdater {
     private static final String OWNER = "otto-BigO";
     private static final String REPO = "massiveo-freaky-addons";
     private static final String LATEST_URL = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/releases/latest";
+    // The full release list (newest first), including pre-releases - used when
+    // the player has opted in to updating to pre-release (test) builds.
+    private static final String RELEASES_URL = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/releases?per_page=30";
 
     // Set by the background check, read/shown on the main thread.
     private static volatile String latestVersion = null;
@@ -77,7 +81,7 @@ public class AutoUpdater {
 
     private static void check() throws Exception {
         status = "tjekker...";
-        JsonObject release = fetchLatestRelease();
+        JsonObject release = fetchBestRelease();
         if (release == null || !release.has("tag_name")) {
             status = "ingen release fundet";
             return;
@@ -113,23 +117,37 @@ public class AutoUpdater {
         }
         File modsDir = self.getParentFile();
 
-        File tmp = new File(modsDir, assetName + ".tmp");
+        // Stage the download to a ".pending" file (not a .jar, so Forge never
+        // loads a half-download or a second copy of the mod).
+        File tmp = new File(modsDir, assetName + ".pending");
+        tmp.delete();
         download(assetUrl, tmp);
 
+        File dest = new File(modsDir, assetName);
+
+        // Fast path: where the OS doesn't lock the running jar (Linux/macOS) we
+        // can remove the old one and move the new one in right now.
+        boolean swapped = false;
         if (self.delete()) {
-            File dest = new File(modsDir, assetName);
-            if (tmp.renameTo(dest)) {
-                status = "hentet " + latestVersion + " - genstart";
-                pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
-            } else {
-                status = "kunne ikke omdøbe";
-                pendingMessage = EnumChatFormatting.RED + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Kunne ikke installere opdateringen. Hent den her: " + releaseHtmlUrl(release);
-            }
+            swapped = tmp.renameTo(dest);
+        }
+        if (swapped) {
+            status = "hentet " + latestVersion + " - genstart";
+            pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
+            return;
+        }
+
+        // Locked (Windows): the JVM still holds the jar open, so it can't be
+        // replaced in place. Defer the swap to game-exit - a tiny detached
+        // helper waits for the file lock to clear, deletes the old jar, moves
+        // the staged one into place, then removes itself. The staged file stays
+        // as ".pending" until then, so we never leave two loadable jars behind.
+        if (scheduleSwapOnExit(self, tmp, dest)) {
+            status = "hentet " + latestVersion + " - luk spillet helt";
+            pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Opdatering til " + latestVersion + " hentet - luk spillet helt og aabn igen for at aktivere.";
         } else {
-            // Can't delete the running jar (locked, e.g. Windows). Don't leave a
-            // second jar in mods - fall back to a manual-download message.
             tmp.delete();
             status = "kan ikke erstatte automatisk";
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
@@ -137,8 +155,126 @@ public class AutoUpdater {
         }
     }
 
+    // Set once a swap has been staged, so re-checks don't register several hooks.
+    private static volatile boolean swapScheduled = false;
+
+    /**
+     * Registers a JVM shutdown hook that, as the game exits, launches a small
+     * detached OS helper which waits for the running jar's lock to clear,
+     * deletes it, moves the staged download into its place, then deletes itself.
+     * This is how the update applies on Windows, where the jar can't be replaced
+     * while the game holds it open. Returns false if the helper couldn't be
+     * written (the caller then falls back to a manual-download message).
+     */
+    private static boolean scheduleSwapOnExit(final File oldJar, final File pending, final File dest) {
+        if (swapScheduled) {
+            return true;
+        }
+        final boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        final File script;
+        try {
+            script = writeSwapScript(oldJar, pending, dest, windows);
+        } catch (Exception e) {
+            System.err.println("[CelleScanner] Could not stage update swap: " + e);
+            return false;
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ProcessBuilder pb = windows
+                            ? new ProcessBuilder("cmd.exe", "/c", "start", "/min", "", script.getAbsolutePath())
+                            : new ProcessBuilder("/bin/sh", script.getAbsolutePath());
+                    pb.directory(dest.getParentFile());
+                    pb.start();
+                } catch (Exception e) {
+                    System.err.println("[CelleScanner] Update swap launch failed: " + e);
+                }
+            }
+        }, "Massiveo-UpdateSwap"));
+        swapScheduled = true;
+        return true;
+    }
+
+    private static File writeSwapScript(File oldJar, File pending, File dest, boolean windows) throws Exception {
+        File dir = dest.getParentFile();
+        String old = oldJar.getAbsolutePath();
+        String pend = pending.getAbsolutePath();
+        String fin = dest.getAbsolutePath();
+        File script;
+        String content;
+        if (windows) {
+            // Loop until the old jar can be deleted (i.e. the JVM has exited and
+            // released it), then move the staged jar into place and self-delete.
+            script = new File(dir, "massiveo-update.bat");
+            content = "@echo off\r\n"
+                    + "setlocal\r\n"
+                    + ":wait\r\n"
+                    + "del \"" + old + "\" >nul 2>&1\r\n"
+                    + "if exist \"" + old + "\" (\r\n"
+                    + "  ping -n 2 127.0.0.1 >nul\r\n"
+                    + "  goto wait\r\n"
+                    + ")\r\n"
+                    + "move /y \"" + pend + "\" \"" + fin + "\" >nul 2>&1\r\n"
+                    + "del \"%~f0\"\r\n";
+        } else {
+            script = new File(dir, "massiveo-update.sh");
+            content = "#!/bin/sh\n"
+                    + "while ! rm -f \"" + old + "\" 2>/dev/null; do sleep 1; done\n"
+                    + "mv -f \"" + pend + "\" \"" + fin + "\"\n"
+                    + "rm -- \"$0\"\n";
+        }
+        OutputStream out = new FileOutputStream(script);
+        try {
+            out.write(content.getBytes(UTF8));
+        } finally {
+            out.close();
+        }
+        return script;
+    }
+
+    /**
+     * The release to offer: the newest stable one normally, or - when the
+     * player has opted in - the newest of ALL releases including pre-release
+     * (test) builds. "Newest" is by version, so a stable release always wins a
+     * tie against a pre-release of the same base (see compareVersions).
+     */
+    private static JsonObject fetchBestRelease() throws Exception {
+        if (!CelleScannerMod.config.autoUpdatePreRelease) {
+            return fetchLatestRelease();
+        }
+        JsonElement el = fetchJson(RELEASES_URL);
+        if (el == null || !el.isJsonArray()) {
+            return null;
+        }
+        JsonArray arr = el.getAsJsonArray();
+        JsonObject best = null;
+        String bestTag = null;
+        for (int i = 0; i < arr.size(); i++) {
+            JsonObject r = arr.get(i).getAsJsonObject();
+            if (r.has("draft") && r.get("draft").getAsBoolean()) {
+                continue; // never offer an unpublished draft
+            }
+            if (!r.has("tag_name")) {
+                continue;
+            }
+            String tag = r.get("tag_name").getAsString();
+            if (best == null || compareVersions(tag, bestTag) > 0) {
+                best = r;
+                bestTag = tag;
+            }
+        }
+        return best;
+    }
+
     private static JsonObject fetchLatestRelease() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(LATEST_URL).openConnection();
+        JsonElement el = fetchJson(LATEST_URL);
+        return el == null ? null : el.getAsJsonObject();
+    }
+
+    /** GETs a GitHub API URL and returns the parsed JSON, or null if there are no releases yet (404). */
+    private static JsonElement fetchJson(String urlStr) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept", "application/vnd.github+json");
         conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
@@ -151,7 +287,7 @@ public class AutoUpdater {
                 throw new Exception("HTTP " + code);
             }
             InputStreamReader reader = new InputStreamReader(is, UTF8);
-            JsonObject obj = new JsonParser().parse(reader).getAsJsonObject();
+            JsonElement el = new JsonParser().parse(reader);
             reader.close();
             if (code == 404) {
                 return null; // no releases yet
@@ -159,7 +295,7 @@ public class AutoUpdater {
             if (code < 200 || code >= 300) {
                 throw new Exception("HTTP " + code);
             }
-            return obj;
+            return el;
         } finally {
             conn.disconnect();
         }
@@ -234,7 +370,14 @@ public class AutoUpdater {
         }
     }
 
-    /** Positive if a > b, negative if a < b, 0 if equal. Ignores a leading 'v' and any non-numeric suffix. */
+    /**
+     * Positive if a &gt; b, negative if a &lt; b, 0 if equal. Ignores a leading
+     * 'v'. Compares the numeric parts first (1.0.10 &gt; 1.0.9); on a tie, a
+     * pre-release suffix ("-t1") ranks BELOW the plain release of the same base
+     * (so 1.0.9 &gt; 1.0.9-t1), and two pre-releases compare by their suffix
+     * number (1.0.9-t2 &gt; 1.0.9-t1). This is what lets the updater move between
+     * test builds when pre-releases are enabled.
+     */
     static int compareVersions(String a, String b) {
         int[] pa = parseVersion(a);
         int[] pb = parseVersion(b);
@@ -246,7 +389,32 @@ public class AutoUpdater {
                 return Integer.compare(x, y);
             }
         }
-        return 0;
+        return Integer.compare(preReleaseRank(a), preReleaseRank(b));
+    }
+
+    /**
+     * Ordering rank of the pre-release suffix: a plain release (no "-suffix")
+     * outranks every pre-release of the same base, so it returns MAX_VALUE.
+     * "1.0.9-t2" returns 2, "1.0.9-t1" returns 1; a suffix with no number is 0.
+     */
+    private static int preReleaseRank(String v) {
+        if (v == null) {
+            return Integer.MAX_VALUE;
+        }
+        String s = v.trim();
+        if (s.startsWith("v") || s.startsWith("V")) {
+            s = s.substring(1);
+        }
+        int dash = s.indexOf('-');
+        if (dash < 0) {
+            return Integer.MAX_VALUE; // no pre-release suffix -> a plain release
+        }
+        String digits = s.substring(dash + 1).replaceAll("^[^0-9]*", "").replaceAll("[^0-9].*$", "");
+        try {
+            return digits.isEmpty() ? 0 : Integer.parseInt(digits);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static int[] parseVersion(String v) {

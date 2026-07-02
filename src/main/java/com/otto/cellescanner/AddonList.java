@@ -67,6 +67,18 @@ public final class AddonList {
             }
         });
 
+        // Gange addon shelved for now - the code (GuiGange, GangInfo,
+        // GangRanges) is kept so it can be picked back up later. To re-enable,
+        // restore this registration, the GangInfo event registration and the
+        // GangRanges.init call in CelleScannerMod.
+        // MassiveoAddons.register(new MassiveoAddons.Addon() {
+        //     public String name() { return "Gange"; }
+        //     public String description() { return "Alle gange og deres celle-timere (højreklik skilte)"; }
+        //     public String category() { return "Celler"; }
+        //     public boolean isActive() { return config.gangAutoQuery; }
+        //     public void open() { CelleActions.openGange(); }
+        // });
+
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Bande ESP";

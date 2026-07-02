@@ -111,6 +111,14 @@ public class CelleConfig {
     public boolean mineCellerEspEnabled = true;
     public List<String> myCelleIds = new ArrayList<String>();
 
+    // Gange screen: quietly run "/ce info <id>" for scanned celler we don't yet
+    // know the gang (corridor) of, learn it from the reply, and group every
+    // remembered celle by gang with its live timer. The auto-queries are hidden
+    // from chat and throttled; turning this off keeps the screen but stops it
+    // filling in new gange on its own. Boxed Boolean so a config written before
+    // this field existed loads as null (-> default on) rather than false.
+    public Boolean gangAutoQuery = Boolean.TRUE;
+
     // Item Value addon: shows an item's worth (from the FreakyVille price list)
     // as a line in its tooltip. Prices live in a separate editable file
     // (config/massiveo_prices.json) so they can be updated without a rebuild.
@@ -119,6 +127,11 @@ public class CelleConfig {
     // Auto-update: on launch, check the GitHub repo's latest release and, if
     // newer, download the jar into the mods folder so a restart applies it.
     public boolean autoUpdateEnabled = true;
+
+    // When on, the updater also considers pre-release (test) builds, not just
+    // stable releases - so you can ride the test channel. Off by default; a
+    // stable release always beats a pre-release of the same version number.
+    public boolean autoUpdatePreRelease = false;
 
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
@@ -235,8 +248,10 @@ public class CelleConfig {
                 this.armorSkinPack = "hypixel".equals(loaded.armorSkinPack) ? "hypixel" : "mesterholm";
                 this.mineCellerEspEnabled = loaded.mineCellerEspEnabled;
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
+                this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
+                this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;
                 this.armorHudEnabled = loaded.armorHudEnabled;
                 this.armorHudX = loaded.armorHudX;
                 this.armorHudY = loaded.armorHudY;

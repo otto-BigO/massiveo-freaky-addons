@@ -93,6 +93,8 @@ public class CommandCeller extends CommandBase {
             CelleActions.reloadConfig();
         } else if ("debug".equals(sub)) {
             CelleActions.debugDump();
+        } else if ("signdump".equals(sub) || "sign".equals(sub)) {
+            CelleActions.dumpNearestSign();
         } else if ("clear".equals(sub)) {
             CelleActions.clearCache();
         } else if ("move".equals(sub)) {

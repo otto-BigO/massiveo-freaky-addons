@@ -31,14 +31,66 @@ public final class CelleActions {
 
     public static void reloadConfig() {
         CelleScannerMod.config.load();
+        GangRanges.load();
         message("Konfiguration genindlæst. minHours=" + CelleScannerMod.config.minHours
                 + " maxHours=" + CelleScannerMod.config.maxHours
-                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra"));
+                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra")
+                + ", gang-ranges=" + GangRanges.count());
     }
 
     public static void clearCache() {
         CelleScannerMod.scanner.clear();
         message("Cache ryddet.");
+    }
+
+    /**
+     * Dumps the raw text of the celle sign you're looking at (or the nearest
+     * sign if you're not looking at one), all four lines with their formatting
+     * codes shown as '&'. Diagnostic: lets us see whether a sign carries any
+     * gang/lokation info we aren't already parsing (it only has 4 lines:
+     * status, owner, id, timer).
+     */
+    public static void dumpNearestSign() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.theWorld == null) {
+            message("Ingen verden.");
+            return;
+        }
+        net.minecraft.tileentity.TileEntitySign target = null;
+
+        // Prefer the sign you're pointing at.
+        if (mc.objectMouseOver != null && mc.objectMouseOver.getBlockPos() != null) {
+            net.minecraft.tileentity.TileEntity te = mc.theWorld.getTileEntity(mc.objectMouseOver.getBlockPos());
+            if (te instanceof net.minecraft.tileentity.TileEntitySign) {
+                target = (net.minecraft.tileentity.TileEntitySign) te;
+            }
+        }
+        // Otherwise the closest loaded sign.
+        if (target == null) {
+            double best = Double.MAX_VALUE;
+            for (Object o : mc.theWorld.loadedTileEntityList) {
+                if (!(o instanceof net.minecraft.tileentity.TileEntitySign)) {
+                    continue;
+                }
+                net.minecraft.tileentity.TileEntitySign s = (net.minecraft.tileentity.TileEntitySign) o;
+                double d = mc.thePlayer.getDistanceSq(s.getPos().getX() + 0.5, s.getPos().getY() + 0.5, s.getPos().getZ() + 0.5);
+                if (d < best) {
+                    best = d;
+                    target = s;
+                }
+            }
+        }
+        if (target == null) {
+            message("Ingen skilte i nærheden.");
+            return;
+        }
+
+        message("Skilt @ " + target.getPos().getX() + "," + target.getPos().getY() + "," + target.getPos().getZ() + ":");
+        for (int i = 0; i < target.signText.length; i++) {
+            String raw = target.signText[i] == null ? "" : target.signText[i].getFormattedText();
+            raw = raw.replace('§', '&');
+            message("  [" + (i + 1) + "] \"" + raw + "\"");
+        }
     }
 
     public static void debugDump() {
@@ -255,6 +307,16 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiMineCeller());
     }
 
+    public static void openGange() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiGange());
+    }
+
+    public static void toggleGangAutoQuery() {
+        CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
+        CelleScannerMod.config.save();
+        message("Gange auto-hentning: " + (CelleScannerMod.config.gangAutoQuery ? "til" : "fra"));
+    }
+
     public static void openItemValues() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiItemValues());
     }
@@ -271,6 +333,12 @@ public final class CelleActions {
         CelleScannerMod.config.autoUpdateEnabled = !CelleScannerMod.config.autoUpdateEnabled;
         CelleScannerMod.config.save();
         message("Auto-opdatering er nu " + (CelleScannerMod.config.autoUpdateEnabled ? "til" : "fra") + ".");
+    }
+
+    public static void toggleUpdatePreRelease() {
+        CelleScannerMod.config.autoUpdatePreRelease = !CelleScannerMod.config.autoUpdatePreRelease;
+        CelleScannerMod.config.save();
+        message("Opdater til pre-releases (test): " + (CelleScannerMod.config.autoUpdatePreRelease ? "til" : "fra"));
     }
 
     public static void checkForUpdateNow() {
