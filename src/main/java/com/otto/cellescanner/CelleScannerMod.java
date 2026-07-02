@@ -17,7 +17,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "1.0.9-t8";
+    public static final String VERSION = "1.0.9-t9";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -31,7 +31,7 @@ public class CelleScannerMod {
         config.load();
         CellePositions.init(event.getSuggestedConfigurationFile().getParentFile());
         ItemValues.init(event.getSuggestedConfigurationFile().getParentFile());
-        GangRanges.init(event.getSuggestedConfigurationFile().getParentFile());
+        // Gange feature shelved - GangRanges.init(...) left out for now.
     }
 
     @EventHandler
@@ -49,7 +49,7 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new ChestAlarm());
         MinecraftForge.EVENT_BUS.register(new ArmorSkins());
         MinecraftForge.EVENT_BUS.register(new MineCeller());
-        MinecraftForge.EVENT_BUS.register(new GangInfo());
+        // GangInfo (passive gang detection) shelved - not registered for now.
         MinecraftForge.EVENT_BUS.register(new ItemValues());
         MinecraftForge.EVENT_BUS.register(new ArmorHud());
         // The update check is NOT started here. Doing network + class loading
