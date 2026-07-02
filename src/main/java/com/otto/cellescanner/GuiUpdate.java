@@ -14,11 +14,13 @@ public class GuiUpdate extends GuiScreen {
     private static final int ID_TOGGLE = 0;
     private static final int ID_CHECK = 1;
     private static final int ID_BACK = 2;
+    private static final int ID_PRERELEASE = 3;
 
     private static final int BTN_H = 20;
     private static final int PANEL_W = 220;
 
     private GuiButton toggleButton;
+    private GuiButton preReleaseButton;
     private boolean triedCheck = false;
 
     @Override
@@ -35,8 +37,10 @@ public class GuiUpdate extends GuiScreen {
         }
 
         int left = this.width / 2 - PANEL_W / 2;
-        int y = this.height / 2 - 6;
+        int y = this.height / 2 - 18;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
+        y += BTN_H + 6;
+        this.buttonList.add(preReleaseButton = new StyledButton(ID_PRERELEASE, left, y, PANEL_W, BTN_H, preReleaseLabel()));
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_CHECK, left, y, PANEL_W, BTN_H, "Tjek for opdatering nu"));
         y += BTN_H + 6;
@@ -47,12 +51,22 @@ public class GuiUpdate extends GuiScreen {
         return "Auto-opdatering: " + (CelleScannerMod.config.autoUpdateEnabled ? "Til" : "Fra");
     }
 
+    private String preReleaseLabel() {
+        return "Pre-releases (test): " + (CelleScannerMod.config.autoUpdatePreRelease ? "Til" : "Fra");
+    }
+
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case ID_TOGGLE:
                 CelleActions.toggleAutoUpdate();
                 toggleButton.displayString = toggleLabel();
+                break;
+            case ID_PRERELEASE:
+                CelleActions.toggleUpdatePreRelease();
+                preReleaseButton.displayString = preReleaseLabel();
+                // Re-check so the "newest version" line reflects the new channel.
+                AutoUpdater.checkAsync();
                 break;
             case ID_CHECK:
                 CelleActions.checkForUpdateNow();

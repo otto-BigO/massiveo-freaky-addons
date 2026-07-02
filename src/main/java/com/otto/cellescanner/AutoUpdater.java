@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
@@ -35,6 +36,9 @@ public class AutoUpdater {
     private static final String OWNER = "otto-BigO";
     private static final String REPO = "massiveo-freaky-addons";
     private static final String LATEST_URL = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/releases/latest";
+    // The full release list (newest first), including pre-releases - used when
+    // the player has opted in to updating to pre-release (test) builds.
+    private static final String RELEASES_URL = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/releases?per_page=30";
 
     // Set by the background check, read/shown on the main thread.
     private static volatile String latestVersion = null;
@@ -77,7 +81,7 @@ public class AutoUpdater {
 
     private static void check() throws Exception {
         status = "tjekker...";
-        JsonObject release = fetchLatestRelease();
+        JsonObject release = fetchBestRelease();
         if (release == null || !release.has("tag_name")) {
             status = "ingen release fundet";
             return;
@@ -137,8 +141,48 @@ public class AutoUpdater {
         }
     }
 
+    /**
+     * The release to offer: the newest stable one normally, or - when the
+     * player has opted in - the newest of ALL releases including pre-release
+     * (test) builds. "Newest" is by version, so a stable release always wins a
+     * tie against a pre-release of the same base (see compareVersions).
+     */
+    private static JsonObject fetchBestRelease() throws Exception {
+        if (!CelleScannerMod.config.autoUpdatePreRelease) {
+            return fetchLatestRelease();
+        }
+        JsonElement el = fetchJson(RELEASES_URL);
+        if (el == null || !el.isJsonArray()) {
+            return null;
+        }
+        JsonArray arr = el.getAsJsonArray();
+        JsonObject best = null;
+        String bestTag = null;
+        for (int i = 0; i < arr.size(); i++) {
+            JsonObject r = arr.get(i).getAsJsonObject();
+            if (r.has("draft") && r.get("draft").getAsBoolean()) {
+                continue; // never offer an unpublished draft
+            }
+            if (!r.has("tag_name")) {
+                continue;
+            }
+            String tag = r.get("tag_name").getAsString();
+            if (best == null || compareVersions(tag, bestTag) > 0) {
+                best = r;
+                bestTag = tag;
+            }
+        }
+        return best;
+    }
+
     private static JsonObject fetchLatestRelease() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(LATEST_URL).openConnection();
+        JsonElement el = fetchJson(LATEST_URL);
+        return el == null ? null : el.getAsJsonObject();
+    }
+
+    /** GETs a GitHub API URL and returns the parsed JSON, or null if there are no releases yet (404). */
+    private static JsonElement fetchJson(String urlStr) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept", "application/vnd.github+json");
         conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
@@ -151,7 +195,7 @@ public class AutoUpdater {
                 throw new Exception("HTTP " + code);
             }
             InputStreamReader reader = new InputStreamReader(is, UTF8);
-            JsonObject obj = new JsonParser().parse(reader).getAsJsonObject();
+            JsonElement el = new JsonParser().parse(reader);
             reader.close();
             if (code == 404) {
                 return null; // no releases yet
@@ -159,7 +203,7 @@ public class AutoUpdater {
             if (code < 200 || code >= 300) {
                 throw new Exception("HTTP " + code);
             }
-            return obj;
+            return el;
         } finally {
             conn.disconnect();
         }
@@ -234,7 +278,14 @@ public class AutoUpdater {
         }
     }
 
-    /** Positive if a > b, negative if a < b, 0 if equal. Ignores a leading 'v' and any non-numeric suffix. */
+    /**
+     * Positive if a &gt; b, negative if a &lt; b, 0 if equal. Ignores a leading
+     * 'v'. Compares the numeric parts first (1.0.10 &gt; 1.0.9); on a tie, a
+     * pre-release suffix ("-t1") ranks BELOW the plain release of the same base
+     * (so 1.0.9 &gt; 1.0.9-t1), and two pre-releases compare by their suffix
+     * number (1.0.9-t2 &gt; 1.0.9-t1). This is what lets the updater move between
+     * test builds when pre-releases are enabled.
+     */
     static int compareVersions(String a, String b) {
         int[] pa = parseVersion(a);
         int[] pb = parseVersion(b);
@@ -246,7 +297,32 @@ public class AutoUpdater {
                 return Integer.compare(x, y);
             }
         }
-        return 0;
+        return Integer.compare(preReleaseRank(a), preReleaseRank(b));
+    }
+
+    /**
+     * Ordering rank of the pre-release suffix: a plain release (no "-suffix")
+     * outranks every pre-release of the same base, so it returns MAX_VALUE.
+     * "1.0.9-t2" returns 2, "1.0.9-t1" returns 1; a suffix with no number is 0.
+     */
+    private static int preReleaseRank(String v) {
+        if (v == null) {
+            return Integer.MAX_VALUE;
+        }
+        String s = v.trim();
+        if (s.startsWith("v") || s.startsWith("V")) {
+            s = s.substring(1);
+        }
+        int dash = s.indexOf('-');
+        if (dash < 0) {
+            return Integer.MAX_VALUE; // no pre-release suffix -> a plain release
+        }
+        String digits = s.substring(dash + 1).replaceAll("^[^0-9]*", "").replaceAll("[^0-9].*$", "");
+        try {
+            return digits.isEmpty() ? 0 : Integer.parseInt(digits);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private static int[] parseVersion(String v) {

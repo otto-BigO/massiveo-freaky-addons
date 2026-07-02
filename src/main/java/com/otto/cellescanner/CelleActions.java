@@ -283,6 +283,12 @@ public final class CelleActions {
         message("Auto-opdatering er nu " + (CelleScannerMod.config.autoUpdateEnabled ? "til" : "fra") + ".");
     }
 
+    public static void toggleUpdatePreRelease() {
+        CelleScannerMod.config.autoUpdatePreRelease = !CelleScannerMod.config.autoUpdatePreRelease;
+        CelleScannerMod.config.save();
+        message("Opdater til pre-releases (test): " + (CelleScannerMod.config.autoUpdatePreRelease ? "til" : "fra"));
+    }
+
     public static void checkForUpdateNow() {
         AutoUpdater.checkAsync();
         message("Tjekker for opdatering...");

@@ -128,6 +128,11 @@ public class CelleConfig {
     // newer, download the jar into the mods folder so a restart applies it.
     public boolean autoUpdateEnabled = true;
 
+    // When on, the updater also considers pre-release (test) builds, not just
+    // stable releases - so you can ride the test channel. Off by default; a
+    // stable release always beats a pre-release of the same version number.
+    public boolean autoUpdatePreRelease = false;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -246,6 +251,7 @@ public class CelleConfig {
                 this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
+                this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;
                 this.armorHudEnabled = loaded.armorHudEnabled;
                 this.armorHudX = loaded.armorHudX;
                 this.armorHudY = loaded.armorHudY;
