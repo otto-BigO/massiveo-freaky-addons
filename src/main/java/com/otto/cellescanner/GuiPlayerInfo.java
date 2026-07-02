@@ -207,8 +207,8 @@ public class GuiPlayerInfo extends GuiScreen {
             mc.gameSettings.hideGUI = true;
             try {
                 int cx = mx0 + mw / 2;
-                int feet = my0 + mh - 10;
-                int scale = (int) (mh / 3.2);
+                int feet = my0 + mh - 8;
+                int scale = (int) (mh / 2.5);
                 // Full-bright lightmap so the model isn't dark in dim areas.
                 GlStateManager.color(1f, 1f, 1f, 1f);
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
