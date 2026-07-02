@@ -5,6 +5,7 @@ import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
@@ -14,27 +15,31 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.List;
 
 /**
- * The player info menu (shift + right-click a player, or search by name). Shows
- * a 3D model of the player, their name, bande, celle (from /ce info) and each
- * equipped armor piece with its enchants. Armor/skin/bande are captured on open;
- * the live entity is kept only to draw the rotating 3D model.
+ * The player info menu (shift + right-click a player, or search by name): a
+ * rotating 3D model on the left, and the player's bande, celle (from /ce info)
+ * and armor with enchants on the right. Armor/skin/bande are captured on open;
+ * the live entity is kept only to draw the model.
  */
 public class GuiPlayerInfo extends GuiScreen {
 
     private static final int ID_BACK = 0;
-    private static final int CARD_W = 300;
+    private static final int CARD_W = 330;
+    private static final int CARD_H = 208;
+    private static final int MODEL_W = 96;
     private static final int ROW_H = 20;
+    private static final int INFO_W = CARD_W - MODEL_W - 32;
 
     private static final String[] SLOT_NAMES = {"Støvler", "Bukser", "Brystplade", "Hjelm"};
 
-    private final EntityPlayer entity;      // live, for the 3D model only (may unload)
+    private final EntityPlayer entity;
     private final String playerName;
-    private final String rawName;           // plain name, for the /ce info lookup
+    private final String rawName;
     private final String bande;
     private final ItemStack[] armor = new ItemStack[4];
     private ResourceLocation skin;
@@ -69,8 +74,6 @@ public class GuiPlayerInfo extends GuiScreen {
             if (t == null) {
                 return null;
             }
-            // formatString("") returns the team's prefix + suffix (the tag shown
-            // around the nametag) with no name in between - that's the bande tag.
             String combo = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
             return combo.isEmpty() ? null : combo;
         } catch (Throwable t) {
@@ -78,11 +81,18 @@ public class GuiPlayerInfo extends GuiScreen {
         }
     }
 
+    private int cardL() {
+        return this.width / 2 - CARD_W / 2;
+    }
+
+    private int cardT() {
+        return this.height / 2 - CARD_H / 2;
+    }
+
     @Override
     public void initGui() {
         this.buttonList.clear();
-        int left = this.width / 2 - CARD_W / 2;
-        this.buttonList.add(new StyledButton(ID_BACK, left, this.height - 30, CARD_W, 20, "Luk"));
+        this.buttonList.add(new StyledButton(ID_BACK, cardL(), cardT() + CARD_H + 6, CARD_W, 20, "Luk"));
         PlayerInfo.lookup(rawName);
     }
 
@@ -96,45 +106,31 @@ public class GuiPlayerInfo extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
-        Style.card(this.width, this.height);
-
         Minecraft mc = Minecraft.getMinecraft();
-        int left = this.width / 2 - CARD_W / 2;
-        int top = 26;
+        int cardL = cardL();
+        int cardT = cardT();
 
-        drawCenteredString(this.fontRendererObj, playerName, this.width / 2, 12, 0xFFFFFF);
-        drawRect(left, 24, left + CARD_W, 25, Style.ACCENT);
+        Style.panel(cardL, cardT, cardL + CARD_W, cardT + CARD_H);
+        drawCenteredString(this.fontRendererObj, playerName, this.width / 2, cardT + 8, 0xFFFFFF);
+        drawRect(cardL + 8, cardT + 20, cardL + CARD_W - 8, cardT + 21, Style.ACCENT);
 
-        // Left: 3D model in a framed box.
-        int boxL = left;
-        int boxW = 88;
-        int boxTop = top + 4;
-        int boxBottom = this.height - 40;
-        Style.panel(boxL, boxTop, boxL + boxW, boxBottom);
-        if (!modelBroken && entity != null && !entity.isDead) {
-            try {
-                int cx = boxL + boxW / 2;
-                int feet = boxBottom - 18;
-                int scale = Math.max(30, (boxBottom - boxTop) / 4);
-                GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (boxTop + 40) - mouseY, entity);
-            } catch (Throwable t) {
-                modelBroken = true;
-            }
-        }
-        if (modelBroken || entity == null || entity.isDead) {
-            drawHead(mc, boxL + boxW / 2 - 16, boxTop + 20, 32);
-        }
+        // Left: 3D model in its own panel.
+        int mx0 = cardL + 8;
+        int my0 = cardT + 26;
+        int mh = CARD_H - 34;
+        Style.panel(mx0, my0, mx0 + MODEL_W, my0 + mh);
+        drawModel(mc, mx0, my0, MODEL_W, mh, mouseX, mouseY);
 
         // Right: info column.
-        int x = boxL + boxW + 12;
-        int y = top + 2;
+        int x = mx0 + MODEL_W + 12;
+        int y = cardT + 28;
 
         if (bande != null) {
             drawString(this.fontRendererObj, EnumChatFormatting.RED + "Bande: " + EnumChatFormatting.WHITE + bande, x, y, 0xFFFFFF);
         } else {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Bande: ingen/ukendt", x, y, 0xAAAAAA);
+            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Bande: ukendt", x, y, 0xAAAAAA);
         }
-        y += 14;
+        y += 15;
 
         y = drawCelle(x, y);
         y += 6;
@@ -144,6 +140,36 @@ public class GuiPlayerInfo extends GuiScreen {
         drawArmor(mc, x, y);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
+        if (modelBroken || entity == null || entity.isDead) {
+            drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
+            return;
+        }
+        try {
+            ScaledResolution sr = new ScaledResolution(mc);
+            int sf = sr.getScaleFactor();
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            GL11.glScissor(mx0 * sf, mc.displayHeight - (my0 + mh) * sf, mw * sf, mh * sf);
+            boolean prevHide = mc.gameSettings.hideGUI;
+            // hideGUI makes Minecraft.isGuiEnabled() false, which the entity name
+            // render checks - so this hides the floating name + health hearts.
+            mc.gameSettings.hideGUI = true;
+            try {
+                int cx = mx0 + mw / 2;
+                int feet = my0 + mh - 10;
+                int scale = (int) (mh / 3.2);
+                GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (my0 + mh / 3) - mouseY, entity);
+            } finally {
+                mc.gameSettings.hideGUI = prevHide;
+                GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            }
+        } catch (Throwable t) {
+            modelBroken = true;
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GlStateManager.color(1f, 1f, 1f, 1f);
+        }
     }
 
     private int drawCelle(int x, int y) {
@@ -170,9 +196,8 @@ public class GuiPlayerInfo extends GuiScreen {
             y += 10;
         }
         if (!c.members.isEmpty()) {
-            String m = join(c.members);
             drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Medlemmer: " + EnumChatFormatting.WHITE
-                    + trimToWidth(m, CARD_W - 100 - 8), x + 4, y, 0xFFFFFF);
+                    + trimToWidth(join(c.members), INFO_W - 8), x + 4, y, 0xFFFFFF);
             y += 10;
         }
         return y;
@@ -203,7 +228,7 @@ public class GuiPlayerInfo extends GuiScreen {
             try {
                 List<String> tip = s.getTooltip(mc.thePlayer, false);
                 String name = tip.isEmpty() ? s.getDisplayName() : tip.get(0);
-                drawString(this.fontRendererObj, name, x + 22, ry, 0xFFFFFF);
+                drawString(this.fontRendererObj, trimToWidth(name, INFO_W - 24), x + 22, ry, 0xFFFFFF);
                 StringBuilder ench = new StringBuilder();
                 for (int k = 1; k < tip.size(); k++) {
                     String line = tip.get(k) == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(tip.get(k)).trim();
@@ -216,7 +241,7 @@ public class GuiPlayerInfo extends GuiScreen {
                     ench.append(line);
                 }
                 String enchLine = ench.length() > 0 ? ench.toString() : "ingen fortryllelser";
-                drawString(this.fontRendererObj, EnumChatFormatting.GRAY + trimToWidth(enchLine, CARD_W - 100 - 24), x + 22, ry + 10, 0xAAAAAA);
+                drawString(this.fontRendererObj, EnumChatFormatting.GRAY + trimToWidth(enchLine, INFO_W - 24), x + 22, ry + 10, 0xAAAAAA);
             } catch (Throwable t) {
                 drawString(this.fontRendererObj, s.getDisplayName(), x + 22, ry, 0xFFFFFF);
             }
