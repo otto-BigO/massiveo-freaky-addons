@@ -117,28 +117,120 @@ public class AutoUpdater {
         }
         File modsDir = self.getParentFile();
 
-        File tmp = new File(modsDir, assetName + ".tmp");
+        // Stage the download to a ".pending" file (not a .jar, so Forge never
+        // loads a half-download or a second copy of the mod).
+        File tmp = new File(modsDir, assetName + ".pending");
+        tmp.delete();
         download(assetUrl, tmp);
 
+        File dest = new File(modsDir, assetName);
+
+        // Fast path: where the OS doesn't lock the running jar (Linux/macOS) we
+        // can remove the old one and move the new one in right now.
+        boolean swapped = false;
         if (self.delete()) {
-            File dest = new File(modsDir, assetName);
-            if (tmp.renameTo(dest)) {
-                status = "hentet " + latestVersion + " - genstart";
-                pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
-            } else {
-                status = "kunne ikke omdøbe";
-                pendingMessage = EnumChatFormatting.RED + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Kunne ikke installere opdateringen. Hent den her: " + releaseHtmlUrl(release);
-            }
+            swapped = tmp.renameTo(dest);
+        }
+        if (swapped) {
+            status = "hentet " + latestVersion + " - genstart";
+            pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
+            return;
+        }
+
+        // Locked (Windows): the JVM still holds the jar open, so it can't be
+        // replaced in place. Defer the swap to game-exit - a tiny detached
+        // helper waits for the file lock to clear, deletes the old jar, moves
+        // the staged one into place, then removes itself. The staged file stays
+        // as ".pending" until then, so we never leave two loadable jars behind.
+        if (scheduleSwapOnExit(self, tmp, dest)) {
+            status = "hentet " + latestVersion + " - luk spillet helt";
+            pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Opdatering til " + latestVersion + " hentet - luk spillet helt og aabn igen for at aktivere.";
         } else {
-            // Can't delete the running jar (locked, e.g. Windows). Don't leave a
-            // second jar in mods - fall back to a manual-download message.
             tmp.delete();
             status = "kan ikke erstatte automatisk";
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
                     + "Ny version " + latestVersion + " findes. Hent den her: " + releaseHtmlUrl(release);
         }
+    }
+
+    // Set once a swap has been staged, so re-checks don't register several hooks.
+    private static volatile boolean swapScheduled = false;
+
+    /**
+     * Registers a JVM shutdown hook that, as the game exits, launches a small
+     * detached OS helper which waits for the running jar's lock to clear,
+     * deletes it, moves the staged download into its place, then deletes itself.
+     * This is how the update applies on Windows, where the jar can't be replaced
+     * while the game holds it open. Returns false if the helper couldn't be
+     * written (the caller then falls back to a manual-download message).
+     */
+    private static boolean scheduleSwapOnExit(final File oldJar, final File pending, final File dest) {
+        if (swapScheduled) {
+            return true;
+        }
+        final boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
+        final File script;
+        try {
+            script = writeSwapScript(oldJar, pending, dest, windows);
+        } catch (Exception e) {
+            System.err.println("[CelleScanner] Could not stage update swap: " + e);
+            return false;
+        }
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ProcessBuilder pb = windows
+                            ? new ProcessBuilder("cmd.exe", "/c", "start", "/min", "", script.getAbsolutePath())
+                            : new ProcessBuilder("/bin/sh", script.getAbsolutePath());
+                    pb.directory(dest.getParentFile());
+                    pb.start();
+                } catch (Exception e) {
+                    System.err.println("[CelleScanner] Update swap launch failed: " + e);
+                }
+            }
+        }, "Massiveo-UpdateSwap"));
+        swapScheduled = true;
+        return true;
+    }
+
+    private static File writeSwapScript(File oldJar, File pending, File dest, boolean windows) throws Exception {
+        File dir = dest.getParentFile();
+        String old = oldJar.getAbsolutePath();
+        String pend = pending.getAbsolutePath();
+        String fin = dest.getAbsolutePath();
+        File script;
+        String content;
+        if (windows) {
+            // Loop until the old jar can be deleted (i.e. the JVM has exited and
+            // released it), then move the staged jar into place and self-delete.
+            script = new File(dir, "massiveo-update.bat");
+            content = "@echo off\r\n"
+                    + "setlocal\r\n"
+                    + ":wait\r\n"
+                    + "del \"" + old + "\" >nul 2>&1\r\n"
+                    + "if exist \"" + old + "\" (\r\n"
+                    + "  ping -n 2 127.0.0.1 >nul\r\n"
+                    + "  goto wait\r\n"
+                    + ")\r\n"
+                    + "move /y \"" + pend + "\" \"" + fin + "\" >nul 2>&1\r\n"
+                    + "del \"%~f0\"\r\n";
+        } else {
+            script = new File(dir, "massiveo-update.sh");
+            content = "#!/bin/sh\n"
+                    + "while ! rm -f \"" + old + "\" 2>/dev/null; do sleep 1; done\n"
+                    + "mv -f \"" + pend + "\" \"" + fin + "\"\n"
+                    + "rm -- \"$0\"\n";
+        }
+        OutputStream out = new FileOutputStream(script);
+        try {
+            out.write(content.getBytes(UTF8));
+        } finally {
+            out.close();
+        }
+        return script;
     }
 
     /**
