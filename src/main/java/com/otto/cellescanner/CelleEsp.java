@@ -83,21 +83,42 @@ public class CelleEsp {
         double maxDist = CelleScannerMod.config.espMaxDistance;
         boolean limitDistance = maxDist > 0;
 
-        // Floating celle-id text only - no boxes, no backing card, just the id
-        // over the sign (like the Celle Finder), for a calmer look.
-        FontRenderer fr = mc.fontRendererObj;
-        RenderManager rm = mc.getRenderManager();
+        // pass 1: box outlines (no texture needed)
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.5f);
         for (Celle c : entries) {
             if (limitDistance && distanceTo(px, py, pz, c) > maxDist) {
                 continue;
             }
             float[] col = colorFor(c);
-            int color = ((int) (col[0] * 255) << 16) | ((int) (col[1] * 255) << 8) | (int) (col[2] * 255);
-            String label = c.timerConfirmed ? c.celleId : "~" + c.celleId;
-            drawLabel(fr, rm, label, c.position.getX() + 0.5, c.position.getY() + 1.2, c.position.getZ() + 0.5, color);
+            drawBoxOutline(c.position, col[0], col[1], col[2], 0.9f);
         }
         if (finderPos != null) {
-            drawLabel(fr, rm, "> " + CelleFinder.getTarget(), finderPos.getX() + 0.5, finderPos.getY() + 1.4, finderPos.getZ() + 0.5, 0xF0F0F0);
+            // Thicker line + fully opaque so it stands out from the normal
+            // upcoming-list boxes, and deliberately ignores maxDist/limitDistance.
+            GL11.glLineWidth(4.0f);
+            drawBoxOutline(finderPos, 0.95f, 0.95f, 0.95f, 1.0f);
+            GL11.glLineWidth(2.5f);
+        }
+        GlStateManager.enableTexture2D();
+
+        // pass 2: floating celle-id labels (need texture for the font)
+        if (CelleScannerMod.config.espLabels) {
+            FontRenderer fr = mc.fontRendererObj;
+            RenderManager rm = mc.getRenderManager();
+            for (Celle c : entries) {
+                if (limitDistance && distanceTo(px, py, pz, c) > maxDist) {
+                    continue;
+                }
+                float[] col = colorFor(c);
+                int color = ((int) (col[0] * 255) << 16) | ((int) (col[1] * 255) << 8) | (int) (col[2] * 255);
+                String label = c.timerConfirmed ? c.celleId : "~" + c.celleId;
+                drawLabel(fr, rm, label, c.position.getX() + 0.5, c.position.getY() + 1.4, c.position.getZ() + 0.5, color);
+            }
+            if (finderPos != null) {
+                String label = "-> " + CelleFinder.getTarget();
+                drawLabel(fr, rm, label, finderPos.getX() + 0.5, finderPos.getY() + 1.6, finderPos.getZ() + 0.5, 0xF0F0F0);
+            }
         }
 
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
@@ -127,6 +148,42 @@ public class CelleEsp {
         return c.status == CelleStatus.TIL_SALG ? COLOR_TIL_SALG : COLOR_SOLGT;
     }
 
+    private void drawBoxOutline(BlockPos pos, float r, float g, float b, float a) {
+        double minX = pos.getX() - PAD;
+        double minY = pos.getY() - PAD;
+        double minZ = pos.getZ() - PAD;
+        double maxX = pos.getX() + 1 + PAD;
+        double maxY = pos.getY() + 1 + PAD;
+        double maxZ = pos.getZ() + 1 + PAD;
+
+        GlStateManager.color(r, g, b, a);
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINES);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glEnd();
+    }
+
     /**
      * Same approach as vanilla's Render.renderLivingLabel: translate to the
      * world-space anchor point, rotate to face the camera (yaw then pitch),
@@ -140,12 +197,33 @@ public class CelleEsp {
         GlStateManager.rotate(rm.playerViewX, 1.0F, 0.0F, 0.0F);
         GlStateManager.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
 
+        // Re-assert depth-disabled right at the draw call rather than only
+        // once at the top of onRenderWorldLast - cheap insurance in case
+        // anything between the box pass and here ever touches it, and the
+        // most likely reason the labels were reading as "unclear"/blocked
+        // by walls while the plain GL11 line boxes worked fine.
         GlStateManager.disableDepth();
         GlStateManager.depthMask(false);
 
         int halfWidth = fr.getStringWidth(text) / 2;
 
-        // Plain text with a drop shadow - no backing card, for a calmer look.
+        // Bigger, more opaque backing card (was 0.4 alpha) - through two or
+        // three layers of wall texture a faint card plus small text was
+        // genuinely hard to pick out, especially with several celler
+        // overlapping in the same area.
+        GlStateManager.disableTexture2D();
+        GlStateManager.color(0.0F, 0.0F, 0.0F, 0.65F);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2d(-halfWidth - 3, -2);
+        GL11.glVertex2d(-halfWidth - 3, 10);
+        GL11.glVertex2d(halfWidth + 3, 10);
+        GL11.glVertex2d(halfWidth + 3, -2);
+        GL11.glEnd();
+        GlStateManager.enableTexture2D();
+
+        // Reset tint to opaque white before drawing text - drawString sets
+        // its own color from textColor, but doing this explicitly avoids
+        // any chance of the black backing-card color bleeding through.
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         fr.drawString(text, -halfWidth, 0, textColor, true);
 
