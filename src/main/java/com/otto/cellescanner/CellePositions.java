@@ -43,6 +43,11 @@ public final class CellePositions {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    // Hard cap on remembered celler so the map can't grow without bound over a
+    // very long session. Far more than the Finder's quick-pick ever shows; when
+    // exceeded, the least-recently-seen entries are dropped first.
+    private static final int MAX_ENTRIES = 1000;
+
     private static File file;
     private static Map<String, Entry> known = new HashMap<String, Entry>();
 
@@ -145,8 +150,31 @@ public final class CellePositions {
         existing.timerConfirmed = timerConfirmed;
         existing.lastSeen = System.currentTimeMillis();
 
+        if (known.size() > MAX_ENTRIES) {
+            prune();
+        }
+
         if (changed) {
             save();
+        }
+    }
+
+    /**
+     * Drops the least-recently-seen entries until the map is back at
+     * MAX_ENTRIES. Only runs on the rare tick that pushes it over the cap, so
+     * the sort cost is paid almost never.
+     */
+    private static void prune() {
+        java.util.List<Map.Entry<String, Entry>> entries =
+                new java.util.ArrayList<Map.Entry<String, Entry>>(known.entrySet());
+        java.util.Collections.sort(entries, new java.util.Comparator<Map.Entry<String, Entry>>() {
+            @Override
+            public int compare(Map.Entry<String, Entry> a, Map.Entry<String, Entry> b) {
+                return Long.compare(b.getValue().lastSeen, a.getValue().lastSeen);
+            }
+        });
+        for (int i = MAX_ENTRIES; i < entries.size(); i++) {
+            known.remove(entries.get(i).getKey());
         }
     }
 
