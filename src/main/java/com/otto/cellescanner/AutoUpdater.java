@@ -41,9 +41,8 @@ public class AutoUpdater {
     private static volatile String status = "ikke tjekket";
     private static volatile String pendingMessage = null;
 
+    private static volatile boolean checking = false;
     private boolean posted = false;
-    private boolean checkStarted = false;
-    private int tickCount = 0;
 
     public static String getLatestVersion() {
         return latestVersion;
@@ -53,8 +52,12 @@ public class AutoUpdater {
         return status;
     }
 
-    /** Starts the version check on a background daemon thread. Safe to call once at init. */
+    /** Starts the version check on a background daemon thread. Called when the Opdatering screen is opened / its check button pressed. No-op if a check is already running. */
     public static void checkAsync() {
+        if (checking) {
+            return;
+        }
+        checking = true;
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -63,6 +66,8 @@ public class AutoUpdater {
                 } catch (Exception e) {
                     status = "tjek fejlede: " + e.getMessage();
                     System.err.println("[CelleScanner] Update check failed: " + e);
+                } finally {
+                    checking = false;
                 }
             }
         }, "Massiveo-AutoUpdater");
@@ -351,23 +356,15 @@ public class AutoUpdater {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
+        if (event.phase != TickEvent.Phase.END || posted || pendingMessage == null) {
             return;
         }
-        // Start the update check ~5s in, off the startup critical path.
-        if (!checkStarted) {
-            if (++tickCount >= 100) {
-                checkStarted = true;
-                checkAsync();
-            }
-        }
-        // Post the "downloaded, restart" message once a player is in a world.
-        if (!posted && pendingMessage != null) {
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.thePlayer != null) {
-                posted = true;
-                mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
-            }
+        // The check itself only runs from the Opdatering screen. This just
+        // surfaces the "downloaded, restart" result in chat once a player exists.
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null) {
+            posted = true;
+            mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
         }
     }
 }

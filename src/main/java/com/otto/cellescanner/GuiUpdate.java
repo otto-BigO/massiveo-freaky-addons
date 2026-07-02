@@ -19,10 +19,21 @@ public class GuiUpdate extends GuiScreen {
     private static final int PANEL_W = 220;
 
     private GuiButton toggleButton;
+    private boolean triedCheck = false;
 
     @Override
     public void initGui() {
         this.buttonList.clear();
+
+        // Check for an update when the screen is opened (once), and only here -
+        // never during startup, so we never contend with the mod loader. The
+        // check always runs to show the latest version; whether it auto-
+        // downloads is gated by autoUpdateEnabled inside AutoUpdater.check().
+        if (!triedCheck) {
+            triedCheck = true;
+            AutoUpdater.checkAsync();
+        }
+
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 6;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
