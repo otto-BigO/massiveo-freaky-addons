@@ -1,7 +1,9 @@
 package com.otto.cellescanner;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
+import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -11,15 +13,18 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The player info menu (shift + right-click a player, or search by name): a
@@ -46,6 +51,7 @@ public class GuiPlayerInfo extends GuiScreen {
     private final ItemStack[] armor = new ItemStack[4];
     private ResourceLocation skin;
     private boolean modelBroken = false;
+    private EntityPlayer offlineModel;   // fake entity built once the skin loads
 
     /** Online / loaded player: full data + live 3D model. */
     public GuiPlayerInfo(EntityPlayer target) {
@@ -162,20 +168,34 @@ public class GuiPlayerInfo extends GuiScreen {
     private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
         if (offline) {
             SkinFetcher.Entry sk = SkinFetcher.get(rawName);
-            if (sk.location != null) {
-                int s = Math.max(2, (mh - 20) / 32);
-                int bodyH = 32 * s;
-                drawSkinBody(mc, sk.location, mx0 + mw / 2, my0 + (mh - bodyH) / 2, s, sk.slim, sk.legacy);
-            } else {
+            if (sk.location == null) {
                 String msg = "fejl".equals(sk.status) ? "Ingen skin fundet" : "Henter skin...";
                 drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, mx0 + mw / 2, my0 + mh / 2 - 4, 0xAAAAAA);
+                return;
             }
+            // Build a fake entity carrying the fetched skin, so offline players get
+            // the same 3D model as online ones.
+            if (offlineModel == null && !modelBroken) {
+                offlineModel = buildFakeEntity(mc, rawName, sk);
+            }
+            if (offlineModel != null && !modelBroken && renderEntity3D(mc, offlineModel, mx0, my0, mw, mh, mouseX, mouseY)) {
+                return;
+            }
+            // Fallback: flat front-facing skin.
+            int s = Math.max(2, (mh - 20) / 32);
+            drawSkinBody(mc, sk.location, mx0 + mw / 2, my0 + (mh - 32 * s) / 2, s, sk.slim, sk.legacy);
             return;
         }
-        if (modelBroken || entity == null || entity.isDead) {
-            drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
+
+        if (!modelBroken && entity != null && !entity.isDead
+                && renderEntity3D(mc, entity, mx0, my0, mw, mh, mouseX, mouseY)) {
             return;
         }
+        drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
+    }
+
+    /** Renders a living entity as the rotating 3D model in the panel. Returns false (and sets modelBroken) if it throws. */
+    private boolean renderEntity3D(Minecraft mc, EntityLivingBase ent, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
         try {
             ScaledResolution sr = new ScaledResolution(mc);
             int sf = sr.getScaleFactor();
@@ -189,19 +209,60 @@ public class GuiPlayerInfo extends GuiScreen {
                 int cx = mx0 + mw / 2;
                 int feet = my0 + mh - 10;
                 int scale = (int) (mh / 3.2);
-                // Force a full-bright lightmap so the model isn't rendered dark
-                // when the player is standing somewhere dim (the "giant shadow").
+                // Full-bright lightmap so the model isn't dark in dim areas.
                 GlStateManager.color(1f, 1f, 1f, 1f);
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
-                GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (my0 + mh / 3) - mouseY, entity);
+                GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (my0 + mh / 3) - mouseY, ent);
             } finally {
                 mc.gameSettings.hideGUI = prevHide;
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
             }
+            return true;
         } catch (Throwable t) {
             modelBroken = true;
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GlStateManager.color(1f, 1f, 1f, 1f);
+            return false;
+        }
+    }
+
+    private EntityPlayer buildFakeEntity(Minecraft mc, String name, SkinFetcher.Entry sk) {
+        try {
+            World world = mc.theWorld;
+            if (world == null) {
+                return null;
+            }
+            GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("MassiveoOffline:" + name).getBytes()), name);
+            return new FakeSkinPlayer(world, profile, sk.location, sk.slim);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** A minimal offline player entity that reports the fetched skin, so RenderPlayer draws it. */
+    private static final class FakeSkinPlayer extends EntityOtherPlayerMP {
+        private final ResourceLocation skinLoc;
+        private final boolean slim;
+
+        FakeSkinPlayer(World world, GameProfile profile, ResourceLocation skinLoc, boolean slim) {
+            super(world, profile);
+            this.skinLoc = skinLoc;
+            this.slim = slim;
+        }
+
+        @Override
+        public ResourceLocation getLocationSkin() {
+            return skinLoc;
+        }
+
+        @Override
+        public boolean hasSkin() {
+            return skinLoc != null;
+        }
+
+        @Override
+        public String getSkinType() {
+            return slim ? "slim" : "default";
         }
     }
 
