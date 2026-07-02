@@ -153,7 +153,7 @@ public class CelleEsp {
         double maxY = pos.getY() + 1 + PAD;
         double maxZ = pos.getZ() + 1 + PAD;
 
-        GL11.glColor4f(r, g, b, a);
+        GlStateManager.color(r, g, b, a);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);
@@ -209,7 +209,7 @@ public class CelleEsp {
         // genuinely hard to pick out, especially with several celler
         // overlapping in the same area.
         GlStateManager.disableTexture2D();
-        GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.65F);
+        GlStateManager.color(0.0F, 0.0F, 0.0F, 0.65F);
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2d(-halfWidth - 3, -2);
         GL11.glVertex2d(-halfWidth - 3, 10);
