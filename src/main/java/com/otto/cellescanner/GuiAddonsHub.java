@@ -43,6 +43,7 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     public void initGui() {
+        AddonList.ensureRegistered();
         this.buttonList.clear();
         this.levelCategories.clear();
         this.levelAddons.clear();
