@@ -117,6 +117,7 @@ public class GuiAntiAfk extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - CONTENT_H / 2 - 24;
         drawCenteredString(this.fontRendererObj, "Anti-AFK", this.width / 2, titleY, 0x55FFFF);

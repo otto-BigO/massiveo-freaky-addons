@@ -41,4 +41,17 @@ public final class Style {
         roundedRect(x1, y1, x2, y2, PANEL_BORDER);
         roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, PANEL_BG);
     }
+
+    /**
+     * A centered card the screen content sits inside, sized generously but
+     * clamped to the screen so it never runs off the edges. Every addon screen
+     * draws this right after the dimmed background for a consistent look.
+     */
+    public static void card(int screenW, int screenH) {
+        int cx = screenW / 2;
+        int cy = screenH / 2;
+        int halfW = Math.min(cx - 8, 170);
+        int halfH = Math.min(cy - 8, 150);
+        panel(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    }
 }

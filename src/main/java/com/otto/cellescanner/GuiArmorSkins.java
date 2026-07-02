@@ -51,6 +51,7 @@ public class GuiArmorSkins extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int cx = this.width / 2;
         int titleY = this.height / 2 - 64;

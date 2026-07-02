@@ -175,6 +175,7 @@ public class GuiBande extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 106 - 22;
         drawCenteredString(this.fontRendererObj, "Bande ESP", this.width / 2, titleY, 0xFF5555);

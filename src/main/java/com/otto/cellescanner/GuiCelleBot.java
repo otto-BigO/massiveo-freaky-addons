@@ -160,6 +160,7 @@ public class GuiCelleBot extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 98 - 28;
         drawCenteredString(this.fontRendererObj, "Celle Scanner - Discord Bot", this.width / 2, titleY, 0xFFFFFF);

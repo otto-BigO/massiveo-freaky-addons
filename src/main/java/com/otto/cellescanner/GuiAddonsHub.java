@@ -10,99 +10,90 @@ import java.util.List;
 
 /**
  * The main menu for Massiveo's Freaky Addons - the hub you land on from the
- * keybind (default: B). Addons are grouped under their category, each tile
- * shows its live [Til]/[Fra] state, and hovering a tile shows its blurb.
- * Everything is driven off MassiveoAddons, so new addons slot in automatically.
+ * keybind (default: B). It is two levels: pick a genre (Celler / PvP / World),
+ * then pick an addon inside it. Each addon tile shows its live [Til]/[Fra]
+ * state, and hovering shows its blurb. Driven off MassiveoAddons, so new
+ * addons and genres slot in automatically.
  */
 public class GuiAddonsHub extends GuiScreen {
 
     private static final int ID_CLOSE = 1000;
+    private static final int ID_BACK = 1001;
 
-    private static final int HEADER_H = 14;
-    private static final int ROW_H = 22;
+    private static final int ROW_H = 24;
     private static final int BTN_H = 20;
-    private static final int CAT_GAP = 6;
     private static final int PANEL_W = 200;
 
-    private static final class Header {
-        final String text;
-        final int y;
-        final int color;
+    // null = genre level; otherwise the genre whose addons are shown.
+    private String openCategory = null;
 
-        Header(String text, int y, int color) {
-            this.text = text;
-            this.y = y;
-            this.color = color;
-        }
-    }
+    private final List<String> levelCategories = new ArrayList<String>();
+    private final List<MassiveoAddons.Addon> levelAddons = new ArrayList<MassiveoAddons.Addon>();
+    private final List<GuiButton> itemButtons = new ArrayList<GuiButton>();
 
-    private final List<Header> headers = new ArrayList<Header>();
-    private final List<MassiveoAddons.Addon> flatAddons = new ArrayList<MassiveoAddons.Addon>();
-    private final List<GuiButton> addonButtons = new ArrayList<GuiButton>();
-
-    private int panelX1, panelY1, panelX2, panelY2;
+    private int firstRowY;
 
     @Override
     public void initGui() {
         this.buttonList.clear();
-        this.headers.clear();
-        this.flatAddons.clear();
-        this.addonButtons.clear();
+        this.levelCategories.clear();
+        this.levelAddons.clear();
+        this.itemButtons.clear();
 
-        List<String> categories = MassiveoAddons.categories();
-
-        // Measure total height so the block can be vertically centered.
-        int totalH = 0;
-        for (String cat : categories) {
-            totalH += HEADER_H + MassiveoAddons.addonsIn(cat).size() * ROW_H + CAT_GAP;
+        int rowCount;
+        if (openCategory == null) {
+            levelCategories.addAll(MassiveoAddons.categories());
+            rowCount = levelCategories.size();
+        } else {
+            levelAddons.addAll(MassiveoAddons.addonsIn(openCategory));
+            rowCount = levelAddons.size();
         }
-        totalH += BTN_H; // close button
 
-        int centerX = this.width / 2;
-        int left = centerX - PANEL_W / 2;
-        int y = Math.max(28, this.height / 2 - totalH / 2);
+        int left = this.width / 2 - PANEL_W / 2;
+        int contentH = (rowCount + 1) * ROW_H; // items + close/back
+        int y = Math.max(this.height / 2 - 130, this.height / 2 - contentH / 2);
+        firstRowY = y;
 
         int id = 0;
-        for (String cat : categories) {
-            headers.add(new Header(cat, y, colorForCategory(cat)));
-            y += HEADER_H;
-            for (MassiveoAddons.Addon addon : MassiveoAddons.addonsIn(cat)) {
-                GuiButton button = new StyledButton(id++, left, y, PANEL_W, BTN_H, labelFor(addon));
-                this.buttonList.add(button);
-                this.addonButtons.add(button);
-                this.flatAddons.add(addon);
+        if (openCategory == null) {
+            for (String cat : levelCategories) {
+                int count = MassiveoAddons.addonsIn(cat).size();
+                String label = catColor(cat) + cat + "  " + EnumChatFormatting.GRAY + "(" + count + ")";
+                GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, label);
+                this.buttonList.add(b);
+                this.itemButtons.add(b);
                 y += ROW_H;
             }
-            y += CAT_GAP;
+            this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Luk"));
+        } else {
+            for (MassiveoAddons.Addon addon : levelAddons) {
+                GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, addonLabel(addon));
+                this.buttonList.add(b);
+                this.itemButtons.add(b);
+                y += ROW_H;
+            }
+            this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
         }
-
-        this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Luk"));
-
-        int contentTop = headers.isEmpty() ? y : headers.get(0).y;
-        panelX1 = left - 12;
-        panelX2 = left + PANEL_W + 12;
-        panelY1 = contentTop - 34;
-        panelY2 = y + BTN_H + 10;
     }
 
-    private static String labelFor(MassiveoAddons.Addon addon) {
+    private static String addonLabel(MassiveoAddons.Addon addon) {
         String status = addon.isActive()
                 ? EnumChatFormatting.GREEN + "[Til]"
                 : EnumChatFormatting.GRAY + "[Fra]";
         return addon.name() + "  " + status;
     }
 
-    private static int colorForCategory(String category) {
+    private static String catColor(String category) {
         if ("Celler".equals(category)) {
-            return 0x55FF55;
+            return EnumChatFormatting.GREEN.toString();
         }
         if ("PvP".equals(category)) {
-            return 0xFF5555;
+            return EnumChatFormatting.RED.toString();
         }
         if ("World".equals(category)) {
-            return 0x55FFFF;
+            return EnumChatFormatting.AQUA.toString();
         }
-        return 0xFFFFFF;
+        return EnumChatFormatting.WHITE.toString();
     }
 
     @Override
@@ -111,14 +102,24 @@ public class GuiAddonsHub extends GuiScreen {
             this.mc.displayGuiScreen(null);
             return;
         }
-        if (button.id >= 0 && button.id < flatAddons.size()) {
-            flatAddons.get(button.id).open();
+        if (button.id == ID_BACK) {
+            openCategory = null;
+            initGui();
+            return;
+        }
+        if (button.id >= 0) {
+            if (openCategory == null && button.id < levelCategories.size()) {
+                openCategory = levelCategories.get(button.id);
+                initGui();
+            } else if (openCategory != null && button.id < levelAddons.size()) {
+                levelAddons.get(button.id).open();
+            }
         }
     }
 
-    private int hoveredAddon(int mouseX, int mouseY) {
-        for (int i = 0; i < addonButtons.size(); i++) {
-            GuiButton b = addonButtons.get(i);
+    private int hoveredItem(int mouseX, int mouseY) {
+        for (int i = 0; i < itemButtons.size(); i++) {
+            GuiButton b = itemButtons.get(i);
             if (mouseX >= b.xPosition && mouseX <= b.xPosition + b.width
                     && mouseY >= b.yPosition && mouseY <= b.yPosition + b.height) {
                 return i;
@@ -130,24 +131,27 @@ public class GuiAddonsHub extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
-        Style.panel(panelX1, panelY1, panelX2, panelY2);
-        // Accent underline beneath the title.
-        drawRect(panelX1 + 10, panelY1 + 22, panelX2 - 10, panelY1 + 23, Style.ACCENT);
+        Style.card(this.width, this.height);
 
-        int titleY = (headers.isEmpty() ? this.height / 2 - 40 : headers.get(0).y) - 26;
-        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, this.width / 2, titleY, 0xFF55FF);
-        drawCenteredString(this.fontRendererObj, flatAddons.size() + " addons", this.width / 2, titleY + 11, 0xAAAAAA);
-
-        for (Header h : headers) {
-            drawString(this.fontRendererObj, EnumChatFormatting.BOLD + h.text, this.width / 2 - PANEL_W / 2, h.y, h.color);
-        }
+        int cx = this.width / 2;
+        int titleY = firstRowY - 34;
+        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx, titleY, 0xFF55FF);
+        String subtitle = openCategory == null ? "Vælg en kategori" : catColor(openCategory) + openCategory;
+        drawCenteredString(this.fontRendererObj, subtitle, cx, titleY + 11, 0xAAAAAA);
+        drawRect(cx - PANEL_W / 2, titleY + 22, cx + PANEL_W / 2, titleY + 23, Style.ACCENT);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        int hovered = hoveredAddon(mouseX, mouseY);
+        int hovered = hoveredItem(mouseX, mouseY);
         if (hovered >= 0) {
-            drawCenteredString(this.fontRendererObj, flatAddons.get(hovered).description(),
-                    this.width / 2, this.height - 14, 0x888888);
+            String hint;
+            if (openCategory == null) {
+                String cat = levelCategories.get(hovered);
+                hint = MassiveoAddons.addonsIn(cat).size() + " addons i " + cat;
+            } else {
+                hint = levelAddons.get(hovered).description();
+            }
+            drawCenteredString(this.fontRendererObj, hint, cx, this.height / 2 + 138, 0x888888);
         }
     }
 

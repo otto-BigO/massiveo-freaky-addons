@@ -136,6 +136,7 @@ public class GuiCelleSettings extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - CONTENT_H / 2 - 14;
         drawCenteredString(this.fontRendererObj, "Celle Scanner - Indstillinger", this.width / 2, titleY, 0xFFFFFF);

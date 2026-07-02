@@ -147,6 +147,7 @@ public class GuiChestAlarm extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 80 - 28;
         drawCenteredString(this.fontRendererObj, "Chest Alarm", this.width / 2, titleY, 0xFF5555);
