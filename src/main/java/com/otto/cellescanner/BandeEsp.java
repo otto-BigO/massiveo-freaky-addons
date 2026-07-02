@@ -8,6 +8,7 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.opengl.GL11;
 
 /**
  * Bande ESP addon: draws players in your bande as a "chams" - their real model,
@@ -43,9 +44,14 @@ public class BandeEsp {
         if (p == mc.thePlayer || !isBande(mc, p)) {
             return;
         }
-        GlStateManager.disableDepth();
+        // depthFunc(ALWAYS) makes the model pass the depth test everywhere (so it
+        // shows through walls) while still writing depth, so it self-occludes
+        // cleanly - unlike disableDepth, which the model's own render undoes.
+        // Lighting off is needed for the green tint to apply; a light tint keeps
+        // the skin readable rather than a solid green fill.
+        GlStateManager.depthFunc(GL11.GL_ALWAYS);
         GlStateManager.disableLighting();
-        GlStateManager.color(0.45f, 1.0f, 0.55f, 1.0f);
+        GlStateManager.color(0.75f, 1.0f, 0.8f, 1.0f);
         active = true;
     }
 
@@ -57,7 +63,7 @@ public class BandeEsp {
         active = false;
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         GlStateManager.enableLighting();
-        GlStateManager.enableDepth();
+        GlStateManager.depthFunc(GL11.GL_LEQUAL);
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
