@@ -77,6 +77,7 @@ public class AutoUpdater {
         }
         latestVersion = release.get("tag_name").getAsString();
         String current = CelleScannerMod.VERSION;
+        log("running " + current + ", latest " + latestVersion);
 
         if (compareVersions(latestVersion, current) <= 0) {
             status = "opdateret (" + current + ")";
@@ -98,36 +99,118 @@ public class AutoUpdater {
             return;
         }
 
-        File self = runningJar();
-        if (self == null) {
-            // Dev environment (running from classes, not a jar) - nothing to swap.
+        File modsDir = modsDir();
+        // Skip when there's no installed jar to replace (dev / classes run).
+        if (modsDir == null || (runningJar() == null && ourJars(modsDir).length == 0)) {
             status = "ny version " + latestVersion + " (dev, springer download over)";
+            log("dev environment, skipping download");
             return;
         }
-        File modsDir = self.getParentFile();
+        log("mods dir: " + modsDir + ", our jars: " + describe(ourJars(modsDir)));
 
-        File tmp = new File(modsDir, assetName + ".tmp");
-        download(assetUrl, tmp);
+        // Stage to a ".pending" file (Forge ignores non-.jar) so a half-download
+        // can never become a loaded jar.
+        File pending = new File(modsDir, assetName + ".pending");
+        pending.delete();
+        download(assetUrl, pending);
+        log("downloaded " + latestVersion + " -> " + pending.getName() + " (" + pending.length() + " bytes)");
 
-        if (self.delete()) {
-            File dest = new File(modsDir, assetName);
-            if (tmp.renameTo(dest)) {
-                status = "hentet " + latestVersion + " - genstart";
-                pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
-            } else {
-                status = "kunne ikke omdøbe";
-                pendingMessage = EnumChatFormatting.RED + "[Massiveo] " + EnumChatFormatting.RESET
-                        + "Kunne ikke installere opdateringen. Hent den her: " + releaseHtmlUrl(release);
-            }
+        if (installNow(modsDir, pending, assetName)) {
+            status = "hentet " + latestVersion + " - genstart";
+            pendingMessage = EnumChatFormatting.GREEN + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Opdateret til " + latestVersion + " - genstart spillet for at aktivere.";
         } else {
-            // Can't delete the running jar (locked, e.g. Windows). Don't leave a
-            // second jar in mods - fall back to a manual-download message.
-            tmp.delete();
-            status = "kan ikke erstatte automatisk";
+            // A jar couldn't be removed while running (locked, e.g. Windows).
+            // Retry the swap when the JVM exits; the download is kept staged.
+            registerShutdownSwap(modsDir, pending, assetName);
+            status = "hentet " + latestVersion + " - genstart";
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
-                    + "Ny version " + latestVersion + " findes. Hent den her: " + releaseHtmlUrl(release);
+                    + "Opdatering til " + latestVersion + " hentet - luk spillet helt og aabn igen. (ellers hent: "
+                    + releaseHtmlUrl(release) + ")";
         }
+    }
+
+    /** The .minecraft/mods directory, resolved from Minecraft's data dir (not getCodeSource, which is unreliable under LaunchWrapper). */
+    private static File modsDir() {
+        try {
+            return new File(Minecraft.getMinecraft().mcDataDir, "mods");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Every jar in mods that belongs to this mod, so all stale copies get
+     * removed and we never leave a duplicate behind. Matches by our name
+     * markers, and also includes the actually-loaded jar (in case it was
+     * renamed) as long as it lives in this mods dir.
+     */
+    private static File[] ourJars(File modsDir) {
+        java.util.LinkedHashSet<File> out = new java.util.LinkedHashSet<File>();
+        File[] files = modsDir.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                String n = f.getName().toLowerCase();
+                if (f.isFile() && n.endsWith(".jar") && (n.contains("massiveofreakyaddons") || n.contains("cellescanner"))) {
+                    out.add(f);
+                }
+            }
+        }
+        File self = runningJar();
+        if (self != null && self.getParentFile() != null
+                && self.getParentFile().getAbsolutePath().equals(modsDir.getAbsolutePath())) {
+            out.add(self);
+        }
+        return out.toArray(new File[out.size()]);
+    }
+
+    /** Deletes all our jars and moves the staged download into place. Returns false if a jar couldn't be deleted (locked). */
+    private static boolean installNow(File modsDir, File pending, String assetName) {
+        boolean allRemoved = true;
+        for (File f : ourJars(modsDir)) {
+            boolean del = f.delete();
+            log("remove old " + f.getName() + " -> " + del);
+            if (!del) {
+                allRemoved = false;
+            }
+        }
+        if (!allRemoved) {
+            return false;
+        }
+        File dest = new File(modsDir, assetName);
+        dest.delete();
+        boolean renamed = pending.renameTo(dest);
+        log("install " + assetName + " -> " + renamed);
+        return renamed;
+    }
+
+    private static void registerShutdownSwap(final File modsDir, final File pending, final String assetName) {
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (File f : ourJars(modsDir)) {
+                    f.delete();
+                }
+                File dest = new File(modsDir, assetName);
+                dest.delete();
+                pending.renameTo(dest);
+            }
+        }, "Massiveo-UpdateSwap"));
+    }
+
+    private static String describe(File[] files) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < files.length; i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(files[i].getName());
+        }
+        return sb.append("]").toString();
+    }
+
+    private static void log(String message) {
+        System.out.println("[Massiveo][Updater] " + message);
     }
 
     private static JsonObject fetchLatestRelease() throws Exception {
@@ -166,7 +249,7 @@ public class AutoUpdater {
         for (int i = 0; i < assets.size(); i++) {
             JsonObject a = assets.get(i).getAsJsonObject();
             String name = a.has("name") ? a.get("name").getAsString() : "";
-            if (name.toLowerCase().endsWith(".jar")) {
+            if (name.toLowerCase().endsWith(".jar") && a.has("browser_download_url")) {
                 return a.get("browser_download_url").getAsString();
             }
         }
