@@ -3,6 +3,7 @@ package com.otto.cellescanner;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import net.minecraft.client.Minecraft;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -205,12 +206,61 @@ public class ItemValues {
         if (value == null || value.isEmpty()) {
             return;
         }
-        String line = EnumChatFormatting.AQUA + "Værdi: " + EnumChatFormatting.WHITE + value;
-        // Under the item name (line 0); guard for the odd empty tooltip.
-        if (event.toolTip.isEmpty()) {
-            event.toolTip.add(line);
-        } else {
-            event.toolTip.add(1, line);
+
+        // Skyblocker-style block appended at the bottom: gold labels, aqua
+        // right-aligned values, plus a diamond-equivalent line (1 DB = 9 dia).
+        java.util.List<String[]> rows = new java.util.ArrayList<String[]>();
+        rows.add(new String[]{"Værdi:", value});
+        long[] dia = diamondRange(value);
+        if (dia != null) {
+            String diaText = dia[0] == dia[1] ? fmt(dia[0]) : fmt(dia[0]) + " - " + fmt(dia[1]);
+            rows.add(new String[]{"Diamanter:", diaText});
         }
+
+        event.toolTip.add("");
+        event.toolTip.addAll(rightAlign(rows));
+    }
+
+    private static final java.util.regex.Pattern DB_PATTERN =
+            java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)\\s*(?:-\\s*(\\d+(?:\\.\\d+)?))?\\s*DB", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** min/max diamonds for a "X DB" / "X-Y DB" value (1 DB = 9 diamonds), or null if not that format. */
+    private static long[] diamondRange(String value) {
+        java.util.regex.Matcher m = DB_PATTERN.matcher(value);
+        if (!m.find()) {
+            return null;
+        }
+        try {
+            double min = Double.parseDouble(m.group(1));
+            double max = m.group(2) != null ? Double.parseDouble(m.group(2)) : min;
+            return new long[]{Math.round(min * 9), Math.round(max * 9)};
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String fmt(long n) {
+        return String.format(java.util.Locale.US, "%,d", n);
+    }
+
+    /** Colors each row (gold label, aqua value) and space-pads so all values line up to the right edge. */
+    private static java.util.List<String> rightAlign(java.util.List<String[]> rows) {
+        net.minecraft.client.gui.FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
+        int maxCombined = 0;
+        for (String[] r : rows) {
+            maxCombined = Math.max(maxCombined, fr.getStringWidth(r[0]) + fr.getStringWidth(r[1]));
+        }
+        int gapPx = 12;
+        java.util.List<String> out = new java.util.ArrayList<String>();
+        for (String[] r : rows) {
+            int padPx = (maxCombined - fr.getStringWidth(r[0]) - fr.getStringWidth(r[1])) + gapPx;
+            int spaces = Math.max(1, Math.round(padPx / 4.0f));
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < spaces; i++) {
+                sb.append(' ');
+            }
+            out.add(EnumChatFormatting.GOLD + r[0] + sb + EnumChatFormatting.AQUA + r[1]);
+        }
+        return out;
     }
 }
