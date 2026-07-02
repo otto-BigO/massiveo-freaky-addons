@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.EnumChatFormatting;
 import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
@@ -9,8 +10,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * "Gange" screen: every remembered celle grouped by its gang (corridor), each
@@ -118,7 +122,12 @@ public class GuiGange extends GuiScreen {
             });
 
             int headColor = UNKNOWN.equals(gang) ? 0xFF8888 : 0x4BE08C;
-            rows.add(new Row(true, gang + "  (" + list.size() + ")", headColor, null));
+            String head = gang + "  (" + list.size() + ")";
+            String span = observedRange(list);
+            if (!span.isEmpty()) {
+                head += "  " + EnumChatFormatting.GRAY + span;
+            }
+            rows.add(new Row(true, head, headColor, null));
             for (Map.Entry<String, CellePositions.Entry> e : list) {
                 CellePositions.Entry entry = e.getValue();
                 String id = entry.displayId != null && !entry.displayId.isEmpty() ? entry.displayId : e.getKey();
@@ -127,6 +136,61 @@ public class GuiGange extends GuiScreen {
                 rows.add(new Row(false, "  " + id + "   " + time, 0xD0D0D0, id));
             }
         }
+    }
+
+    // Letter prefix (level) + number of a celle id, for the observed-span readout.
+    private static final Pattern ID = Pattern.compile("([A-Za-z]{1,2})([0-9]{1,7})");
+
+    /**
+     * The id span actually seen for a gang, per level letter, e.g. "B286-B494"
+     * (or "B286-B494, A100-A150" if it straddles levels). This is exactly the
+     * boundary info to hand off for a gang range - right-click the two ends of a
+     * gang and this shows the min-max to record.
+     */
+    private static String observedRange(List<Map.Entry<String, CellePositions.Entry>> list) {
+        TreeMap<String, long[]> spans = new TreeMap<String, long[]>();
+        for (Map.Entry<String, CellePositions.Entry> e : list) {
+            CellePositions.Entry entry = e.getValue();
+            String id = entry.displayId != null && !entry.displayId.isEmpty() ? entry.displayId : e.getKey();
+            if (id == null) {
+                continue;
+            }
+            Matcher m = ID.matcher(id.trim());
+            if (!m.matches()) {
+                continue;
+            }
+            String pre = m.group(1).toUpperCase(Locale.ROOT);
+            long n;
+            try {
+                n = Long.parseLong(m.group(2));
+            } catch (NumberFormatException ex) {
+                continue;
+            }
+            long[] mm = spans.get(pre);
+            if (mm == null) {
+                spans.put(pre, new long[]{n, n});
+            } else {
+                if (n < mm[0]) {
+                    mm[0] = n;
+                }
+                if (n > mm[1]) {
+                    mm[1] = n;
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, long[]> s : spans.entrySet()) {
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            long lo = s.getValue()[0];
+            long hi = s.getValue()[1];
+            sb.append(s.getKey()).append(lo);
+            if (hi != lo) {
+                sb.append("-").append(s.getKey()).append(hi);
+            }
+        }
+        return sb.toString();
     }
 
     private void clampScroll() {
