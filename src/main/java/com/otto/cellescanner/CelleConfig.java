@@ -101,6 +101,9 @@ public class CelleConfig {
     // players, without the rest of that texture pack. Detected the same way the
     // pack does: the Protection enchant level (enchant id 0) on the armor.
     public boolean armorSkinsEnabled = true;
+    // Which bundled texture set the armor skins use: "mesterholm" (FreakyVille)
+    // or "hypixel" (SkyBlock-style). Both live under textures/models/armor/<pack>/.
+    public String armorSkinPack = "mesterholm";
 
     // Mine Celler addon: your own/co-owned/invited celle ids, captured from the
     // server's "/ce find <you>" chat reply, highlighted with a gold ESP box so
@@ -116,6 +119,13 @@ public class CelleConfig {
     // Auto-update: on launch, check the GitHub repo's latest release and, if
     // newer, download the jar into the mods folder so a restart applies it.
     public boolean autoUpdateEnabled = true;
+
+    // Armor HUD: shows your equipped armor pieces + durability on screen, with a
+    // red warning when a piece drops below armorHudWarnPercent.
+    public boolean armorHudEnabled = true;
+    public int armorHudX = 5;
+    public int armorHudY = 140;
+    public int armorHudWarnPercent = 10;
 
     // Celle ids the user specifically wants watched/highlighted - reported
     // to the bot alongside every scan so it always shows them on the shared
@@ -222,10 +232,15 @@ public class CelleConfig {
                 this.chestAlarmKeyword = loaded.chestAlarmKeyword != null && !loaded.chestAlarmKeyword.isEmpty()
                         ? loaded.chestAlarmKeyword : "CHEST-ALARM";
                 this.armorSkinsEnabled = loaded.armorSkinsEnabled;
+                this.armorSkinPack = "hypixel".equals(loaded.armorSkinPack) ? "hypixel" : "mesterholm";
                 this.mineCellerEspEnabled = loaded.mineCellerEspEnabled;
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
+                this.armorHudEnabled = loaded.armorHudEnabled;
+                this.armorHudX = loaded.armorHudX;
+                this.armorHudY = loaded.armorHudY;
+                this.armorHudWarnPercent = loaded.armorHudWarnPercent > 0 ? loaded.armorHudWarnPercent : 10;
                 this.specialCelleIds = loaded.specialCelleIds != null ? loaded.specialCelleIds : new ArrayList<String>();
             }
         } catch (Exception e) {

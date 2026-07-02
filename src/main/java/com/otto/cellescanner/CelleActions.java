@@ -343,6 +343,32 @@ public final class CelleActions {
         message("Rustnings-skins er nu " + (CelleScannerMod.config.armorSkinsEnabled ? "til" : "fra") + ".");
     }
 
+    public static void cycleArmorPack() {
+        CelleScannerMod.config.armorSkinPack = "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "mesterholm" : "hypixel";
+        CelleScannerMod.config.save();
+        message("Rustnings-tekstur-pack: " + armorPackName());
+    }
+
+    public static String armorPackName() {
+        return "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "Hypixel+" : "MesterHolm";
+    }
+
+    public static void openArmorHud() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiArmorHud());
+    }
+
+    public static void toggleArmorHud() {
+        CelleScannerMod.config.armorHudEnabled = !CelleScannerMod.config.armorHudEnabled;
+        CelleScannerMod.config.save();
+        message("Rustnings-HUD er nu " + (CelleScannerMod.config.armorHudEnabled ? "til" : "fra") + ".");
+    }
+
+    public static void adjustArmorHudWarn(int delta) {
+        CelleScannerMod.config.armorHudWarnPercent = Math.max(1, Math.min(90, CelleScannerMod.config.armorHudWarnPercent + delta));
+        CelleScannerMod.config.save();
+        message("Rustnings-HUD advarsel: under " + CelleScannerMod.config.armorHudWarnPercent + "%");
+    }
+
     public static void toggleChestAlarm() {
         CelleScannerMod.config.chestAlarmEnabled = !CelleScannerMod.config.chestAlarmEnabled;
         CelleScannerMod.config.save();

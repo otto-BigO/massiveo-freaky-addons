@@ -50,7 +50,8 @@ public class CustomArmorLayer extends LayerBipedArmor {
         }
         // Vanilla uses layer_2 for leggings (slot 2), layer_1 for the rest.
         int layer = (slot == 2) ? 2 : 1;
-        String key = material + "_p" + level + "_layer_" + layer;
+        String pack = "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "hypixel" : "mesterholm";
+        String key = pack + "/" + material + "_p" + level + "_layer_" + layer;
         ResourceLocation res = CACHE.get(key);
         if (res == null) {
             res = new ResourceLocation("cellescanner", "textures/models/armor/" + key + ".png");
