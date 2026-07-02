@@ -120,7 +120,8 @@ public class MineCeller {
         double maxY = pos.getY() + 1 + PAD;
         double maxZ = pos.getZ() + 1 + PAD;
 
-        GlStateManager.color(1.0F, 0.85F, 0.1F, 0.9F);
+        // Violet, distinct from the celle ESP's aqua/amber and the bande green.
+        GlStateManager.color(0.70F, 0.45F, 1.0F, 0.9F);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);
