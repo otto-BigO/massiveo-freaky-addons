@@ -311,6 +311,16 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiGange());
     }
 
+    public static void openPlayerInfoMenu() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiPlayerInfoMenu());
+    }
+
+    public static void togglePlayerInfo() {
+        CelleScannerMod.config.playerInfoEnabled = !CelleScannerMod.config.playerInfoEnabled;
+        CelleScannerMod.config.save();
+        message("Spiller Info: " + (CelleScannerMod.config.playerInfoEnabled ? "til" : "fra"));
+    }
+
     public static void toggleGangAutoQuery() {
         CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
         CelleScannerMod.config.save();

@@ -133,6 +133,12 @@ public class CelleConfig {
     // stable release always beats a pre-release of the same version number.
     public boolean autoUpdatePreRelease = false;
 
+    // Player Info addon: shift + right-click a player to see their equipped
+    // armor + enchants (and, later, command-derived info) in a popup menu.
+    // Boxed Boolean so a config written before this field existed loads as null
+    // (-> default on) rather than false.
+    public Boolean playerInfoEnabled = Boolean.TRUE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -249,6 +255,7 @@ public class CelleConfig {
                 this.mineCellerEspEnabled = loaded.mineCellerEspEnabled;
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
                 this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
+                this.playerInfoEnabled = loaded.playerInfoEnabled == null ? Boolean.TRUE : loaded.playerInfoEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

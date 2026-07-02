@@ -125,6 +125,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Spiller Info";
+            }
+
+            public String description() {
+                return "Shift + højreklik en spiller for at se rustning + info";
+            }
+
+            public String category() {
+                return "PvP";
+            }
+
+            public boolean isActive() {
+                return config.playerInfoEnabled;
+            }
+
+            public void open() {
+                CelleActions.openPlayerInfoMenu();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Anti-AFK";
             }
 
