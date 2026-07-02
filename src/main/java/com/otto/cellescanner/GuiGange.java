@@ -20,7 +20,6 @@ import java.util.TreeMap;
 public class GuiGange extends GuiScreen {
 
     private static final int ID_BACK = 0;
-    private static final int ID_REFRESH = 1;
     private static final int ID_TOGGLE = 2;
 
     private static final int ROW_H = 11;
@@ -58,10 +57,8 @@ public class GuiGange extends GuiScreen {
         listBottom = this.height - 58;
 
         int left = this.width / 2 - PANEL_W / 2;
-        int half = PANEL_W / 2 - 4;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, this.height - 52, PANEL_W, 20, toggleLabel()));
-        this.buttonList.add(new StyledButton(ID_BACK, left, this.height - 28, half, 20, "Tilbage"));
-        this.buttonList.add(new StyledButton(ID_REFRESH, left + PANEL_W / 2 + 4, this.height - 28, half, 20, "Opdater gange"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, this.height - 28, PANEL_W, 20, "Tilbage"));
 
         buildRows();
     }
@@ -176,16 +173,8 @@ public class GuiGange extends GuiScreen {
                 CelleActions.toggleGangAutoQuery();
                 toggleButton.displayString = toggleLabel();
                 flash = CelleScannerMod.config.gangAutoQuery
-                        ? "Gang-detektor slået til."
-                        : "Gang-detektor slået fra - ingen /ce info sendes.";
-                break;
-            case ID_REFRESH:
-                if (!CelleScannerMod.config.gangAutoQuery) {
-                    flash = "Gang-detektor er slået fra - slå den til først.";
-                    break;
-                }
-                GangInfo.requestResweep();
-                flash = "Genscanner gange...";
+                        ? "Gang-detektor til - højreklik celle-skilte for at hente gang."
+                        : "Gang-detektor slået fra.";
                 break;
             default:
                 break;
@@ -204,6 +193,7 @@ public class GuiGange extends GuiScreen {
         int left = this.width / 2 - PANEL_W / 2;
         if (rows.isEmpty()) {
             drawCenteredString(this.fontRendererObj, "Ingen celler scannet endnu - gå rundt i fængslet.", cx, listTop + 20, 0xAAAAAA);
+            drawCenteredString(this.fontRendererObj, "Højreklik et celle-skilt for at hente dets gang.", cx, listTop + 32, 0x888888);
         } else {
             int y = listTop - scroll;
             boolean first = true;

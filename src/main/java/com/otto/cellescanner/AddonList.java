@@ -73,7 +73,7 @@ public final class AddonList {
             }
 
             public String description() {
-                return "Alle gange og deres celle-timere (hentet fra /ce info)";
+                return "Alle gange og deres celle-timere (højreklik skilte)";
             }
 
             public String category() {
