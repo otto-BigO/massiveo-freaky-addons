@@ -38,7 +38,8 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private static final String[] SLOT_NAMES = {"Støvler", "Bukser", "Brystplade", "Hjelm"};
 
-    private final EntityPlayer entity;
+    private final EntityPlayer entity;   // null when offline
+    private final boolean offline;
     private final String playerName;
     private final String rawName;
     private final String bande;
@@ -46,8 +47,10 @@ public class GuiPlayerInfo extends GuiScreen {
     private ResourceLocation skin;
     private boolean modelBroken = false;
 
+    /** Online / loaded player: full data + live 3D model. */
     public GuiPlayerInfo(EntityPlayer target) {
         this.entity = target;
+        this.offline = false;
         this.rawName = target.getName();
         String name;
         try {
@@ -67,6 +70,15 @@ public class GuiPlayerInfo extends GuiScreen {
             }
         } catch (Throwable ignored) {
         }
+    }
+
+    /** Offline player (not loaded): skin fetched from Mojang, celle via /ce info, no live armor. */
+    public GuiPlayerInfo(String username) {
+        this.entity = null;
+        this.offline = true;
+        this.rawName = username;
+        this.playerName = username;
+        this.bande = null;
     }
 
     private static String bandeOf(EntityPlayer target) {
@@ -129,7 +141,7 @@ public class GuiPlayerInfo extends GuiScreen {
         if (bande != null) {
             drawString(this.fontRendererObj, EnumChatFormatting.RED + "Bande: " + EnumChatFormatting.WHITE + bande, x, y, 0xFFFFFF);
         } else {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Bande: ukendt", x, y, 0xAAAAAA);
+            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + (offline ? "Bande: ukendt (offline)" : "Bande: ukendt"), x, y, 0xAAAAAA);
         }
         y += 15;
 
@@ -138,12 +150,28 @@ public class GuiPlayerInfo extends GuiScreen {
 
         drawString(this.fontRendererObj, EnumChatFormatting.GREEN + "Rustning", x, y, 0x55FF55);
         y += 12;
-        drawArmor(mc, x, y);
+        if (offline) {
+            drawString(this.fontRendererObj, EnumChatFormatting.DARK_GRAY + "Ikke tilgængelig (offline)", x + 4, y, 0x777777);
+        } else {
+            drawArmor(mc, x, y);
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
+        if (offline) {
+            SkinFetcher.Entry sk = SkinFetcher.get(rawName);
+            if (sk.location != null) {
+                int s = Math.max(2, (mh - 20) / 32);
+                int bodyH = 32 * s;
+                drawSkinBody(mc, sk.location, mx0 + mw / 2, my0 + (mh - bodyH) / 2, s, sk.slim, sk.legacy);
+            } else {
+                String msg = "fejl".equals(sk.status) ? "Ingen skin fundet" : "Henter skin...";
+                drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, mx0 + mw / 2, my0 + mh / 2 - 4, 0xAAAAAA);
+            }
+            return;
+        }
         if (modelBroken || entity == null || entity.isDead) {
             drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
             return;
@@ -264,6 +292,44 @@ public class GuiPlayerInfo extends GuiScreen {
             Gui.drawScaledCustomSizeModalRect(x, y, 40, 8, 8, 8, size, size, 64, 64);
         } catch (Throwable ignored) {
         }
+    }
+
+    /** Draws a flat, front-facing render of a skin (head/body/arms/legs + overlays), scaled by s. */
+    private void drawSkinBody(Minecraft mc, ResourceLocation loc, int centerX, int topY, int s, boolean slim, boolean legacy) {
+        try {
+            GlStateManager.color(1f, 1f, 1f, 1f);
+            mc.getTextureManager().bindTexture(loc);
+            float th = legacy ? 32f : 64f;
+            int armW = slim ? 3 : 4;
+            int x0 = centerX - (2 * armW + 8) * s / 2;
+            int headX = x0 + armW * s;
+            int bodyY = topY + 8 * s;
+            int legsY = bodyY + 12 * s;
+            int leftArmX = x0 + (armW + 8) * s;
+
+            // Base layer.
+            part(headX, topY, 8, 8, 8, 8, s, th);
+            part(x0, bodyY, 44, 20, armW, 12, s, th);                                   // right arm
+            part(headX, bodyY, 20, 20, 8, 12, s, th);                                   // body
+            part(leftArmX, bodyY, legacy ? 44 : 36, legacy ? 20 : 52, armW, 12, s, th); // left arm (mirror on legacy)
+            part(headX, legsY, 4, 20, 4, 12, s, th);                                    // right leg
+            part(x0 + (armW + 4) * s, legsY, legacy ? 4 : 20, legacy ? 20 : 52, 4, 12, s, th); // left leg
+
+            // Overlay (hat + jacket + sleeves + pants) - hat always, rest 64x64 only.
+            part(headX, topY, 40, 8, 8, 8, s, th);                                      // hat
+            if (!legacy) {
+                part(x0, bodyY, 44, 36, armW, 12, s, th);                               // right sleeve
+                part(headX, bodyY, 20, 36, 8, 12, s, th);                               // jacket
+                part(leftArmX, bodyY, 52, 52, armW, 12, s, th);                         // left sleeve
+                part(headX, legsY, 4, 36, 4, 12, s, th);                                // right pant
+                part(x0 + (armW + 4) * s, legsY, 4, 52, 4, 12, s, th);                  // left pant
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void part(int x, int y, int u, int v, int uw, int vh, int s, float tileH) {
+        Gui.drawScaledCustomSizeModalRect(x, y, u, v, uw, vh, uw * s, vh * s, 64.0F, tileH);
     }
 
     private static String join(List<String> list) {

@@ -94,8 +94,8 @@ public class GuiPlayerInfoMenu extends GuiScreen {
                 return;
             }
         }
-        status = "\"" + name + "\" er ikke i nærheden (skal være indenfor rækkevidde).";
-        statusColor = 0xFFAA00;
+        // Not loaded/nearby: open in offline mode (skin from Mojang + /ce info).
+        mc.displayGuiScreen(new GuiPlayerInfo(name));
     }
 
     @Override
