@@ -80,7 +80,14 @@ public class GuiGange extends GuiScreen {
         TreeMap<String, List<Map.Entry<String, CellePositions.Entry>>> byGang =
                 new TreeMap<String, List<Map.Entry<String, CellePositions.Entry>>>(String.CASE_INSENSITIVE_ORDER);
         for (Map.Entry<String, CellePositions.Entry> e : all.entrySet()) {
-            String gang = e.getValue().gang;
+            CellePositions.Entry entry = e.getValue();
+            // A gang read straight off a right-clicked sign is exact; otherwise
+            // resolve it from the id-range map (config/massiveo_gang_ranges.json).
+            String gang = entry.gang;
+            if (gang == null || gang.isEmpty()) {
+                String id = entry.displayId != null && !entry.displayId.isEmpty() ? entry.displayId : e.getKey();
+                gang = GangRanges.gangFor(id);
+            }
             String key = (gang != null && !gang.isEmpty()) ? gang : UNKNOWN;
             List<Map.Entry<String, CellePositions.Entry>> list = byGang.get(key);
             if (list == null) {

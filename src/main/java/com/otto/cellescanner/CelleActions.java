@@ -31,9 +31,11 @@ public final class CelleActions {
 
     public static void reloadConfig() {
         CelleScannerMod.config.load();
+        GangRanges.load();
         message("Konfiguration genindlæst. minHours=" + CelleScannerMod.config.minHours
                 + " maxHours=" + CelleScannerMod.config.maxHours
-                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra"));
+                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra")
+                + ", gang-ranges=" + GangRanges.count());
     }
 
     public static void clearCache() {
