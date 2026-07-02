@@ -111,6 +111,14 @@ public class CelleConfig {
     public boolean mineCellerEspEnabled = true;
     public List<String> myCelleIds = new ArrayList<String>();
 
+    // Gange screen: quietly run "/ce info <id>" for scanned celler we don't yet
+    // know the gang (corridor) of, learn it from the reply, and group every
+    // remembered celle by gang with its live timer. The auto-queries are hidden
+    // from chat and throttled; turning this off keeps the screen but stops it
+    // filling in new gange on its own. Boxed Boolean so a config written before
+    // this field existed loads as null (-> default on) rather than false.
+    public Boolean gangAutoQuery = Boolean.TRUE;
+
     // Item Value addon: shows an item's worth (from the FreakyVille price list)
     // as a line in its tooltip. Prices live in a separate editable file
     // (config/massiveo_prices.json) so they can be updated without a rebuild.
@@ -235,6 +243,7 @@ public class CelleConfig {
                 this.armorSkinPack = "hypixel".equals(loaded.armorSkinPack) ? "hypixel" : "mesterholm";
                 this.mineCellerEspEnabled = loaded.mineCellerEspEnabled;
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
+                this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.armorHudEnabled = loaded.armorHudEnabled;

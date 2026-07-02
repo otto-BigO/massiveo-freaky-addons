@@ -255,6 +255,16 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiMineCeller());
     }
 
+    public static void openGange() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiGange());
+    }
+
+    public static void toggleGangAutoQuery() {
+        CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
+        CelleScannerMod.config.save();
+        message("Gange auto-hentning: " + (CelleScannerMod.config.gangAutoQuery ? "til" : "fra"));
+    }
+
     public static void openItemValues() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiItemValues());
     }

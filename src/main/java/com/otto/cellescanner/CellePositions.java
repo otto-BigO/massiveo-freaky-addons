@@ -69,6 +69,17 @@ public final class CellePositions {
         public long remainingSeconds;
         public long valueUpdatedAt;
         public boolean timerConfirmed;
+
+        // Which "gang" (corridor) this celle sits on, e.g. "Hvid cellegang".
+        // The sign doesn't show it; it's learned from the server's "/ce info"
+        // reply (see GangInfo) and powers the Gange screen. Null until looked up.
+        public String gang;
+
+        /** remainingSeconds, extrapolated down to "now". Never negative. */
+        public long liveRemainingSeconds() {
+            long elapsed = (System.currentTimeMillis() - valueUpdatedAt) / 1000L;
+            return Math.max(0L, remainingSeconds - elapsed);
+        }
     }
 
     private CellePositions() {
@@ -195,6 +206,44 @@ public final class CellePositions {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Merges what a "/ce info" reply told us about a celle into its remembered
+     * entry: its gang (when non-null), and optionally a fresh timer reading from
+     * the reply's "Tid:" line (pass remainingSeconds &lt; 0 to leave the timer
+     * alone). No-op if we've never scanned this celle's sign, since there's no
+     * entry (and no position) to attach the gang to.
+     */
+    public static void recordInfo(String celleId, String gang, long remainingSeconds) {
+        if (file == null || celleId == null) {
+            return;
+        }
+        Entry e = known.get(normalizeKey(celleId));
+        if (e == null) {
+            return;
+        }
+        boolean changed = false;
+        if (gang != null && !gang.isEmpty() && !gang.equals(e.gang)) {
+            e.gang = gang;
+            changed = true;
+        }
+        if (remainingSeconds >= 0) {
+            long now = System.currentTimeMillis();
+            e.remainingSeconds = remainingSeconds;
+            e.valueUpdatedAt = now;
+            e.timerConfirmed = true;
+            e.lastSeen = now;
+            changed = true;
+        }
+        if (changed) {
+            save();
+        }
+    }
+
+    /** A shallow copy of every remembered celle, for the grouping screens. */
+    public static Map<String, Entry> snapshot() {
+        return new HashMap<String, Entry>(known);
     }
 
     /** Case-insensitive lookup - null if this client has never scanned that id. */

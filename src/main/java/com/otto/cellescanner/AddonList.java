@@ -69,6 +69,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Gange";
+            }
+
+            public String description() {
+                return "Alle gange og deres celle-timere (hentet fra /ce info)";
+            }
+
+            public String category() {
+                return "Celler";
+            }
+
+            public boolean isActive() {
+                return config.gangAutoQuery;
+            }
+
+            public void open() {
+                CelleActions.openGange();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Bande ESP";
             }
 
