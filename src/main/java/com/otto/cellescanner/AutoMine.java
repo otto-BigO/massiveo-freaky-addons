@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -30,6 +31,7 @@ public class AutoMine {
 
     private static final double REACH = 4.3;
     private static final int SCAN_R = 6;
+    private static final double COLLECT_R = 5.0; // walk to dropped items within this
 
     private final Random rng = new Random();
 
@@ -75,6 +77,19 @@ public class AutoMine {
             walkTo(mc, new BlockPos((MIN_X + MAX_X) / 2, MAX_Y, (MIN_Z + MAX_Z) / 2));
             stopMining(mc);
             return;
+        }
+        // Collect a nearby dropped item first (walk onto it), then mine on.
+        EntityItem item = findItem(mc);
+        if (item != null) {
+            double dx = item.posX - mc.thePlayer.posX;
+            double dz = item.posZ - mc.thePlayer.posZ;
+            if (Math.sqrt(dx * dx + dz * dz) > 0.9) {
+                stopMining(mc);
+                aimYaw(mc, dx, dz);
+                walkForward(mc);
+                return;
+            }
+            // Close enough: the pickup happens automatically, fall through to mining.
         }
         BlockPos target = findTarget(mc);
         if (target == null) {
@@ -137,6 +152,30 @@ public class AutoMine {
                         best = p;
                     }
                 }
+            }
+        }
+        return best;
+    }
+
+    /** Nearest dropped item within the box (loosely) and COLLECT_R of the player, or null. */
+    private EntityItem findItem(Minecraft mc) {
+        double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
+        EntityItem best = null;
+        double bestD = COLLECT_R * COLLECT_R;
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (!(o instanceof EntityItem)) {
+                continue;
+            }
+            EntityItem it = (EntityItem) o;
+            if (it.posX < MIN_X - 2 || it.posX > MAX_X + 3 || it.posZ < MIN_Z - 2 || it.posZ > MAX_Z + 3
+                    || it.posY < MIN_Y - 3 || it.posY > MAX_Y + 3) {
+                continue;
+            }
+            double dx = it.posX - px, dy = it.posY - py, dz = it.posZ - pz;
+            double d = dx * dx + dy * dy + dz * dz;
+            if (d < bestD) {
+                bestD = d;
+                best = it;
             }
         }
         return best;
