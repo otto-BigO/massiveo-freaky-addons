@@ -77,7 +77,7 @@ public class GuiPlayerInfo extends GuiScreen {
             name = target.getName();
         }
         this.playerName = name;
-        this.bande = bandeOf(target);
+        this.bande = null; // bande detection shelved - see BandeEsp.bandeTag
         for (int i = 0; i < 4; i++) {
             ItemStack s = target.getCurrentArmor(i);
             armor[i] = s == null ? null : s.copy();
@@ -104,10 +104,6 @@ public class GuiPlayerInfo extends GuiScreen {
         this.playerName = username;
         this.bande = null;
         this.slim = false;
-    }
-
-    private static String bandeOf(EntityPlayer target) {
-        return BandeEsp.bandeTag(target);
     }
 
     private int cardL() {
@@ -201,13 +197,7 @@ public class GuiPlayerInfo extends GuiScreen {
         int x = mx0 + MODEL_W + 12;
         int y = cardT + 28;
 
-        if (bande != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.RED + "Bande: " + EnumChatFormatting.WHITE + bande, x, y, 0xFFFFFF);
-        } else {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + (offline ? "Bande: ukendt (offline)" : "Bande: ukendt"), x, y, 0xAAAAAA);
-        }
-        y += 15;
-
+        // Bande line shelved (detection unreliable) - see BandeEsp.bandeTag.
         y = drawCelle(x, y);
         y += 6;
 

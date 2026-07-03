@@ -81,19 +81,10 @@ public class BandeEsp {
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
-        if (CelleScannerMod.config.isBandeMember(p.getName())) {
-            return true;
-        }
-        if (CelleScannerMod.config.bandeAutoTeam) {
-            // Match on the bande name read from the hologram under each player's
-            // name, and only when yours is set, so no bande = no auto-boxing.
-            String mine = bandeName(mc.thePlayer);
-            String theirs = bandeName(p);
-            if (mine != null && mine.equals(theirs)) {
-                return true;
-            }
-        }
-        return false;
+        // Auto bande detection is shelved (the hologram read below is unreliable);
+        // only the manual member list decides bande membership for now. The
+        // bandeTag/bandeName helpers are kept for when we remake the detection.
+        return CelleScannerMod.config.isBandeMember(p.getName());
     }
 
     /**
