@@ -86,7 +86,12 @@ public class ItemPickupNotify {
     }
 
     private static String keyOf(ItemStack s) {
-        return Item.getIdFromItem(s.getItem()) + ":" + s.getItemDamage() + ":" + s.getDisplayName();
+        // For tools/armor the "damage" is durability, not a variant - excluding it
+        // means losing durability (e.g. mining with a pickaxe) isn't mistaken for
+        // picking up a new one. For everything else the damage is the subtype
+        // (wool colour, dye, etc.) so it stays part of the identity.
+        int meta = s.isItemStackDamageable() ? 0 : s.getItemDamage();
+        return Item.getIdFromItem(s.getItem()) + ":" + meta + ":" + s.getDisplayName();
     }
 
     private void addPickup(String key, ItemStack stack, int delta) {
