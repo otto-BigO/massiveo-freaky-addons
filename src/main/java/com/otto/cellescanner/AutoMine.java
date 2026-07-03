@@ -262,6 +262,10 @@ public class AutoMine {
 
     private void walkForward(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+        // Auto-jump: if walking into something and on the ground, hop it (1.8.9 has
+        // no auto-step). Walking down is just gravity once it can move off a ledge.
+        boolean jump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), jump);
     }
 
     private void walkTo(Minecraft mc, BlockPos p) {
@@ -271,6 +275,7 @@ public class AutoMine {
 
     private void stopWalk(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
     }
 
     private void releaseKeys(Minecraft mc) {
