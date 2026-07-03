@@ -72,10 +72,11 @@ public class AutoMine {
     // Positions of blocks we've broken recently, so we only collect our own drops.
     private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
 
-    // When the inventory is full we turn aside and throw out the junk (cobblestone,
-    // sandstone, lapis), keeping pickaxes, iron ore and everything else, then mine on.
+    // When the inventory is full we carry the junk (cobblestone, sandstone, lapis)
+    // to the drop-off spot and throw it out there, away from the mine, so we don't
+    // walk back into the pile. Pickaxes, iron ore and everything else are kept.
+    private static final BlockPos DUMP_POINT = new BlockPos(20, 60, -684);
     private boolean dumping = false;
-    private float dumpYaw = 0f;
 
     // Auto-eat so we don't starve while mining. Eat when hunger drops to EAT_BELOW,
     // stop when full (or out of food).
@@ -147,7 +148,6 @@ public class AutoMine {
             }
         } else if (inventoryFull(mc) && hasJunk(mc)) {
             dumping = true;
-            dumpYaw = mc.thePlayer.rotationYaw + 90f; // turn aside to throw it out
             doDump(mc);
         } else {
             doMine(mc);
@@ -409,13 +409,22 @@ public class AutoMine {
         }
     }
 
-    /** Stand still, look to the side, and throw out junk stacks one at a time. */
+    /** Carry junk to the drop-off spot, then throw out the junk stacks one at a time. */
     private void doDump(Minecraft mc) {
         stopMining(mc);
+        aimAt(mc, DUMP_POINT);
+
+        double dx = (DUMP_POINT.getX() + 0.5) - mc.thePlayer.posX;
+        double dz = (DUMP_POINT.getZ() + 0.5) - mc.thePlayer.posZ;
+        if (Math.sqrt(dx * dx + dz * dz) > 1.6) {
+            // Not there yet - walk to the drop-off spot before dropping anything.
+            approach(mc, DUMP_POINT.getX() + 0.5, DUMP_POINT.getZ() + 0.5);
+            return;
+        }
+
+        // At the drop-off spot - throw out one stack every other tick (fast, but
+        // not a 20/sec burst).
         stopWalk(mc);
-        tYaw = dumpYaw;
-        tPitch = 12f;
-        // One stack every other tick - fast enough, but not a 20/sec burst.
         if (tick % 2 == 0) {
             dropOneJunkStack(mc);
         }
