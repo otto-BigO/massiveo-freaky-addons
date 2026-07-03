@@ -2,68 +2,83 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.entity.RenderManager;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraftforge.client.event.RenderLivingEvent;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.lwjgl.opengl.GL11;
 
 /**
- * Bande ESP addon: draws players in your bande as a "chams" - their real model,
- * visible through walls and tinted green - instead of a box, so you see their
- * skin/shape and can pick them out anywhere. Membership comes from the manual
- * name list (CelleConfig.bandeMembers), optionally plus anyone sharing your
- * bande tag when bandeAutoTeam is on.
+ * Bande ESP addon: draws players in your bande as a "chams" - a green-tinted
+ * copy of their own model, visible through walls, so you see their skin/shape
+ * and can pick them out anywhere. Membership comes from the manual name list
+ * (CelleConfig.bandeMembers), optionally plus anyone sharing your bande tag when
+ * bandeAutoTeam is on.
  *
- * It works by tweaking GL state around each bande player's normal render
- * (RenderLivingEvent Pre/Post): depth off (through walls) + lighting off so the
- * green tint actually shows on the skin.
+ * It re-renders each bande player's model in RenderWorldLast with depth off (the
+ * same pass the box ESP used, which reliably renders through walls even under
+ * LabyMod - unlike toggling depth inside the entity render itself).
  */
 public class BandeEsp {
 
-    // Set in Pre, cleared in Post - Pre/Post are paired per entity on the single
-    // render thread, so this correctly scopes the state change to one player.
-    private boolean active = false;
+    // Green tint - clearly visible but light enough to read the skin under it.
+    private static final float TINT_R = 0.5f;
+    private static final float TINT_G = 1.0f;
+    private static final float TINT_B = 0.6f;
 
     @SubscribeEvent
-    public void onRenderLivingPre(RenderLivingEvent.Pre<EntityLivingBase> event) {
-        active = false;
+    public void onRenderWorldLast(RenderWorldLastEvent event) {
         CelleConfig cfg = CelleScannerMod.config;
-        if (!cfg.bandeEspEnabled || !(event.entity instanceof EntityPlayer)) {
+        if (!cfg.bandeEspEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
-        // Don't apply during GUI entity rendering (e.g. the Player Info model) -
-        // RenderLivingEvent fires there too, and chams state would ruin it.
-        if (mc.currentScreen != null || mc.thePlayer == null) {
+        if (mc.thePlayer == null || mc.theWorld == null) {
             return;
         }
-        EntityPlayer p = (EntityPlayer) event.entity;
-        if (p == mc.thePlayer || !isBande(mc, p)) {
-            return;
-        }
-        // depthFunc(ALWAYS) makes the model pass the depth test everywhere (so it
-        // shows through walls) while still writing depth, so it self-occludes
-        // cleanly - unlike disableDepth, which the model's own render undoes.
-        // Lighting off is needed for the green tint to apply; a light tint keeps
-        // the skin readable rather than a solid green fill.
-        GlStateManager.depthFunc(GL11.GL_ALWAYS);
-        GlStateManager.disableLighting();
-        GlStateManager.color(0.75f, 1.0f, 0.8f, 1.0f);
-        active = true;
-    }
 
-    @SubscribeEvent
-    public void onRenderLivingPost(RenderLivingEvent.Post<EntityLivingBase> event) {
-        if (!active) {
-            return;
+        float pt = event.partialTicks;
+        Entity viewer = mc.thePlayer;
+        double camX = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * pt;
+        double camY = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * pt;
+        double camZ = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * pt;
+
+        RenderManager rm = mc.getRenderManager();
+        rm.setRenderShadow(false);
+
+        for (Object o : mc.theWorld.playerEntities) {
+            if (!(o instanceof EntityPlayer)) {
+                continue;
+            }
+            EntityPlayer p = (EntityPlayer) o;
+            if (p == mc.thePlayer || !isBande(mc, p)) {
+                continue;
+            }
+            double x = (p.lastTickPosX + (p.posX - p.lastTickPosX) * pt) - camX;
+            double y = (p.lastTickPosY + (p.posY - p.lastTickPosY) * pt) - camY;
+            double z = (p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * pt) - camZ;
+
+            GlStateManager.pushMatrix();
+            try {
+                GlStateManager.disableDepth();       // through walls
+                GlStateManager.disableLighting();    // so the tint applies (and it's full-bright)
+                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
+                GlStateManager.color(TINT_R, TINT_G, TINT_B, 1.0F);
+                rm.renderEntityWithPosYaw(p, x, y, z, p.rotationYaw, pt);
+            } catch (Throwable ignored) {
+                // A bad render must not take down the whole world-render pass.
+            } finally {
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                GlStateManager.enableLighting();
+                GlStateManager.enableDepth();
+                GlStateManager.popMatrix();
+            }
         }
-        active = false;
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-        GlStateManager.enableLighting();
-        GlStateManager.depthFunc(GL11.GL_LEQUAL);
+
+        rm.setRenderShadow(true);
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
