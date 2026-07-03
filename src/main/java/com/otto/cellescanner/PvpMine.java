@@ -158,8 +158,8 @@ public class PvpMine {
         int boxH = lines.size() * lineH + 5;
 
         ScaledResolution sr = new ScaledResolution(mc);
-        int x = 4;
-        int y = sr.getScaledHeight() - boxH - 4; // bottom-left, out of the way
+        int x = CelleScannerMod.config.pvpMineX != null ? CelleScannerMod.config.pvpMineX : 4;
+        int y = CelleScannerMod.config.pvpMineY != null ? CelleScannerMod.config.pvpMineY : sr.getScaledHeight() - boxH - 4;
 
         Gui.drawRect(x - 3, y - 3, x + w + 3, y + boxH - 3, 0x88000000);
         int dy = y;

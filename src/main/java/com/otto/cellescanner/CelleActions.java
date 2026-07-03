@@ -283,6 +283,14 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiCelleHudMover());
     }
 
+    public static void openGuiSettings() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiGuiSettings());
+    }
+
+    public static void openHudEditor() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiHudEditor());
+    }
+
     public static void openHub() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub());
     }

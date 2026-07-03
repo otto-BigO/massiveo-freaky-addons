@@ -138,9 +138,18 @@ public class ItemPickupNotify {
         }
 
         GlStateManager.enableBlend();
-        int rightX = sr.getScaledWidth() - 4;
-        int y = sr.getScaledHeight() - 4 - fr.FONT_HEIGHT;
-        // Newest at the bottom.
+        int lineH = fr.FONT_HEIGHT + 1;
+        int maxW = 0;
+        for (Entry e : entries) {
+            maxW = Math.max(maxW, fr.getStringWidth("+" + e.count + " " + e.name));
+        }
+        int boxH = entries.size() * lineH;
+        int sw = sr.getScaledWidth();
+        int sh = sr.getScaledHeight();
+        int x = CelleScannerMod.config.itemPickupX != null ? CelleScannerMod.config.itemPickupX : sw - maxW - 4;
+        int y = CelleScannerMod.config.itemPickupY != null ? CelleScannerMod.config.itemPickupY : sh - boxH - 4;
+
+        // Newest first, from the anchor downward.
         for (int i = entries.size() - 1; i >= 0; i--) {
             Entry e = entries.get(i);
             long age = now - e.time;
@@ -150,11 +159,9 @@ public class ItemPickupNotify {
                 if (a < 8) {
                     a = 8;
                 }
-                String text = "+" + e.count + " " + e.name;
-                int w = fr.getStringWidth(text);
-                fr.drawStringWithShadow(text, rightX - w, y, (a << 24) | 0x55FF55);
+                fr.drawStringWithShadow("+" + e.count + " " + e.name, x, y, (a << 24) | 0x55FF55);
             }
-            y -= fr.FONT_HEIGHT + 1;
+            y += lineH;
         }
         GlStateManager.color(1f, 1f, 1f, 1f);
     }

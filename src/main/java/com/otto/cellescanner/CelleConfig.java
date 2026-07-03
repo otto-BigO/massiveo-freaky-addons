@@ -152,14 +152,20 @@ public class CelleConfig {
     public Boolean trollJump = Boolean.TRUE;
     public Boolean trollAfk = Boolean.TRUE;
 
-    // Item pickup log: a small "+N Item" notification in the bottom-right that
-    // fades out when items enter your inventory (SkyHanni style).
+    // Item pickup log: a small "+N Item" notification that fades out when items
+    // enter your inventory (SkyHanni style). Position is boxed so null = "use the
+    // default spot (bottom-right)"; set once dragged in the HUD editor.
     public Boolean itemPickupEnabled = Boolean.TRUE;
+    public Integer itemPickupX = null;
+    public Integer itemPickupY = null;
 
     // PvP Mine watcher: a HUD with the drop-timer sign, and an alert when another
-    // player is inside the mine area (in render distance).
+    // player is inside the mine area (in render distance). Position boxed the same
+    // way (null = default, bottom-left).
     public boolean pvpMineEnabled = false;
     public Boolean pvpMineAlert = Boolean.TRUE;
+    public Integer pvpMineX = null;
+    public Integer pvpMineY = null;
 
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
@@ -286,8 +292,12 @@ public class CelleConfig {
                 this.trollJump = loaded.trollJump == null ? Boolean.TRUE : loaded.trollJump;
                 this.trollAfk = loaded.trollAfk == null ? Boolean.TRUE : loaded.trollAfk;
                 this.itemPickupEnabled = loaded.itemPickupEnabled == null ? Boolean.TRUE : loaded.itemPickupEnabled;
+                this.itemPickupX = loaded.itemPickupX;
+                this.itemPickupY = loaded.itemPickupY;
                 this.pvpMineEnabled = loaded.pvpMineEnabled;
                 this.pvpMineAlert = loaded.pvpMineAlert == null ? Boolean.TRUE : loaded.pvpMineAlert;
+                this.pvpMineX = loaded.pvpMineX;
+                this.pvpMineY = loaded.pvpMineY;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

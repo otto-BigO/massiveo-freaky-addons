@@ -22,7 +22,7 @@ public class GuiGuiSettings extends GuiScreen {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 6;
-        this.buttonList.add(new StyledButton(ID_MOVE_HUD, left, y, PANEL_W, BTN_H, "Flyt Celle HUD"));
+        this.buttonList.add(new StyledButton(ID_MOVE_HUD, left, y, PANEL_W, BTN_H, "Flyt HUD'er"));
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
@@ -31,7 +31,7 @@ public class GuiGuiSettings extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case ID_MOVE_HUD:
-                CelleActions.openMover();
+                CelleActions.openHudEditor();
                 break;
             case ID_BACK:
                 CelleActions.openHub();
