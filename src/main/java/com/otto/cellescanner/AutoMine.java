@@ -2,7 +2,6 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -31,14 +30,20 @@ public class AutoMine {
 
     private static final double REACH = 4.3;
     private static final int SCAN_R = 6;
-    private static final double COLLECT_R = 5.0; // walk to dropped items within this
 
     private final Random rng = new Random();
 
     private boolean holding = false;   // whether we currently hold any keys
     private BlockPos mining = null;    // block being broken
+    private BlockPos target = null;    // block we're heading for (sticky until gone)
     private float tYaw, tPitch;        // smoothed rotation targets
     private long pauseUntil = 0;
+
+    // Only walk once we're roughly facing where we want to go. This is the single
+    // most important anti-wander rule (MineBot/Baritone do the same): if we walk
+    // while still turning, we drift off toward wherever we're half-facing and
+    // circle forever instead of settling on the block.
+    private static final float WALK_ANGLE = 30f;
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
@@ -74,41 +79,64 @@ public class AutoMine {
 
     private void doMine(Minecraft mc) {
         if (!nearBox(mc, 3)) {
-            walkTo(mc, new BlockPos((MIN_X + MAX_X) / 2, MAX_Y, (MIN_Z + MAX_Z) / 2));
+            // Walk back to the box; only move once we're facing it.
             stopMining(mc);
+            approach(mc, (MIN_X + MAX_X) / 2.0 + 0.5, (MIN_Z + MAX_Z) / 2.0 + 0.5);
             return;
         }
-        BlockPos target = findTarget(mc);
+
+        // Stick to one target until it's mined out, then pick the nearest block.
+        // Re-picking the nearest every tick made the aim flip between blocks and
+        // the bot wander; keeping a target settles it.
+        if (target == null || mc.theWorld.isAirBlock(target) || !inBox(target)) {
+            target = findTarget(mc);
+        }
         if (target == null) {
             // Box mined out - idle until it resets and blocks reappear.
             stopMining(mc);
             stopWalk(mc);
             return;
         }
-        // Always look at a block (never level up toward a dropped item), and mine
-        // it as soon as it's in reach.
-        aimAt(mc, target);
 
-        // Mine the block actually under the crosshair (exactly like manual mining,
-        // so the server accepts it and it doesn't ghost-revert), as long as it's a
-        // mineable block inside the box and in reach.
-        MovingObjectPosition mop = mc.objectMouseOver;
-        BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                ? mop.getBlockPos() : null;
-        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && eyeDist(mc, looked) <= REACH + 0.5) {
-            mineLookedAt(mc, looked, mop.sideHit);
-            if (findItem(mc) != null) {
-                walkForward(mc);
-            } else {
-                stopWalk(mc);
-            }
-        } else if (eyeDist(mc, target) > REACH) {
-            walkForward(mc);
-            stopMining(mc);
-        } else {
-            // In reach but the crosshair isn't on it yet - keep turning onto it.
+        aimAt(mc, target);
+        double dist = eyeDist(mc, target);
+
+        if (dist <= REACH + 0.3) {
+            // In reach: never walk (this is what stops the endless walking). Mine
+            // whatever in-box block the crosshair is actually on, so the server
+            // accepts it and it doesn't ghost-revert. As blocks clear, the next
+            // target ends up out of reach and we step forward to it below.
             stopWalk(mc);
+            MovingObjectPosition mop = mc.objectMouseOver;
+            BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                    ? mop.getBlockPos() : null;
+            if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && eyeDist(mc, looked) <= REACH + 0.5) {
+                mineLookedAt(mc, looked, mop.sideHit);
+            } else {
+                // Crosshair hasn't settled on the block yet - wait, don't walk.
+                stopMining(mc);
+            }
+        } else {
+            // Too far to reach: step toward it, but only while roughly facing it.
             stopMining(mc);
+            approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
+        }
+    }
+
+    /**
+     * Walk toward (x,z) but only once we're roughly facing that direction, and
+     * auto-jump when we bump a wall. Rotating-while-walking is what makes a bot
+     * drift and circle, so we gate movement on the yaw being close first.
+     */
+    private void approach(Minecraft mc, double x, double z) {
+        double dx = x - mc.thePlayer.posX;
+        double dz = z - mc.thePlayer.posZ;
+        float wantYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float diff = Math.abs(MathHelper.wrapAngleTo180_float(wantYaw - mc.thePlayer.rotationYaw));
+        if (diff < WALK_ANGLE) {
+            walkForward(mc);
+        } else {
+            stopWalk(mc);
         }
     }
 
@@ -139,7 +167,7 @@ public class AutoMine {
             return;
         }
         aimYaw(mc, dx, dz);
-        walkForward(mc);
+        approach(mc, RETURN_POINT.getX() + 0.5, RETURN_POINT.getZ() + 0.5);
     }
 
     private BlockPos findTarget(Minecraft mc) {
@@ -172,31 +200,6 @@ public class AutoMine {
         }
         return best;
     }
-
-    /** Nearest dropped item within the box (loosely) and COLLECT_R of the player, or null. */
-    private EntityItem findItem(Minecraft mc) {
-        double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
-        EntityItem best = null;
-        double bestD = COLLECT_R * COLLECT_R;
-        for (Object o : mc.theWorld.loadedEntityList) {
-            if (!(o instanceof EntityItem)) {
-                continue;
-            }
-            EntityItem it = (EntityItem) o;
-            if (it.posX < MIN_X - 2 || it.posX > MAX_X + 3 || it.posZ < MIN_Z - 2 || it.posZ > MAX_Z + 3
-                    || it.posY < MIN_Y - 3 || it.posY > MAX_Y + 3) {
-                continue;
-            }
-            double dx = it.posX - px, dy = it.posY - py, dz = it.posZ - pz;
-            double d = dx * dx + dy * dy + dz * dz;
-            if (d < bestD) {
-                bestD = d;
-                best = it;
-            }
-        }
-        return best;
-    }
-
 
     private void stopMining(Minecraft mc) {
         if (mining != null) {
@@ -268,11 +271,6 @@ public class AutoMine {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), jump);
     }
 
-    private void walkTo(Minecraft mc, BlockPos p) {
-        aimYaw(mc, (p.getX() + 0.5) - mc.thePlayer.posX, (p.getZ() + 0.5) - mc.thePlayer.posZ);
-        walkForward(mc);
-    }
-
     private void stopWalk(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
@@ -285,6 +283,7 @@ public class AutoMine {
 
     private void stopAll(Minecraft mc) {
         releaseKeys(mc);
+        target = null;
         holding = false;
     }
 
