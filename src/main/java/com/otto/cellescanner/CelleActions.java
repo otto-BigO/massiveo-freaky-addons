@@ -492,6 +492,12 @@ public final class CelleActions {
         message("Bande auto (samme hold): " + (CelleScannerMod.config.bandeAutoTeam ? "til" : "fra"));
     }
 
+    public static void toggleBandeEspAll() {
+        CelleScannerMod.config.bandeEspAll = !CelleScannerMod.config.bandeEspAll;
+        CelleScannerMod.config.save();
+        message("ESP på alle spillere: " + (CelleScannerMod.config.bandeEspAll ? "til" : "fra"));
+    }
+
     public static void addBandeMember(String name) {
         String trimmed = name == null ? "" : name.trim();
         if (trimmed.isEmpty()) {

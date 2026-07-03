@@ -26,7 +26,7 @@ public class BandeEsp {
         if (!cfg.bandeEspEnabled) {
             return;
         }
-        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam) {
+        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam && !cfg.bandeEspAll) {
             return;
         }
 
@@ -57,10 +57,18 @@ public class BandeEsp {
                 continue;
             }
             EntityPlayer p = (EntityPlayer) obj;
-            if (p == mc.thePlayer || !isBande(mc, p)) {
+            if (p == mc.thePlayer) {
                 continue;
             }
-            drawBox(p, partialTicks);
+            boolean bande = isBande(mc, p);
+            if (!bande && !cfg.bandeEspAll) {
+                continue;
+            }
+            if (bande) {
+                drawBox(p, partialTicks, 0.2f, 1.0f, 0.2f);   // bande = green
+            } else {
+                drawBox(p, partialTicks, 1.0f, 0.25f, 0.25f); // everyone else = red
+            }
         }
 
         GlStateManager.enableTexture2D();
@@ -103,7 +111,7 @@ public class BandeEsp {
         }
     }
 
-    private void drawBox(EntityPlayer p, float partialTicks) {
+    private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
         double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
         double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
         double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
@@ -118,8 +126,8 @@ public class BandeEsp {
 
         // Via GlStateManager (not raw glColor4f) so its colour cache tracks this,
         // and the color(1,1,1,1) reset after the ESP actually takes effect -
-        // otherwise the green leaks onto the hand and inventory items.
-        GlStateManager.color(0.2f, 1.0f, 0.2f, 0.9f);
+        // otherwise the colour leaks onto the hand and inventory items.
+        GlStateManager.color(r, g, b, 0.9f);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);

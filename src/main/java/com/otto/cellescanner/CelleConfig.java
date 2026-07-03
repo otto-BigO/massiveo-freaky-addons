@@ -86,6 +86,9 @@ public class CelleConfig {
     // if the server happens to back bande membership with a real team.
     public boolean bandeEspEnabled = true;
     public boolean bandeAutoTeam = false;
+    // When on, the ESP boxes EVERY player - bande members green, everyone else
+    // red - so you can see all players through walls, not just your bande.
+    public boolean bandeEspAll = false;
     public List<String> bandeMembers = new ArrayList<String>();
 
     // Chest Alarm addon: watches chat for a keyword (the server's chest-alarm
@@ -244,6 +247,7 @@ public class CelleConfig {
                 this.antiAfkJump = loaded.antiAfkJump;
                 this.bandeEspEnabled = loaded.bandeEspEnabled;
                 this.bandeAutoTeam = loaded.bandeAutoTeam;
+                this.bandeEspAll = loaded.bandeEspAll;
                 this.bandeMembers = loaded.bandeMembers != null ? loaded.bandeMembers : new ArrayList<String>();
                 this.chestAlarmEnabled = loaded.chestAlarmEnabled;
                 this.chestAlarmToast = loaded.chestAlarmToast;
