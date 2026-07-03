@@ -167,6 +167,11 @@ public class CelleConfig {
     public Integer pvpMineX = null;
     public Integer pvpMineY = null;
 
+    // Auto Mine addon: automation (like Anti-AFK). Off by default; use only where
+    // the server allows it. Mines a fixed mine box, returns to a deposit point
+    // when the inventory is full, and resumes when the mine resets.
+    public boolean autoMineEnabled = false;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -298,6 +303,7 @@ public class CelleConfig {
                 this.pvpMineAlert = loaded.pvpMineAlert == null ? Boolean.TRUE : loaded.pvpMineAlert;
                 this.pvpMineX = loaded.pvpMineX;
                 this.pvpMineY = loaded.pvpMineY;
+                this.autoMineEnabled = loaded.autoMineEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

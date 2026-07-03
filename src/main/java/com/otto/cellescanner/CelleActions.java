@@ -376,6 +376,16 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiPvpMine());
     }
 
+    public static void openAutoMine() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiAutoMine());
+    }
+
+    public static void toggleAutoMine() {
+        CelleScannerMod.config.autoMineEnabled = !CelleScannerMod.config.autoMineEnabled;
+        CelleScannerMod.config.save();
+        message("Auto Mine: " + (CelleScannerMod.config.autoMineEnabled ? "til" : "fra"));
+    }
+
     public static void togglePvpMine() {
         CelleScannerMod.config.pvpMineEnabled = !CelleScannerMod.config.pvpMineEnabled;
         CelleScannerMod.config.save();

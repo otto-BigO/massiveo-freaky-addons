@@ -191,6 +191,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Auto Mine";
+            }
+
+            public String description() {
+                return "Auto-miner mine-området (automatisering - egen risiko)";
+            }
+
+            public String category() {
+                return "World";
+            }
+
+            public boolean isActive() {
+                return config.autoMineEnabled;
+            }
+
+            public void open() {
+                CelleActions.openAutoMine();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Item-log";
             }
 

@@ -20,5 +20,8 @@ public class KeyHandler {
         if (CelleScannerMod.openMenuKey.isPressed()) {
             mc.displayGuiScreen(new GuiAddonsHub());
         }
+        if (CelleScannerMod.autoMineKey != null && CelleScannerMod.autoMineKey.isPressed()) {
+            CelleActions.toggleAutoMine();
+        }
     }
 }
