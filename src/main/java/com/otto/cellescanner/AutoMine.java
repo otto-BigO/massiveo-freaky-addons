@@ -36,6 +36,9 @@ public class AutoMine {
 
     // The auto-mine box (Otto's two corners).
     private static final int MIN_X = 37, MAX_X = 52, MIN_Y = 42, MAX_Y = 60, MIN_Z = -692, MAX_Z = -677;
+    // Where mining begins (top corner, first block of the plan). When we're outside
+    // the box (e.g. the mine just reset) we walk here before mining.
+    private static final BlockPos START = new BlockPos(MIN_X, MAX_Y, MIN_Z);
 
     private static final double REACH = 4.3;
     private static final double COLLECT_R = 6.0;  // walk over to drops within this
@@ -157,10 +160,28 @@ public class AutoMine {
     private void doMine(Minecraft mc) {
         recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
 
-        if (!nearBox(mc, 3)) {
-            // Walk back to the box; only move once we're facing it.
+        // Next block in the fixed serpentine order (computed first, so the reset
+        // check below runs no matter where we're standing).
+        target = planTarget(mc);
+        if (target == null) {
+            // Whole plan cleared - idle. Every second, if the mine reset (blocks are
+            // back), start the pattern over from the top. Checked from anywhere, so
+            // it resumes even when we're standing outside the box on a reset.
             stopMining(mc);
-            approach(mc, (MIN_X + MAX_X) / 2.0 + 0.5, (MIN_Z + MAX_Z) / 2.0 + 0.5);
+            stopWalk(mc);
+            if (tick % 20 == 0 && mineHasBlocks(mc)) {
+                planIndex = 0;
+                finished = false;
+                planIndexSince = System.currentTimeMillis();
+            }
+            return;
+        }
+
+        // Outside the mine outline (e.g. right after a reset) - walk over to the
+        // start corner before mining, instead of jamming into the box wall.
+        if (!nearBox(mc, 2)) {
+            stopMining(mc);
+            approach(mc, START.getX() + 0.5, START.getZ() + 0.5);
             return;
         }
 
@@ -185,21 +206,6 @@ public class AutoMine {
             }
         } else {
             chaseSince = 0;
-        }
-
-        // Next block in the fixed serpentine order.
-        target = planTarget(mc);
-        if (target == null) {
-            // Whole plan cleared - idle. Every second, if the mine reset (blocks
-            // are back), start the pattern over from the top.
-            stopMining(mc);
-            stopWalk(mc);
-            if (tick % 20 == 0 && plan != null && !plan.isEmpty() && !mc.theWorld.isAirBlock(plan.get(0))) {
-                planIndex = 0;
-                finished = false;
-                planIndexSince = System.currentTimeMillis();
-            }
-            return;
         }
 
         aimAt(mc, target);
@@ -517,6 +523,20 @@ public class AutoMine {
     private void advanceIndex() {
         planIndex++;
         planIndexSince = System.currentTimeMillis();
+    }
+
+    /** True if the mine has blocks again (i.e. it reset) - sampled cheaply across the plan. */
+    private boolean mineHasBlocks(Minecraft mc) {
+        if (plan == null || plan.isEmpty()) {
+            return false;
+        }
+        int step = Math.max(1, plan.size() / 12);
+        for (int i = 0; i < plan.size(); i += step) {
+            if (!mc.theWorld.isAirBlock(plan.get(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Record blocks we finished breaking, and drop entries older than DROP_TTL. */
