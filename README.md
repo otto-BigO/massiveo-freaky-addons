@@ -1,86 +1,68 @@
 # Massiveo's Freaky Addons
 
-A client-side Forge 1.8.9 addon hub for the FreakyVille Minecraft server. Press
-**B** (or type `/celler`) to open the hub and pick an addon. Everything runs
-locally on your own client.
-
-The mod id is still `cellescanner` internally, so config and save files from the
-original Celle Scanner keep working.
-
-## Addons
-
-The hub groups the addons by category.
-
-### Celler
-
-- **Celle Scanner**: scans celle signs (`SOLGT!` / `TIL SALG!`) in loaded
-  chunks, shows a draggable HUD and a through-wall ESP of celler that become
-  available within a configurable time window, and can report to a shared
-  Discord dashboard (see the companion CelleScannerBot project).
-- **Mine Celler**: runs `/ce find <you>`, reads the reply, and highlights your
-  own, co-owned and invited celler with a gold ESP box. Click one to point the
-  finder compass at it.
-
-### PvP
-
-- **Bande ESP**: a green outline through walls on players in your bande. Uses a
-  manual name list, with an optional "same scoreboard team" auto-detect.
-- **Chest Alarm**: an on-screen notification plus a note-block sound when the
-  server's chest-alarm line shows up in chat. The keyword is configurable.
-
-### World
-
-- **Anti-AFK**: small periodic actions so the server idle timer never trips. Off
-  by default; some servers forbid AFK macros, so use at your own discretion.
-- **Rustnings-skins**: draws Protection 1-4 iron and diamond armour with
-  distinct textures so you can tell gear apart on players, without OptiFine or a
-  full texture pack. Reads the Protection enchant level.
-- **Item Vaerdi**: adds a value line to an item's tooltip, based on the
-  FreakyVille price guide. Prices live in `config/massiveo_prices.json` and can
-  be reloaded in-game.
-- **Prisguide**: browse FreakyVille's price guide in-game, fetched live from
-  their site.
-- **Opdatering**: the auto-updater (below).
-
-## Auto-update
-
-On launch the mod checks this repo's latest GitHub release. If it is newer than
-the running version it downloads the new jar into your mods folder and removes
-the old one, so the next time you start the game you are on the new version. A
-mod cannot relaunch Minecraft itself, so it just tells you in chat to restart.
-On systems that lock the running jar (Windows) it points you to the download
-instead of leaving two jars behind. Toggle it under the Opdatering addon.
+A client-side Forge 1.8.9 addon hub for the FreakyVille prison server. Press
+**B** (or type `/celler`) to open the hub and pick an addon. Everything runs on
+your own client.
 
 ## Install
 
-Download the jar from the latest release and drop it in your Forge 1.8.9 `mods`
-folder.
+1. Install Forge for Minecraft 1.8.9.
+2. Download the jar from the [latest release](../../releases/latest) and drop it
+   in your `mods` folder.
+3. Launch. Auto-update keeps it current (toggle it under the Opdatering addon).
+
+## Features
+
+<details>
+<summary><b>Show all features</b></summary>
+
+### Celler
+
+- **Celle Scanner**: scans celle signs in loaded chunks, HUD + through-wall ESP
+  of celler that free up soon, optional report to a shared Discord dashboard.
+- **Mine Celler**: highlights the celler you own, share or are invited to, from
+  `/ce find`.
+
+### PvP
+
+- **Bande ESP**: a box through walls on players in your bande (manual name list).
+- **Chest Alarm**: notification + sound when the chest-alarm line hits chat.
+- **Spiller Info**: shift + right-click a player for a 3D model, their armor +
+  enchants, their celler and each celle's details. Works on offline players too
+  (skin from Mojang).
+- **Troll Lyde**: goofy sounds on your own events (death, kill, jump, AFK), only
+  you hear them.
+- **PvP Mine**: the drop-timer sign on a HUD, plus an alert when a player is in
+  the mine.
+
+### World
+
+- **Anti-AFK**: small periodic actions so the idle timer never trips. Off by
+  default.
+- **Rustnings-skins**: distinct textures for Protection 1-4 iron and diamond
+  armor so you can tell gear apart, without a full texture pack.
+- **Rustnings-HUD**: your equipped armor with durability and a low warning.
+- **Item Vaerdi**: an item's worth (DB or diamonds) in its tooltip, from the
+  FreakyVille price guide.
+- **Prisguide**: browse FreakyVille's price guide in-game, fetched live.
+- **Item-log**: a small "+N item" notification in the bottom-right when items
+  enter your inventory.
+- **Opdatering**: the GitHub auto-updater, with an optional pre-release channel.
+
+</details>
+
+The mod id stays `cellescanner` internally, so older config and save files keep
+working.
 
 ## Build
 
-Standard ForgeGradle 2.1 project targeting Forge `1.8.9-11.15.1.2318-1.8.9`.
-Build with Java 8:
-
 ```
-./gradlew build
+./gradlew clean build
 ```
 
-The jar lands in `build/libs/`.
+Requires Java 8. The jar lands in `build/libs`.
 
-## Config
+## License
 
-Files in your `.minecraft/config` folder:
-
-- `cellescanner.json` holds all addon settings.
-- `massiveo_prices.json` holds the item-value prices (editable, reloadable
-  in-game).
-- `cellescanner_positions.json` remembers scanned celle positions.
-
-## Notes
-
-- Client-side only (`clientSideOnly = true`). It reads text from signs and chat
-  that are already loaded on your client and does not touch server logic or
-  other players' data.
-- The companion **CelleScannerBot** is a separate Node.js project that merges
-  celle reports from multiple players into one shared Discord dashboard. It is
-  not part of this repo.
+Code is released under the [MIT License](LICENSE). Bundled sound effects are the
+property of their respective owners and are included for personal use only.
