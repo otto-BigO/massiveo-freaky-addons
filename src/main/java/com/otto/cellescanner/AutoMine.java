@@ -7,7 +7,9 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemFood;
+import net.minecraft.item.ItemPickaxe;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
@@ -82,6 +84,13 @@ public class AutoMine {
     private boolean eating = false;
     private int prevSlot = -1; // hotbar slot to switch back to after eating
 
+    // Pickaxe upkeep: keep one equipped; when it breaks and there's no spare, walk
+    // to the shop sign and buy a new one.
+    private static final BlockPos SHOP_SIGN = new BlockPos(24, 62, -689);
+    private boolean buying = false;
+    private long buyStart = 0;
+    private long lastBuyClick = 0;
+
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
     // while still turning, we drift off toward wherever we're half-facing and
@@ -114,6 +123,18 @@ public class AutoMine {
 
         if (doEat(mc)) {
             return; // eating - hold still until we're fed, then resume
+        }
+
+        if (buying) {
+            doBuy(mc);
+            return; // buying a pickaxe - hold off on mining
+        }
+        if (!ensurePickaxeHeld(mc)) {
+            // Pickaxe broke and there's no spare - go buy one.
+            buying = true;
+            buyStart = System.currentTimeMillis();
+            doBuy(mc);
+            return;
         }
 
         if (dumping) {
@@ -306,6 +327,86 @@ public class AutoMine {
             }
         }
         return -1;
+    }
+
+    /**
+     * Make sure a pickaxe is held for mining. If the held item isn't a pickaxe
+     * (e.g. the last one just broke), equip one from the hotbar, or move a spare
+     * up from the main inventory. Returns false when there's no pickaxe at all.
+     */
+    private boolean ensurePickaxeHeld(Minecraft mc) {
+        ItemStack held = mc.thePlayer.inventory.getCurrentItem();
+        if (held != null && held.getItem() instanceof ItemPickaxe) {
+            return true;
+        }
+        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
+        for (int i = 0; i < 9; i++) {
+            if (inv[i] != null && inv[i].getItem() instanceof ItemPickaxe) {
+                mc.thePlayer.inventory.currentItem = i;
+                return true;
+            }
+        }
+        for (int i = 9; i < inv.length; i++) {
+            if (inv[i] != null && inv[i].getItem() instanceof ItemPickaxe) {
+                // Swap the spare into hotbar slot 0 and hold it.
+                mc.playerController.windowClick(mc.thePlayer.inventoryContainer.windowId, i, 0, 2, mc.thePlayer);
+                mc.thePlayer.inventory.currentItem = 0;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasPickaxe(Minecraft mc) {
+        for (ItemStack s : mc.thePlayer.inventory.mainInventory) {
+            if (s != null && s.getItem() instanceof ItemPickaxe) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Walk to the shop sign and right-click it to buy a pickaxe. As soon as a
+     * pickaxe shows up in the inventory we're done (it gets equipped next tick).
+     * If we can't buy one within 20s (e.g. no money) we switch Auto Mine off and
+     * say so, rather than stand there forever.
+     */
+    private void doBuy(Minecraft mc) {
+        stopMining(mc);
+
+        if (hasPickaxe(mc)) {
+            buying = false;
+            stopWalk(mc);
+            return;
+        }
+        if (System.currentTimeMillis() - buyStart > 20000) {
+            buying = false;
+            stopAll(mc);
+            CelleScannerMod.config.autoMineEnabled = false;
+            CelleScannerMod.config.save();
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    "§cAuto Mine: kunne ikke købe en ny hakke - slukket."));
+            return;
+        }
+
+        aimAt(mc, SHOP_SIGN);
+        if (eyeDist(mc, SHOP_SIGN) > 3.3) {
+            approach(mc, SHOP_SIGN.getX() + 0.5, SHOP_SIGN.getZ() + 0.5);
+            return;
+        }
+        stopWalk(mc);
+
+        // Aimed at the sign and in reach - right-click it (throttled).
+        MovingObjectPosition mop = mc.objectMouseOver;
+        if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && SHOP_SIGN.equals(mop.getBlockPos())
+                && System.currentTimeMillis() - lastBuyClick > 800) {
+            mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
+                    mc.thePlayer.getCurrentEquippedItem(), SHOP_SIGN, mop.sideHit, mop.hitVec);
+            mc.thePlayer.swingItem();
+            lastBuyClick = System.currentTimeMillis();
+        }
     }
 
     /** Stand still, look to the side, and throw out junk stacks one at a time. */
@@ -576,6 +677,7 @@ public class AutoMine {
         cachedDrop = null;
         chaseSince = 0;
         dumping = false;
+        buying = false;
         // Restart the pattern from the top next time it's switched on.
         planIndex = 0;
         finished = false;
