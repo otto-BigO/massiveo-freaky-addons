@@ -152,6 +152,10 @@ public class CelleConfig {
     public Boolean trollJump = Boolean.TRUE;
     public Boolean trollAfk = Boolean.TRUE;
 
+    // Item pickup log: a small "+N Item" notification in the bottom-right that
+    // fades out when items enter your inventory (SkyHanni style).
+    public Boolean itemPickupEnabled = Boolean.TRUE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -276,6 +280,7 @@ public class CelleConfig {
                 this.trollFirstHit = loaded.trollFirstHit == null ? Boolean.TRUE : loaded.trollFirstHit;
                 this.trollJump = loaded.trollJump == null ? Boolean.TRUE : loaded.trollJump;
                 this.trollAfk = loaded.trollAfk == null ? Boolean.TRUE : loaded.trollAfk;
+                this.itemPickupEnabled = loaded.itemPickupEnabled == null ? Boolean.TRUE : loaded.itemPickupEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

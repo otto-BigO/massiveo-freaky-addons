@@ -360,6 +360,16 @@ public final class CelleActions {
         TrollSounds.play(event);
     }
 
+    public static void openItemLog() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiItemLog());
+    }
+
+    public static void toggleItemPickup() {
+        CelleScannerMod.config.itemPickupEnabled = !CelleScannerMod.config.itemPickupEnabled;
+        CelleScannerMod.config.save();
+        message("Item-log: " + (CelleScannerMod.config.itemPickupEnabled ? "til" : "fra"));
+    }
+
     public static void toggleGangAutoQuery() {
         CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
         CelleScannerMod.config.save();
