@@ -43,6 +43,8 @@ public class AutoMine {
     private long pauseUntil = 0;
     private long chaseSince = 0;       // when we started walking to the current drop
     private long skipDropsUntil = 0;   // ignore drops until this (breaks a stuck chase)
+    private int tick = 0;              // tick counter, for throttling scans
+    private EntityItem cachedDrop = null; // last found drop, re-scanned every few ticks
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -67,6 +69,7 @@ public class AutoMine {
             return;
         }
         holding = true;
+        tick++;
 
         applyRotation(mc); // every tick, for smooth turning
 
@@ -93,7 +96,7 @@ public class AutoMine {
         // Sweep up dropped items before mining more, so nothing is left behind.
         // The facing gate keeps this from wandering, and we aim down at the item
         // (it's on the ground) so the head never levels/looks up like it used to.
-        EntityItem drop = System.currentTimeMillis() < skipDropsUntil ? null : findItem(mc);
+        EntityItem drop = System.currentTimeMillis() < skipDropsUntil ? null : currentDrop(mc);
         if (drop != null) {
             if (chaseSince == 0) {
                 chaseSince = System.currentTimeMillis();
@@ -229,6 +232,19 @@ public class AutoMine {
         return best;
     }
 
+    /**
+     * A drop to walk to, re-scanning the entity list only every 5 ticks (4x/sec)
+     * instead of every tick. Scanning every loaded entity 20x/sec is wasted work
+     * on a busy server; 4x/sec is plenty to notice and collect drops. Between
+     * scans we reuse the cached drop as long as it's still alive.
+     */
+    private EntityItem currentDrop(Minecraft mc) {
+        if (cachedDrop == null || cachedDrop.isDead || tick % 5 == 0) {
+            cachedDrop = findItem(mc);
+        }
+        return cachedDrop;
+    }
+
     /** Nearest dropped item inside the box (with margin) worth walking to, or null. */
     private EntityItem findItem(Minecraft mc) {
         double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
@@ -288,7 +304,14 @@ public class AutoMine {
         tPitch = 2f;
     }
 
-    /** Ease the player's look toward the target with a capped step + jitter, so it turns smoothly. */
+    /**
+     * Ease the player's look toward the target with a capped step, so it turns
+     * smoothly instead of snapping. No per-tick jitter: that made the crosshair
+     * wobble across block edges every tick, which kept restarting the break on a
+     * new block and spamming digging particles - the main auto-mine FPS killer.
+     * The eased (non-linear, slightly randomised speed) turn is what keeps it from
+     * looking snappy.
+     */
     private void applyRotation(Minecraft mc) {
         float dy = MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw);
         float dp = tPitch - mc.thePlayer.rotationPitch;
@@ -297,12 +320,6 @@ public class AutoMine {
         float cap = 11f + rng.nextFloat() * 5f;
         stepY = clamp(stepY, -cap, cap);
         stepP = clamp(stepP, -cap, cap);
-        if (Math.abs(dy) < 6f) {
-            stepY += (rng.nextFloat() - 0.5f) * 1.2f;
-        }
-        if (Math.abs(dp) < 6f) {
-            stepP += (rng.nextFloat() - 0.5f) * 0.8f;
-        }
         mc.thePlayer.rotationYaw += stepY;
         mc.thePlayer.rotationPitch = clamp(mc.thePlayer.rotationPitch + stepP, -90f, 90f);
     }
@@ -350,6 +367,7 @@ public class AutoMine {
     private void stopAll(Minecraft mc) {
         releaseKeys(mc);
         target = null;
+        cachedDrop = null;
         chaseSince = 0;
         holding = false;
     }
