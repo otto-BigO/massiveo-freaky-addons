@@ -3,8 +3,8 @@ package com.otto.cellescanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -85,12 +85,10 @@ public class BandeEsp {
             return true;
         }
         if (CelleScannerMod.config.bandeAutoTeam) {
-            // NOT isSameTeam: this server puts everyone on one scoreboard team, so
-            // that matched all players. Compare the bande TAG (the team's
-            // prefix/suffix shown by the nametag) instead, and only when yours is
-            // actually set - so no bande tag means no auto-boxing.
-            String mine = bandeTag(mc.thePlayer);
-            String theirs = bandeTag(p);
+            // Match on the bande name read from the hologram under each player's
+            // name, and only when yours is set, so no bande = no auto-boxing.
+            String mine = bandeName(mc.thePlayer);
+            String theirs = bandeName(p);
             if (mine != null && mine.equals(theirs)) {
                 return true;
             }
@@ -98,17 +96,60 @@ public class BandeEsp {
         return false;
     }
 
-    private static String bandeTag(EntityPlayer player) {
+    /**
+     * The full bande tag on the hologram line under a player's name (e.g.
+     * "Quintero - [24]"), or null. On this server that line is an invisible
+     * armor stand with a custom name at the player's position, so we read the
+     * closest such armor stand.
+     */
+    public static String bandeTag(EntityPlayer target) {
         try {
-            Team t = player.getTeam();
-            if (t == null) {
+            net.minecraft.world.World w = target.worldObj;
+            if (w == null) {
                 return null;
             }
-            String tag = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
-            return tag.isEmpty() ? null : tag;
+            String best = null;
+            double bestH = 1.3 * 1.3;
+            for (Object o : w.loadedEntityList) {
+                if (!(o instanceof EntityArmorStand)) {
+                    continue;
+                }
+                Entity e = (Entity) o;
+                if (!e.hasCustomName()) {
+                    continue;
+                }
+                double dx = e.posX - target.posX;
+                double dz = e.posZ - target.posZ;
+                double h = dx * dx + dz * dz;
+                if (h > bestH || Math.abs(e.posY - target.posY) > 3.0) {
+                    continue;
+                }
+                String raw = EnumChatFormatting.getTextWithoutFormattingCodes(e.getCustomNameTag()).trim();
+                if (!raw.isEmpty()) {
+                    bestH = h;
+                    best = raw;
+                }
+            }
+            return best;
         } catch (Throwable e) {
             return null;
         }
+    }
+
+    /** Just the bande name from the tag (before " - " or "["), for matching members. */
+    public static String bandeName(EntityPlayer target) {
+        String tag = bandeTag(target);
+        if (tag == null) {
+            return null;
+        }
+        int dash = tag.indexOf(" - ");
+        String b = dash >= 0 ? tag.substring(0, dash) : tag;
+        int br = b.indexOf('[');
+        if (br > 0) {
+            b = b.substring(0, br);
+        }
+        b = b.trim();
+        return b.isEmpty() ? null : b;
     }
 
     private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {

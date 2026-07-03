@@ -419,6 +419,42 @@ public final class CelleActions {
         } else {
             message(" sidebar: (ingen)");
         }
+
+        net.minecraft.entity.player.EntityPlayer tp = null;
+        for (Object o : mc.theWorld.playerEntities) {
+            if (o instanceof net.minecraft.entity.player.EntityPlayer
+                    && ((net.minecraft.entity.player.EntityPlayer) o).getName().equalsIgnoreCase(name)) {
+                tp = (net.minecraft.entity.player.EntityPlayer) o;
+                break;
+            }
+        }
+        if (tp == null) {
+            message(" (spiller ikke i nærheden - kan ikke tjekke hologrammer)");
+            return;
+        }
+        message(" hologrammer nær " + name + ":");
+        int n = 0;
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (!(o instanceof net.minecraft.entity.item.EntityArmorStand)) {
+                continue;
+            }
+            net.minecraft.entity.Entity e = (net.minecraft.entity.Entity) o;
+            if (!e.hasCustomName()) {
+                continue;
+            }
+            double dx = e.posX - tp.posX;
+            double dz = e.posZ - tp.posZ;
+            double dy = e.posY - tp.posY;
+            if (dx * dx + dz * dz > 6.0 || Math.abs(dy) > 4.0) {
+                continue;
+            }
+            message("  - \"" + amp(e.getCustomNameTag()) + "\" dxz="
+                    + String.format("%.2f", Math.sqrt(dx * dx + dz * dz)) + " dy=" + String.format("%.2f", dy));
+            if (++n >= 8) {
+                break;
+            }
+        }
+        message(" -> bande: \"" + BandeEsp.bandeTag(tp) + "\"  (navn: \"" + BandeEsp.bandeName(tp) + "\")");
     }
 
     private static String show(String s) {

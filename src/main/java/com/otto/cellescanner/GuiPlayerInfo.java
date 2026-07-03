@@ -17,7 +17,6 @@ import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
@@ -108,16 +107,7 @@ public class GuiPlayerInfo extends GuiScreen {
     }
 
     private static String bandeOf(EntityPlayer target) {
-        try {
-            Team t = target.getTeam();
-            if (t == null) {
-                return null;
-            }
-            String combo = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
-            return combo.isEmpty() ? null : combo;
-        } catch (Throwable t) {
-            return null;
-        }
+        return BandeEsp.bandeTag(target);
     }
 
     private int cardL() {
