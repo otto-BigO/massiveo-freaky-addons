@@ -2,32 +2,23 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.opengl.GL11;
 
 /**
- * Bande ESP addon: draws players in your bande as a "chams" - a green-tinted
- * copy of their own model, visible through walls, so you see their skin/shape
- * and can pick them out anywhere. Membership comes from the manual name list
- * (CelleConfig.bandeMembers), optionally plus anyone sharing your bande tag when
- * bandeAutoTeam is on.
- *
- * It re-renders each bande player's model in RenderWorldLast with depth off (the
- * same pass the box ESP used, which reliably renders through walls even under
- * LabyMod - unlike toggling depth inside the entity render itself).
+ * Bande ESP addon: draws a green wireframe box, visible through walls, around
+ * every loaded player who is in your bande. Membership comes from the manual
+ * name list in CelleConfig.bandeMembers (reliable on any server), optionally
+ * plus anyone on your own scoreboard team when bandeAutoTeam is on.
  */
 public class BandeEsp {
 
-    // Green tint - clearly visible but light enough to read the skin under it.
-    private static final float TINT_R = 0.5f;
-    private static final float TINT_G = 1.0f;
-    private static final float TINT_B = 0.6f;
+    private static final double PAD = 0.06;
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -35,50 +26,50 @@ public class BandeEsp {
         if (!cfg.bandeEspEnabled) {
             return;
         }
+        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam) {
+            return;
+        }
+
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.theWorld == null) {
             return;
         }
 
-        float pt = event.partialTicks;
+        float partialTicks = event.partialTicks;
         Entity viewer = mc.thePlayer;
-        double camX = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * pt;
-        double camY = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * pt;
-        double camZ = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * pt;
+        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
+        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
+        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
-        RenderManager rm = mc.getRenderManager();
-        rm.setRenderShadow(false);
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(-px, -py, -pz);
 
-        for (Object o : mc.theWorld.playerEntities) {
-            if (!(o instanceof EntityPlayer)) {
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.5f);
+
+        for (Object obj : mc.theWorld.playerEntities) {
+            if (!(obj instanceof EntityPlayer)) {
                 continue;
             }
-            EntityPlayer p = (EntityPlayer) o;
+            EntityPlayer p = (EntityPlayer) obj;
             if (p == mc.thePlayer || !isBande(mc, p)) {
                 continue;
             }
-            double x = (p.lastTickPosX + (p.posX - p.lastTickPosX) * pt) - camX;
-            double y = (p.lastTickPosY + (p.posY - p.lastTickPosY) * pt) - camY;
-            double z = (p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * pt) - camZ;
-
-            GlStateManager.pushMatrix();
-            try {
-                GlStateManager.disableDepth();       // through walls
-                GlStateManager.disableLighting();    // so the tint applies (and it's full-bright)
-                OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
-                GlStateManager.color(TINT_R, TINT_G, TINT_B, 1.0F);
-                rm.renderEntityWithPosYaw(p, x, y, z, p.rotationYaw, pt);
-            } catch (Throwable ignored) {
-                // A bad render must not take down the whole world-render pass.
-            } finally {
-                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-                GlStateManager.enableLighting();
-                GlStateManager.enableDepth();
-                GlStateManager.popMatrix();
-            }
+            drawBox(p, partialTicks);
         }
 
-        rm.setRenderShadow(true);
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.disableBlend();
+        GlStateManager.enableLighting();
+        GlStateManager.popMatrix();
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
@@ -86,6 +77,10 @@ public class BandeEsp {
             return true;
         }
         if (CelleScannerMod.config.bandeAutoTeam) {
+            // NOT isSameTeam: this server puts everyone on one scoreboard team, so
+            // that matched all players. Compare the bande TAG (the team's
+            // prefix/suffix shown by the nametag) instead, and only when yours is
+            // actually set - so no bande tag means no auto-boxing.
             String mine = bandeTag(mc.thePlayer);
             String theirs = bandeTag(p);
             if (mine != null && mine.equals(theirs)) {
@@ -106,5 +101,49 @@ public class BandeEsp {
         } catch (Throwable e) {
             return null;
         }
+    }
+
+    private void drawBox(EntityPlayer p, float partialTicks) {
+        double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
+        double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
+        double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
+
+        double w = p.width / 2.0 + PAD;
+        double minX = x - w;
+        double maxX = x + w;
+        double minY = y - PAD;
+        double maxY = y + p.height + PAD;
+        double minZ = z - w;
+        double maxZ = z + w;
+
+        // Via GlStateManager (not raw glColor4f) so its colour cache tracks this,
+        // and the color(1,1,1,1) reset after the ESP actually takes effect -
+        // otherwise the green leaks onto the hand and inventory items.
+        GlStateManager.color(0.2f, 1.0f, 0.2f, 0.9f);
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINES);
+        GL11.glVertex3d(minX, minY, minZ);
+        GL11.glVertex3d(minX, maxY, minZ);
+        GL11.glVertex3d(maxX, minY, minZ);
+        GL11.glVertex3d(maxX, maxY, minZ);
+        GL11.glVertex3d(maxX, minY, maxZ);
+        GL11.glVertex3d(maxX, maxY, maxZ);
+        GL11.glVertex3d(minX, minY, maxZ);
+        GL11.glVertex3d(minX, maxY, maxZ);
+        GL11.glEnd();
     }
 }
