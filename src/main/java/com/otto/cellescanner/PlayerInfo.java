@@ -9,7 +9,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -46,11 +45,12 @@ public class PlayerInfo {
     private static volatile boolean loading = false;
     private static volatile long deadline = 0L;
 
-    // Delayed "/ce find" for the celler count.
+    // Delayed "/ce find" for the celler count + full list.
     private static volatile String findName = null;
     private static volatile boolean findPending = false;
+    private static volatile boolean findActive = false;
     private static volatile long findAt = 0L;
-    private static final Set<String> celleIds = new HashSet<String>();
+    private static final Set<String> celleIds = new java.util.LinkedHashSet<String>();
 
     /** Kicks off "/ce info" now and "/ce find" shortly after, for the menu. */
     public static void lookup(String username) {
@@ -62,6 +62,7 @@ public class PlayerInfo {
         findName = username;
         celle = null;
         celleIds.clear();
+        findActive = false;
         loading = true;
         deadline = now + WINDOW_MS;
         findPending = true;
@@ -79,6 +80,11 @@ public class PlayerInfo {
     /** Total distinct celler the player has access to, from the /ce find reply. */
     public static int getCelleCount() {
         return celleIds.size();
+    }
+
+    /** Every celle id the player has access to, in the order seen, for the side panel. */
+    public static List<String> getCellerList() {
+        return new ArrayList<String>(celleIds);
     }
 
     public static boolean isLoading() {
@@ -100,6 +106,7 @@ public class PlayerInfo {
         findPending = false;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null && findName != null) {
+            findActive = true;
             mc.thePlayer.sendChatMessage("/ce find " + findName);
             deadline = now + WINDOW_MS; // keep capturing for the find reply
         }
@@ -178,15 +185,18 @@ public class PlayerInfo {
             return;
         }
 
-        // Anything else in the window is /ce find output: count its celle ids.
-        Matcher fm = CELLE_ID.matcher(text);
-        boolean found = false;
-        while (fm.find()) {
-            celleIds.add(fm.group().toUpperCase(Locale.ROOT));
-            found = true;
-        }
-        if (found) {
-            event.setCanceled(true);
+        // Once /ce find has been sent, remaining lines are its output: count the
+        // celle ids and keep the raw lines for the side panel.
+        if (findActive) {
+            Matcher fm = CELLE_ID.matcher(text);
+            boolean found = false;
+            while (fm.find()) {
+                celleIds.add(fm.group().toUpperCase(Locale.ROOT));
+                found = true;
+            }
+            if (found) {
+                event.setCanceled(true);
+            }
         }
     }
 

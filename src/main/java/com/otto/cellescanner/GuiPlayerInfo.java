@@ -20,6 +20,7 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
@@ -36,7 +37,7 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private static final int ID_BACK = 0;
     private static final int CARD_W = 330;
-    private static final int CARD_H = 208;
+    private static final int CARD_H = 230;
     private static final int MODEL_W = 96;
     private static final int ROW_H = 20;
     private static final int INFO_W = CARD_W - MODEL_W - 32;
@@ -51,6 +52,11 @@ public class GuiPlayerInfo extends GuiScreen {
     private final boolean slim;
     private ResourceLocation skin;         // for the flat head/body fallback
     private boolean modelBroken = false;
+
+    // "Alle celler" side panel + its inline toggle button bounds.
+    private boolean showCeller = false;
+    private int cellerScroll = 0;
+    private int cbX, cbY, cbW, cbH;
     // A stable fake entity carrying the captured skin (+ armor when online) - the
     // 3D model always renders this, never the live entity, so it persists even
     // after the player walks away or unloads.
@@ -132,6 +138,28 @@ public class GuiPlayerInfo extends GuiScreen {
     }
 
     @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton == 0 && mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
+            showCeller = !showCeller;
+            cellerScroll = 0;
+        }
+    }
+
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        if (showCeller) {
+            int d = Mouse.getDWheel();
+            if (d > 0) {
+                cellerScroll = Math.max(0, cellerScroll - 12);
+            } else if (d < 0) {
+                cellerScroll += 12;
+            }
+        }
+    }
+
+    @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
         Minecraft mc = Minecraft.getMinecraft();
@@ -171,7 +199,49 @@ public class GuiPlayerInfo extends GuiScreen {
             drawArmor(mc, x, y);
         }
 
+        if (showCeller) {
+            drawCellerPanel();
+        }
+
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    private void drawCellerPanel() {
+        int px = cardL() + CARD_W + 6;
+        int pw = 152;
+        // Keep it on-screen if the card sits near the right edge.
+        if (px + pw > this.width - 2) {
+            px = this.width - 2 - pw;
+        }
+        int py = cardT();
+        int pbottom = cardT() + CARD_H;
+        Style.panel(px, py, px + pw, pbottom);
+
+        drawString(this.fontRendererObj, EnumChatFormatting.AQUA + "Alle celler ("
+                + PlayerInfo.getCelleCount() + ")", px + 6, py + 6, 0x55FFFF);
+        drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
+
+        List<String> ids = PlayerInfo.getCellerList();
+        int listTop = py + 22;
+        int listBottom = pbottom - 6;
+        if (ids.isEmpty()) {
+            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + (PlayerInfo.isLoading() ? "henter..." : "ingen"),
+                    px + 6, listTop + 2, 0xAAAAAA);
+            return;
+        }
+
+        int lineH = 10;
+        int max = Math.max(0, ids.size() * lineH - (listBottom - listTop));
+        if (cellerScroll > max) {
+            cellerScroll = max;
+        }
+        int y = listTop - cellerScroll;
+        for (String id : ids) {
+            if (y + lineH >= listTop && y <= listBottom) {
+                drawString(this.fontRendererObj, EnumChatFormatting.WHITE + id, px + 8, y, 0xE0E0E0);
+            }
+            y += lineH;
+        }
     }
 
     private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
@@ -293,7 +363,17 @@ public class GuiPlayerInfo extends GuiScreen {
         int count = PlayerInfo.getCelleCount();
         String countStr = count > 0 ? String.valueOf(count) : (PlayerInfo.isLoading() ? "henter..." : "0");
         drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Celler i alt: " + EnumChatFormatting.WHITE + countStr, x + 4, y, 0xFFFFFF);
-        y += 10;
+        y += 11;
+
+        // Inline button to open the "all celler" side panel.
+        cbX = x + 4;
+        cbY = y;
+        cbW = INFO_W - 8;
+        cbH = 13;
+        Style.roundedRect(cbX, cbY, cbX + cbW, cbY + cbH, showCeller ? Style.BTN_BG_HOVER : Style.BTN_BG);
+        drawCenteredString(this.fontRendererObj, (showCeller ? "v " : "> ") + "Vis alle celler", cbX + cbW / 2, cbY + 3, 0xE0E0E0);
+        y += cbH + 4;
+
         PlayerInfo.Celle c = PlayerInfo.getCelle();
         if (c == null) {
             String msg = PlayerInfo.isLoading() ? "Henter celle info..." : "Ingen celle fundet";
