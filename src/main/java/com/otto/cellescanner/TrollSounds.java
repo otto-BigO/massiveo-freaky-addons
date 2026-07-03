@@ -23,7 +23,7 @@ public class TrollSounds {
 
     private static final Random RNG = new Random();
 
-    private static final float JUMP_CHANCE = 0.25f;      // chance to play on a jump
+    private static final float JUMP_CHANCE = 0.1f;       // chance to play on a jump (rare)
     private static final long COMBAT_GAP_MS = 8000L;     // gap that counts as a new fight (first hit)
     private static final long KILL_WINDOW_MS = 6000L;    // credit a player's death to you within this
     private static final long AFK_AFTER_MS = 60000L;     // idle this long before AFK sounds start
