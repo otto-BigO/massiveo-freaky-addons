@@ -6,6 +6,7 @@ import net.minecraft.entity.item.EntityItem;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -74,6 +75,13 @@ public class AutoMine {
     private boolean dumping = false;
     private float dumpYaw = 0f;
 
+    // Auto-eat so we don't starve while mining. Eat when hunger drops to EAT_BELOW,
+    // stop when full (or out of food).
+    private static final int EAT_BELOW = 16;
+    private static final int EAT_FULL = 20;
+    private boolean eating = false;
+    private int prevSlot = -1; // hotbar slot to switch back to after eating
+
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
     // while still turning, we drift off toward wherever we're half-facing and
@@ -94,12 +102,19 @@ public class AutoMine {
         }
         if (mc.thePlayer == null || mc.theWorld == null || mc.currentScreen != null) {
             releaseKeys(mc);
+            if (eating) {
+                stopEating(mc);
+            }
             return;
         }
         holding = true;
         tick++;
 
         applyRotation(mc); // every tick, for smooth turning
+
+        if (doEat(mc)) {
+            return; // eating - hold still until we're fed, then resume
+        }
 
         if (dumping) {
             // Keep dumping until all the junk is gone, then get back to mining.
@@ -221,6 +236,76 @@ public class AutoMine {
     private boolean inBox(BlockPos p) {
         return p.getX() >= MIN_X && p.getX() <= MAX_X && p.getY() >= MIN_Y && p.getY() <= MAX_Y
                 && p.getZ() >= MIN_Z && p.getZ() <= MAX_Z;
+    }
+
+    /**
+     * Auto-eat: when hunger drops, hold still and eat food from the hotbar (moving
+     * a food item into the hotbar first if needed) until full. Returns true while
+     * eating, so mining pauses. Never touches pickaxes/ore - only ItemFood.
+     */
+    private boolean doEat(Minecraft mc) {
+        int food = mc.thePlayer.getFoodStats().getFoodLevel();
+        if (!eating) {
+            if (food > EAT_BELOW) {
+                return false;
+            }
+            int slot = findFoodSlot(mc);
+            if (slot < 0) {
+                return false; // no food anywhere - nothing we can do
+            }
+            eating = true;
+            prevSlot = mc.thePlayer.inventory.currentItem;
+            mc.thePlayer.inventory.currentItem = slot;
+        }
+
+        ItemStack held = mc.thePlayer.inventory.getCurrentItem();
+        boolean holdingFood = held != null && held.getItem() instanceof ItemFood;
+        if (food >= EAT_FULL) {
+            stopEating(mc);
+            return false;
+        }
+        if (!holdingFood) {
+            // Ate the whole stack - grab another food if we still need it.
+            int slot = findFoodSlot(mc);
+            if (slot < 0) {
+                stopEating(mc);
+                return false;
+            }
+            mc.thePlayer.inventory.currentItem = slot;
+        }
+
+        // Hold still and hold right-click to eat.
+        stopMining(mc);
+        stopWalk(mc);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), true);
+        return true;
+    }
+
+    private void stopEating(Minecraft mc) {
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindUseItem.getKeyCode(), false);
+        if (prevSlot >= 0) {
+            mc.thePlayer.inventory.currentItem = prevSlot;
+            prevSlot = -1;
+        }
+        eating = false;
+    }
+
+    /** A hotbar slot holding food; moves a food item into the hotbar if needed, or -1. */
+    private int findFoodSlot(Minecraft mc) {
+        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
+        for (int i = 0; i < 9; i++) {
+            if (inv[i] != null && inv[i].getItem() instanceof ItemFood) {
+                return i;
+            }
+        }
+        // No food in the hotbar - swap one in from the main inventory (into slot 8).
+        for (int i = 9; i < inv.length; i++) {
+            if (inv[i] != null && inv[i].getItem() instanceof ItemFood) {
+                mc.playerController.windowClick(mc.thePlayer.inventoryContainer.windowId, i, 8, 2, mc.thePlayer);
+                return 8;
+            }
+        }
+        return -1;
     }
 
     /** Stand still, look to the side, and throw out junk stacks one at a time. */
@@ -484,6 +569,9 @@ public class AutoMine {
 
     private void stopAll(Minecraft mc) {
         releaseKeys(mc);
+        if (eating) {
+            stopEating(mc);
+        }
         target = null;
         cachedDrop = null;
         chaseSince = 0;
