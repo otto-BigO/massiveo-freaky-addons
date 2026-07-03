@@ -11,6 +11,9 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -30,21 +33,40 @@ public class AutoMine {
     private static final BlockPos RETURN_POINT = new BlockPos(20, 60, -684);
 
     private static final double REACH = 4.3;
-    private static final int SCAN_R = 6;
     private static final double COLLECT_R = 6.0;  // walk over to drops within this
     private static final double IGNORE_NEAR = 1.3; // drops this close auto-collect, don't walk
+
+    // Only collect drops that came from blocks WE broke: an item counts as ours if
+    // it sits near a block we broke in the last DROP_TTL. Keeps us from chasing
+    // other players' drops in the same mine.
+    private static final long DROP_TTL = 20000;
+    private static final double DROP_MATCH = 1.9;
+
+    // If we can't clear a planned block for this long (unreachable/stuck), skip it.
+    private static final long SKIP_STUCK = 8000;
 
     private final Random rng = new Random();
 
     private boolean holding = false;   // whether we currently hold any keys
     private BlockPos mining = null;    // block being broken
-    private BlockPos target = null;    // block we're heading for (sticky until gone)
+    private BlockPos target = null;    // block we're heading for
     private float tYaw, tPitch;        // smoothed rotation targets
     private long pauseUntil = 0;
     private long chaseSince = 0;       // when we started walking to the current drop
     private long skipDropsUntil = 0;   // ignore drops until this (breaks a stuck chase)
     private int tick = 0;              // tick counter, for throttling scans
     private EntityItem cachedDrop = null; // last found drop, re-scanned every few ticks
+
+    // Fixed serpentine mining order (built once): forward along Z, step 1 in X,
+    // back along Z, and down 1 in Y when a layer is done. Deterministic and
+    // reliable, instead of scanning for the nearest block each tick.
+    private List<BlockPos> plan = null;
+    private int planIndex = 0;
+    private long planIndexSince = 0;   // when planIndex last changed (stuck detection)
+    private boolean finished = false;  // whole plan cleared - idle until the mine resets
+
+    // Positions of blocks we've broken recently, so we only collect our own drops.
+    private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -86,6 +108,8 @@ public class AutoMine {
     }
 
     private void doMine(Minecraft mc) {
+        recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
+
         if (!nearBox(mc, 3)) {
             // Walk back to the box; only move once we're facing it.
             stopMining(mc);
@@ -93,7 +117,7 @@ public class AutoMine {
             return;
         }
 
-        // Sweep up dropped items before mining more, so nothing is left behind.
+        // Sweep up OUR dropped items before mining more, so nothing is left behind.
         // The facing gate keeps this from wandering, and we aim down at the item
         // (it's on the ground) so the head never levels/looks up like it used to.
         EntityItem drop = System.currentTimeMillis() < skipDropsUntil ? null : currentDrop(mc);
@@ -116,16 +140,18 @@ public class AutoMine {
             chaseSince = 0;
         }
 
-        // Stick to one target until it's mined out, then pick the nearest block.
-        // Re-picking the nearest every tick made the aim flip between blocks and
-        // the bot wander; keeping a target settles it.
-        if (target == null || mc.theWorld.isAirBlock(target) || !inBox(target)) {
-            target = findTarget(mc);
-        }
+        // Next block in the fixed serpentine order.
+        target = planTarget(mc);
         if (target == null) {
-            // Box mined out - idle until it resets and blocks reappear.
+            // Whole plan cleared - idle. Every second, if the mine reset (blocks
+            // are back), start the pattern over from the top.
             stopMining(mc);
             stopWalk(mc);
+            if (tick % 20 == 0 && plan != null && !plan.isEmpty() && !mc.theWorld.isAirBlock(plan.get(0))) {
+                planIndex = 0;
+                finished = false;
+                planIndexSince = System.currentTimeMillis();
+            }
             return;
         }
 
@@ -133,10 +159,9 @@ public class AutoMine {
         double dist = eyeDist(mc, target);
 
         if (dist <= REACH + 0.3) {
-            // In reach: never walk (this is what stops the endless walking). Mine
-            // whatever in-box block the crosshair is actually on, so the server
-            // accepts it and it doesn't ghost-revert. As blocks clear, the next
-            // target ends up out of reach and we step forward to it below.
+            // In reach: never walk. Mine whatever in-box block the crosshair is
+            // actually on (clears anything between us and the target), so the
+            // server accepts it and it doesn't ghost-revert.
             stopWalk(mc);
             MovingObjectPosition mop = mc.objectMouseOver;
             BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
@@ -201,35 +226,85 @@ public class AutoMine {
         approach(mc, RETURN_POINT.getX() + 0.5, RETURN_POINT.getZ() + 0.5);
     }
 
-    private BlockPos findTarget(Minecraft mc) {
-        double ex = mc.thePlayer.posX;
-        double ey = mc.thePlayer.posY + mc.thePlayer.getEyeHeight();
-        double ez = mc.thePlayer.posZ;
-        int px = MathHelper.floor_double(ex), py = MathHelper.floor_double(ey), pz = MathHelper.floor_double(ez);
-        BlockPos best = null;
-        double bestScore = Double.MAX_VALUE;
-        for (int y = Math.min(MAX_Y, py + SCAN_R); y >= Math.max(MIN_Y, py - SCAN_R); y--) {
-            for (int x = Math.max(MIN_X, px - SCAN_R); x <= Math.min(MAX_X, px + SCAN_R); x++) {
-                for (int z = Math.max(MIN_Z, pz - SCAN_R); z <= Math.min(MAX_Z, pz + SCAN_R); z++) {
-                    BlockPos p = new BlockPos(x, y, z);
-                    if (mc.theWorld.isAirBlock(p)) {
-                        continue;
+    /**
+     * Build the serpentine mining order once: top layer to bottom (Y down), and
+     * within each layer snake along Z, stepping 1 in X between rows. That gives
+     * the "mine forward, step 1 to the side, mine back, drop a layer, repeat"
+     * pattern.
+     */
+    private void buildPlan() {
+        plan = new ArrayList<BlockPos>();
+        boolean back = false;
+        for (int y = MAX_Y; y >= MIN_Y; y--) {
+            for (int x = MIN_X; x <= MAX_X; x++) {
+                if (!back) {
+                    for (int z = MIN_Z; z <= MAX_Z; z++) {
+                        plan.add(new BlockPos(x, y, z));
                     }
-                    double dx = (x + 0.5) - ex, dy = (y + 0.5) - ey, dz = (z + 0.5) - ez;
-                    double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    // Nearest block first; reachable ones win over unreachable.
-                    double score = dist;
-                    if (dist <= REACH) {
-                        score -= 100.0;
-                    }
-                    if (score < bestScore) {
-                        bestScore = score;
-                        best = p;
+                } else {
+                    for (int z = MAX_Z; z >= MIN_Z; z--) {
+                        plan.add(new BlockPos(x, y, z));
                     }
                 }
+                back = !back; // snake: forward then back on the next row
             }
         }
-        return best;
+    }
+
+    /** The current block to mine in plan order, skipping ones already cleared. */
+    private BlockPos planTarget(Minecraft mc) {
+        if (plan == null) {
+            buildPlan();
+            planIndexSince = System.currentTimeMillis();
+        }
+        if (finished) {
+            return null;
+        }
+        // If we've been stuck on one block too long (can't reach it), skip past it.
+        if (System.currentTimeMillis() - planIndexSince > SKIP_STUCK) {
+            advanceIndex();
+        }
+        while (planIndex < plan.size()) {
+            BlockPos p = plan.get(planIndex);
+            if (!mc.theWorld.isAirBlock(p)) {
+                return p;
+            }
+            advanceIndex();
+        }
+        finished = true;
+        return null;
+    }
+
+    private void advanceIndex() {
+        planIndex++;
+        planIndexSince = System.currentTimeMillis();
+    }
+
+    /** Record blocks we finished breaking, and drop entries older than DROP_TTL. */
+    private void recordBroken(Minecraft mc) {
+        if (mining != null && mc.theWorld.isAirBlock(mining)) {
+            broken.add(new long[]{mining.getX(), mining.getY(), mining.getZ(), System.currentTimeMillis()});
+            mining = null;
+        }
+        long now = System.currentTimeMillis();
+        for (Iterator<long[]> it = broken.iterator(); it.hasNext(); ) {
+            if (now - it.next()[3] > DROP_TTL) {
+                it.remove();
+            }
+        }
+    }
+
+    /** True if this item sits near a block we broke recently (i.e. it's our drop). */
+    private boolean isOurDrop(EntityItem it) {
+        for (long[] b : broken) {
+            double dx = it.posX - (b[0] + 0.5);
+            double dz = it.posZ - (b[2] + 0.5);
+            double dy = it.posY - b[1];
+            if (dx * dx + dz * dz <= DROP_MATCH * DROP_MATCH && Math.abs(dy) <= 2.0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -257,6 +332,10 @@ public class AutoMine {
             EntityItem it = (EntityItem) o;
             if (it.posX < MIN_X - 2 || it.posX > MAX_X + 3 || it.posZ < MIN_Z - 2 || it.posZ > MAX_Z + 3
                     || it.posY < MIN_Y - 3 || it.posY > MAX_Y + 3) {
+                continue;
+            }
+            // Only our own drops (from blocks we broke), not other players'.
+            if (!isOurDrop(it)) {
                 continue;
             }
             double dx = it.posX - px, dz = it.posZ - pz;
@@ -369,6 +448,11 @@ public class AutoMine {
         target = null;
         cachedDrop = null;
         chaseSince = 0;
+        // Restart the pattern from the top next time it's switched on.
+        planIndex = 0;
+        finished = false;
+        planIndexSince = System.currentTimeMillis();
+        broken.clear();
         holding = false;
     }
 
