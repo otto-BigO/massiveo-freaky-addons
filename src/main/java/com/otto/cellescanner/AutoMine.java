@@ -37,6 +37,7 @@ public class AutoMine {
 
     private boolean holding = false;   // whether we currently hold any keys
     private BlockPos mining = null;    // block being broken
+    private long miningStart = 0;      // when we started the current block (for the force-mine fallback)
     private float tYaw, tPitch;        // smoothed rotation targets
     private long pauseUntil = 0;
 
@@ -78,37 +79,26 @@ public class AutoMine {
             stopMining(mc);
             return;
         }
-        // Collect a nearby dropped item first (walk onto it), then mine on.
-        EntityItem item = findItem(mc);
-        if (item != null) {
-            double dx = item.posX - mc.thePlayer.posX;
-            double dz = item.posZ - mc.thePlayer.posZ;
-            if (Math.sqrt(dx * dx + dz * dz) > 0.9) {
-                stopMining(mc);
-                aimYaw(mc, dx, dz);
-                walkForward(mc);
-                return;
-            }
-            // Close enough: the pickup happens automatically, fall through to mining.
-        }
         BlockPos target = findTarget(mc);
         if (target == null) {
-            // Box empty (mined out) - idle until it resets and blocks reappear.
+            // Box mined out - idle until it resets and blocks reappear.
             stopMining(mc);
             stopWalk(mc);
             return;
         }
+        // Always look at a block (never level up toward a dropped item), and mine
+        // it as soon as it's in reach.
         aimAt(mc, target);
-        double d = eyeDist(mc, target);
-        if (d <= REACH && lookingAt(mc, target)) {
-            stopWalk(mc);
+        if (eyeDist(mc, target) <= REACH) {
             breakBlock(mc, target);
-        } else if (d > REACH) {
-            walkForward(mc);
-            stopMining(mc);
+            // Advance onto dropped items so they get collected while we mine.
+            if (findItem(mc) != null) {
+                walkForward(mc);
+            } else {
+                stopWalk(mc);
+            }
         } else {
-            // In reach, still turning onto it - hold position.
-            stopWalk(mc);
+            walkForward(mc);
             stopMining(mc);
         }
     }
@@ -143,9 +133,10 @@ public class AutoMine {
                     }
                     double dx = (x + 0.5) - ex, dy = (y + 0.5) - ey, dz = (z + 0.5) - ez;
                     double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    double score = dist - (y - MIN_Y) * 0.15; // top-down bias
+                    // Nearest block first; reachable ones win over unreachable.
+                    double score = dist;
                     if (dist <= REACH) {
-                        score -= 100.0; // strongly prefer what we can reach
+                        score -= 100.0;
                     }
                     if (score < bestScore) {
                         bestScore = score;
@@ -182,11 +173,26 @@ public class AutoMine {
     }
 
     private void breakBlock(Minecraft mc, BlockPos pos) {
-        EnumFacing side = mc.objectMouseOver != null && mc.objectMouseOver.sideHit != null
-                ? mc.objectMouseOver.sideHit : EnumFacing.UP;
+        EnumFacing side = EnumFacing.UP;
+        MovingObjectPosition mop = mc.objectMouseOver;
+        if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && pos.equals(mop.getBlockPos()) && mop.sideHit != null) {
+            side = mop.sideHit;
+        }
+        long now = System.currentTimeMillis();
         if (!pos.equals(mining)) {
+            if (mining != null) {
+                mc.playerController.resetBlockRemoving();
+            }
             mc.playerController.clickBlock(pos, side);
             mining = pos;
+            miningStart = now;
+        } else if (now - miningStart > 3000L) {
+            // Force-mine fallback: if a block hasn't broken in 3s, restart the dig
+            // on it (fixes the occasional block that just won't break).
+            mc.playerController.resetBlockRemoving();
+            mc.playerController.clickBlock(pos, side);
+            miningStart = now;
         }
         mc.playerController.onPlayerDamageBlock(pos, side);
         mc.thePlayer.swingItem();
@@ -230,11 +236,6 @@ public class AutoMine {
         }
         mc.thePlayer.rotationYaw += stepY;
         mc.thePlayer.rotationPitch = clamp(mc.thePlayer.rotationPitch + stepP, -90f, 90f);
-    }
-
-    private boolean lookingAt(Minecraft mc, BlockPos pos) {
-        MovingObjectPosition m = mc.objectMouseOver;
-        return m != null && m.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK && pos.equals(m.getBlockPos());
     }
 
     private double eyeDist(Minecraft mc, BlockPos pos) {
