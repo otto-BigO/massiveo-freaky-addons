@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -37,7 +38,7 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private static final int ID_BACK = 0;
     private static final int CARD_W = 330;
-    private static final int CARD_H = 230;
+    private static final int CARD_H = 186;
     private static final int MODEL_W = 96;
     private static final int ROW_H = 20;
     private static final int INFO_W = CARD_W - MODEL_W - 32;
@@ -57,6 +58,10 @@ public class GuiPlayerInfo extends GuiScreen {
     private boolean showCeller = false;
     private int cellerScroll = 0;
     private int cbX, cbY, cbW, cbH;
+    // Panel geometry (set during draw, read on click) + which celle is expanded.
+    private String panelDetailId = null;
+    private int panelX, panelW, panelTop, panelListTop, panelListBottom;
+    private int panelLineH = 11;
     // A stable fake entity carrying the captured skin (+ armor when online) - the
     // 3D model always renders this, never the live entity, so it persists even
     // after the player walks away or unloads.
@@ -140,9 +145,34 @@ public class GuiPlayerInfo extends GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
-        if (mouseButton == 0 && mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
+        if (mouseButton != 0) {
+            return;
+        }
+        // Inline toggle button.
+        if (mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
             showCeller = !showCeller;
             cellerScroll = 0;
+            panelDetailId = null;
+            return;
+        }
+        if (!showCeller) {
+            return;
+        }
+        // Detail view: "< Tilbage" region.
+        if (panelDetailId != null) {
+            if (mouseX >= panelX + 4 && mouseX <= panelX + panelW - 4 && mouseY >= panelTop + 4 && mouseY <= panelTop + 16) {
+                panelDetailId = null;
+            }
+            return;
+        }
+        // List view: click a celle row to open its details.
+        if (mouseX >= panelX && mouseX <= panelX + panelW && mouseY >= panelListTop && mouseY <= panelListBottom) {
+            int idx = (mouseY - (panelListTop - cellerScroll)) / panelLineH;
+            List<String> ids = PlayerInfo.getCellerList();
+            if (idx >= 0 && idx < ids.size()) {
+                panelDetailId = ids.get(idx);
+                PlayerInfo.selectCelle(panelDetailId);
+            }
         }
     }
 
@@ -209,38 +239,80 @@ public class GuiPlayerInfo extends GuiScreen {
     private void drawCellerPanel() {
         int px = cardL() + CARD_W + 6;
         int pw = 152;
-        // Keep it on-screen if the card sits near the right edge.
         if (px + pw > this.width - 2) {
             px = this.width - 2 - pw;
         }
         int py = cardT();
         int pbottom = cardT() + CARD_H;
         Style.panel(px, py, px + pw, pbottom);
+        panelX = px;
+        panelW = pw;
+        panelTop = py;
 
-        drawString(this.fontRendererObj, EnumChatFormatting.AQUA + "Alle celler ("
-                + PlayerInfo.getCelleCount() + ")", px + 6, py + 6, 0x55FFFF);
-        drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
+        FontRenderer fr = this.fontRendererObj;
+        if (panelDetailId == null) {
+            drawString(fr, EnumChatFormatting.AQUA + "Alle celler (" + PlayerInfo.getCelleCount() + ")", px + 6, py + 6, 0x55FFFF);
+            drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
 
-        List<String> ids = PlayerInfo.getCellerList();
-        int listTop = py + 22;
-        int listBottom = pbottom - 6;
-        if (ids.isEmpty()) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + (PlayerInfo.isLoading() ? "henter..." : "ingen"),
-                    px + 6, listTop + 2, 0xAAAAAA);
+            List<String> ids = PlayerInfo.getCellerList();
+            int listTop = py + 22;
+            int listBottom = pbottom - 6;
+            panelListTop = listTop;
+            panelListBottom = listBottom;
+            if (ids.isEmpty()) {
+                drawString(fr, EnumChatFormatting.GRAY + (PlayerInfo.isFindLoading() ? "henter..." : "ingen"), px + 6, listTop + 2, 0xAAAAAA);
+                return;
+            }
+            int lineH = 11;
+            panelLineH = lineH;
+            int max = Math.max(0, ids.size() * lineH - (listBottom - listTop));
+            if (cellerScroll > max) {
+                cellerScroll = max;
+            }
+            int y = listTop - cellerScroll;
+            for (String id : ids) {
+                if (y + lineH >= listTop && y <= listBottom) {
+                    drawString(fr, EnumChatFormatting.WHITE + id + EnumChatFormatting.GRAY + "  >", px + 8, y + 1, 0xE0E0E0);
+                }
+                y += lineH;
+            }
             return;
         }
 
-        int lineH = 10;
-        int max = Math.max(0, ids.size() * lineH - (listBottom - listTop));
-        if (cellerScroll > max) {
-            cellerScroll = max;
+        // Detail view for the clicked celle.
+        drawString(fr, EnumChatFormatting.GOLD + "< Tilbage", px + 6, py + 6, 0xFFD24B);
+        drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
+        int dy = py + 22;
+        drawString(fr, EnumChatFormatting.AQUA + panelDetailId, px + 6, dy, 0x55FFFF);
+        dy += 12;
+
+        PlayerInfo.Celle c = PlayerInfo.getSelectedCelle();
+        if (c == null) {
+            drawString(fr, EnumChatFormatting.GRAY + (PlayerInfo.isSelectedLoading() ? "henter..." : "ingen info"), px + 8, dy, 0xAAAAAA);
+            return;
         }
-        int y = listTop - cellerScroll;
-        for (String id : ids) {
-            if (y + lineH >= listTop && y <= listBottom) {
-                drawString(this.fontRendererObj, EnumChatFormatting.WHITE + id, px + 8, y, 0xE0E0E0);
+        if (c.gang != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Gang: " + EnumChatFormatting.WHITE + trimToWidth(c.gang, pw - 40), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (c.owner != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Ejer: " + EnumChatFormatting.WHITE + trimToWidth(c.owner, pw - 40), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (c.tid != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Tid: " + EnumChatFormatting.WHITE + trimToWidth(c.tid, pw - 34), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (!c.members.isEmpty()) {
+            drawString(fr, EnumChatFormatting.GRAY + "Medlemmer:", px + 8, dy, 0xAAAAAA);
+            dy += 10;
+            for (String m : c.members) {
+                if (dy > pbottom - 11) {
+                    break;
+                }
+                drawString(fr, EnumChatFormatting.WHITE + trimToWidth(m, pw - 20), px + 12, dy, 0xE0E0E0);
+                dy += 9;
             }
-            y += lineH;
         }
     }
 
@@ -361,11 +433,12 @@ public class GuiPlayerInfo extends GuiScreen {
         drawString(this.fontRendererObj, EnumChatFormatting.AQUA + "Celle", x, y, 0x55FFFF);
         y += 11;
         int count = PlayerInfo.getCelleCount();
-        String countStr = count > 0 ? String.valueOf(count) : (PlayerInfo.isLoading() ? "henter..." : "0");
+        String countStr = count > 0 ? String.valueOf(count) : (PlayerInfo.isFindLoading() ? "henter..." : "0");
         drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Celler i alt: " + EnumChatFormatting.WHITE + countStr, x + 4, y, 0xFFFFFF);
         y += 11;
 
-        // Inline button to open the "all celler" side panel.
+        // Inline button to open the "all celler" side panel (click a celle there
+        // for its details).
         cbX = x + 4;
         cbY = y;
         cbW = INFO_W - 8;
@@ -373,32 +446,6 @@ public class GuiPlayerInfo extends GuiScreen {
         Style.roundedRect(cbX, cbY, cbX + cbW, cbY + cbH, showCeller ? Style.BTN_BG_HOVER : Style.BTN_BG);
         drawCenteredString(this.fontRendererObj, (showCeller ? "v " : "> ") + "Vis alle celler", cbX + cbW / 2, cbY + 3, 0xE0E0E0);
         y += cbH + 4;
-
-        PlayerInfo.Celle c = PlayerInfo.getCelle();
-        if (c == null) {
-            String msg = PlayerInfo.isLoading() ? "Henter celle info..." : "Ingen celle fundet";
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, x + 4, y, 0xAAAAAA);
-            return y + 11;
-        }
-        String head = c.id != null ? c.id : "?";
-        if (c.gang != null && !c.gang.isEmpty()) {
-            head += "  " + EnumChatFormatting.GRAY + "(" + c.gang + ")";
-        }
-        drawString(this.fontRendererObj, EnumChatFormatting.WHITE + head, x + 4, y, 0xFFFFFF);
-        y += 10;
-        if (c.owner != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Ejer: " + EnumChatFormatting.WHITE + c.owner, x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
-        if (c.tid != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Tid: " + EnumChatFormatting.WHITE + c.tid, x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
-        if (!c.members.isEmpty()) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Medlemmer: " + EnumChatFormatting.WHITE
-                    + trimToWidth(join(c.members), INFO_W - 8), x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
         return y;
     }
 
@@ -496,17 +543,6 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private void part(int x, int y, int u, int v, int uw, int vh, int s, float tileH) {
         Gui.drawScaledCustomSizeModalRect(x, y, u, v, uw, vh, uw * s, vh * s, 64.0F, tileH);
-    }
-
-    private static String join(List<String> list) {
-        StringBuilder sb = new StringBuilder();
-        for (String s : list) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append(s);
-        }
-        return sb.toString();
     }
 
     private String trimToWidth(String text, int maxWidth) {
