@@ -43,19 +43,21 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private static final String[] SLOT_NAMES = {"Støvler", "Bukser", "Brystplade", "Hjelm"};
 
-    private final EntityPlayer entity;   // null when offline
     private final boolean offline;
     private final String playerName;
     private final String rawName;
     private final String bande;
     private final ItemStack[] armor = new ItemStack[4];
-    private ResourceLocation skin;
+    private final boolean slim;
+    private ResourceLocation skin;         // for the flat head/body fallback
     private boolean modelBroken = false;
-    private EntityPlayer offlineModel;   // fake entity built once the skin loads
+    // A stable fake entity carrying the captured skin (+ armor when online) - the
+    // 3D model always renders this, never the live entity, so it persists even
+    // after the player walks away or unloads.
+    private EntityPlayer modelEntity;
 
-    /** Online / loaded player: full data + live 3D model. */
+    /** Online / loaded player: full data, model built from the captured skin + armor. */
     public GuiPlayerInfo(EntityPlayer target) {
-        this.entity = target;
         this.offline = false;
         this.rawName = target.getName();
         String name;
@@ -70,21 +72,28 @@ public class GuiPlayerInfo extends GuiScreen {
             ItemStack s = target.getCurrentArmor(i);
             armor[i] = s == null ? null : s.copy();
         }
+        ResourceLocation sk = null;
+        boolean sl = false;
         try {
             if (target instanceof AbstractClientPlayer) {
-                skin = ((AbstractClientPlayer) target).getLocationSkin();
+                AbstractClientPlayer acp = (AbstractClientPlayer) target;
+                sk = acp.getLocationSkin();
+                sl = "slim".equals(acp.getSkinType());
             }
         } catch (Throwable ignored) {
         }
+        this.skin = sk;
+        this.slim = sl;
+        this.modelEntity = buildModel(sk, sl, armor);
     }
 
     /** Offline player (not loaded): skin fetched from Mojang, celle via /ce info, no live armor. */
     public GuiPlayerInfo(String username) {
-        this.entity = null;
         this.offline = true;
         this.rawName = username;
         this.playerName = username;
         this.bande = null;
+        this.slim = false;
     }
 
     private static String bandeOf(EntityPlayer target) {
@@ -166,32 +175,31 @@ public class GuiPlayerInfo extends GuiScreen {
     }
 
     private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
-        if (offline) {
+        // Offline: build the model lazily once the skin has been fetched.
+        if (modelEntity == null && offline && !modelBroken) {
             SkinFetcher.Entry sk = SkinFetcher.get(rawName);
             if (sk.location == null) {
                 String msg = "fejl".equals(sk.status) ? "Ingen skin fundet" : "Henter skin...";
                 drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, mx0 + mw / 2, my0 + mh / 2 - 4, 0xAAAAAA);
                 return;
             }
-            // Build a fake entity carrying the fetched skin, so offline players get
-            // the same 3D model as online ones.
-            if (offlineModel == null && !modelBroken) {
-                offlineModel = buildFakeEntity(mc, rawName, sk);
-            }
-            if (offlineModel != null && !modelBroken && renderEntity3D(mc, offlineModel, mx0, my0, mw, mh, mouseX, mouseY)) {
-                return;
-            }
-            // Fallback: flat front-facing skin.
-            int s = Math.max(2, (mh - 20) / 32);
-            drawSkinBody(mc, sk.location, mx0 + mw / 2, my0 + (mh - 32 * s) / 2, s, sk.slim, sk.legacy);
+            this.skin = sk.location;
+            modelEntity = buildModel(sk.location, sk.slim, null);
+        }
+
+        if (modelEntity != null && !modelBroken
+                && renderEntity3D(mc, modelEntity, mx0, my0, mw, mh, mouseX, mouseY)) {
             return;
         }
 
-        if (!modelBroken && entity != null && !entity.isDead
-                && renderEntity3D(mc, entity, mx0, my0, mw, mh, mouseX, mouseY)) {
-            return;
+        // Fallbacks if the model couldn't build/render.
+        if (offline && skin != null) {
+            SkinFetcher.Entry sk = SkinFetcher.get(rawName);
+            int s = Math.max(2, (mh - 20) / 32);
+            drawSkinBody(mc, skin, mx0 + mw / 2, my0 + (mh - 32 * s) / 2, s, sk.slim, sk.legacy);
+        } else {
+            drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
         }
-        drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
     }
 
     /** Renders a living entity as the rotating 3D model in the panel. Returns false (and sets modelBroken) if it throws. */
@@ -226,14 +234,27 @@ public class GuiPlayerInfo extends GuiScreen {
         }
     }
 
-    private EntityPlayer buildFakeEntity(Minecraft mc, String name, SkinFetcher.Entry sk) {
+    /** Builds the stable fake entity for the 3D model: the given skin, plus armor when supplied (online). */
+    private EntityPlayer buildModel(ResourceLocation skinRL, boolean slimModel, ItemStack[] armorStacks) {
+        if (skinRL == null) {
+            return null;
+        }
         try {
-            World world = mc.theWorld;
+            World world = Minecraft.getMinecraft().theWorld;
             if (world == null) {
                 return null;
             }
-            GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("MassiveoOffline:" + name).getBytes()), name);
-            return new FakeSkinPlayer(world, profile, sk.location, sk.slim);
+            GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("MassiveoInfo:" + rawName).getBytes()), rawName);
+            FakeSkinPlayer f = new FakeSkinPlayer(world, profile, skinRL, slimModel);
+            if (armorStacks != null) {
+                // Equipment slots 1..4 = boots, leggings, chestplate, helmet.
+                for (int i = 0; i < 4; i++) {
+                    if (armorStacks[i] != null) {
+                        f.setCurrentItemOrArmor(i + 1, armorStacks[i]);
+                    }
+                }
+            }
+            return f;
         } catch (Throwable t) {
             return null;
         }
