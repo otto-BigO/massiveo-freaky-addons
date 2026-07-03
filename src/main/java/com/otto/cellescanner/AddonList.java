@@ -169,6 +169,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "PvP Mine";
+            }
+
+            public String description() {
+                return "Drop-timer + alarm når nogen er i PvP minen";
+            }
+
+            public String category() {
+                return "PvP";
+            }
+
+            public boolean isActive() {
+                return config.pvpMineEnabled;
+            }
+
+            public void open() {
+                CelleActions.openPvpMine();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Item-log";
             }
 

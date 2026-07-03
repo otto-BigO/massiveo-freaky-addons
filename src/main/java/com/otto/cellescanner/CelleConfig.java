@@ -156,6 +156,11 @@ public class CelleConfig {
     // fades out when items enter your inventory (SkyHanni style).
     public Boolean itemPickupEnabled = Boolean.TRUE;
 
+    // PvP Mine watcher: a HUD with the drop-timer sign, and an alert when another
+    // player is inside the mine area (in render distance).
+    public boolean pvpMineEnabled = false;
+    public Boolean pvpMineAlert = Boolean.TRUE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -281,6 +286,8 @@ public class CelleConfig {
                 this.trollJump = loaded.trollJump == null ? Boolean.TRUE : loaded.trollJump;
                 this.trollAfk = loaded.trollAfk == null ? Boolean.TRUE : loaded.trollAfk;
                 this.itemPickupEnabled = loaded.itemPickupEnabled == null ? Boolean.TRUE : loaded.itemPickupEnabled;
+                this.pvpMineEnabled = loaded.pvpMineEnabled;
+                this.pvpMineAlert = loaded.pvpMineAlert == null ? Boolean.TRUE : loaded.pvpMineAlert;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

@@ -364,6 +364,22 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiItemLog());
     }
 
+    public static void openPvpMine() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiPvpMine());
+    }
+
+    public static void togglePvpMine() {
+        CelleScannerMod.config.pvpMineEnabled = !CelleScannerMod.config.pvpMineEnabled;
+        CelleScannerMod.config.save();
+        message("PvP Mine: " + (CelleScannerMod.config.pvpMineEnabled ? "til" : "fra"));
+    }
+
+    public static void togglePvpMineAlert() {
+        CelleScannerMod.config.pvpMineAlert = !CelleScannerMod.config.pvpMineAlert;
+        CelleScannerMod.config.save();
+        message("PvP Mine alarm: " + (CelleScannerMod.config.pvpMineAlert ? "til" : "fra"));
+    }
+
     /**
      * Diagnostic: dumps everywhere a bande could hide for a player - their
      * scoreboard team (name/prefix/suffix), the below-name tag, their tab-list
