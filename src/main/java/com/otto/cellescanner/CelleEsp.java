@@ -97,7 +97,7 @@ public class CelleEsp {
             // Thicker line + fully opaque so it stands out from the normal
             // upcoming-list boxes, and deliberately ignores maxDist/limitDistance.
             GL11.glLineWidth(4.0f);
-            drawBoxOutline(finderPos, 0.2f, 1.0f, 1.0f, 1.0f);
+            drawBoxOutline(finderPos, 0.95f, 0.95f, 0.95f, 1.0f);
             GL11.glLineWidth(2.5f);
         }
         GlStateManager.enableTexture2D();
@@ -117,7 +117,7 @@ public class CelleEsp {
             }
             if (finderPos != null) {
                 String label = "-> " + CelleFinder.getTarget();
-                drawLabel(fr, rm, label, finderPos.getX() + 0.5, finderPos.getY() + 1.6, finderPos.getZ() + 0.5, 0x33FFFF);
+                drawLabel(fr, rm, label, finderPos.getX() + 0.5, finderPos.getY() + 1.6, finderPos.getZ() + 0.5, 0xF0F0F0);
             }
         }
 
@@ -138,8 +138,11 @@ public class CelleEsp {
 
     // Shared, read-only - returned from colorFor so the per-celle render loop
     // doesn't allocate a fresh array for every box, every frame.
-    private static final float[] COLOR_TIL_SALG = {0.2f, 1.0f, 0.2f};
-    private static final float[] COLOR_SOLGT = {1.0f, 0.6f, 0.0f};
+    // Harmonised ESP palette, distinct per meaning: aqua = available now,
+    // amber = about to free up. (Bande = green, your celler = violet, finder =
+    // white - kept different so the overlays don't all look alike.)
+    private static final float[] COLOR_TIL_SALG = {0.30f, 0.78f, 1.0f};
+    private static final float[] COLOR_SOLGT = {1.0f, 0.66f, 0.28f};
 
     private static float[] colorFor(Celle c) {
         return c.status == CelleStatus.TIL_SALG ? COLOR_TIL_SALG : COLOR_SOLGT;
@@ -153,7 +156,7 @@ public class CelleEsp {
         double maxY = pos.getY() + 1 + PAD;
         double maxZ = pos.getZ() + 1 + PAD;
 
-        GL11.glColor4f(r, g, b, a);
+        GlStateManager.color(r, g, b, a);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);
@@ -209,7 +212,7 @@ public class CelleEsp {
         // genuinely hard to pick out, especially with several celler
         // overlapping in the same area.
         GlStateManager.disableTexture2D();
-        GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.65F);
+        GlStateManager.color(0.0F, 0.0F, 0.0F, 0.65F);
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2d(-halfWidth - 3, -2);
         GL11.glVertex2d(-halfWidth - 3, 10);

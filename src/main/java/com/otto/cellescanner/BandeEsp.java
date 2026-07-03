@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.scoreboard.Team;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
@@ -76,13 +77,30 @@ public class BandeEsp {
             return true;
         }
         if (CelleScannerMod.config.bandeAutoTeam) {
-            Team mine = mc.thePlayer.getTeam();
-            Team theirs = p.getTeam();
-            if (mine != null && theirs != null && mine.isSameTeam(theirs)) {
+            // NOT isSameTeam: this server puts everyone on one scoreboard team, so
+            // that matched all players. Compare the bande TAG (the team's
+            // prefix/suffix shown by the nametag) instead, and only when yours is
+            // actually set - so no bande tag means no auto-boxing.
+            String mine = bandeTag(mc.thePlayer);
+            String theirs = bandeTag(p);
+            if (mine != null && mine.equals(theirs)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static String bandeTag(EntityPlayer player) {
+        try {
+            Team t = player.getTeam();
+            if (t == null) {
+                return null;
+            }
+            String tag = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
+            return tag.isEmpty() ? null : tag;
+        } catch (Throwable e) {
+            return null;
+        }
     }
 
     private void drawBox(EntityPlayer p, float partialTicks) {
@@ -98,7 +116,10 @@ public class BandeEsp {
         double minZ = z - w;
         double maxZ = z + w;
 
-        GL11.glColor4f(0.2f, 1.0f, 0.2f, 0.9f);
+        // Via GlStateManager (not raw glColor4f) so its colour cache tracks this,
+        // and the color(1,1,1,1) reset after the ESP actually takes effect -
+        // otherwise the green leaks onto the hand and inventory items.
+        GlStateManager.color(0.2f, 1.0f, 0.2f, 0.9f);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);

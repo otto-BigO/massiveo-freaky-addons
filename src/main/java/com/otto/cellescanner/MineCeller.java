@@ -1,9 +1,10 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -16,9 +17,9 @@ import java.util.regex.Pattern;
 /**
  * Mine Celler addon: runs "/ce find &lt;you&gt;" on demand, captures the celle ids
  * out of the server's chat reply (owned, co-owned and invited all show up
- * there), and remembers them. Your celler then get a distinct gold ESP box at
- * their scanned position so you can pick them out, and clicking one in the GUI
- * points the Celle Finder compass at it.
+ * there), and remembers them. Your celler then get a violet id label floated
+ * over their scanned sign (no box) so you can pick them out, and clicking one in
+ * the GUI points the Celle Finder compass at it.
  *
  * The reply is parsed by pulling celle-id-shaped tokens (a letter or two then
  * digits, e.g. B351) out of each line, so it doesn't depend on the exact
@@ -27,8 +28,9 @@ import java.util.regex.Pattern;
 public class MineCeller {
 
     private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,2}[0-9]{2,5}\\b");
-    private static final double PAD = 0.03;
     private static final long CAPTURE_MS = 4000L;
+    private static final float LABEL_SCALE = 0.035F;
+    private static final int MINE_COLOR = 0xB273FF; // violet
 
     private static long capturingUntil = 0L;
 
@@ -92,18 +94,18 @@ public class MineCeller {
         GlStateManager.depthMask(false);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-        GlStateManager.disableTexture2D();
-        GL11.glLineWidth(2.5f);
 
+        FontRenderer fr = mc.fontRendererObj;
+        RenderManager rm = mc.getRenderManager();
         for (String id : cfg.myCelleIds) {
             CellePositions.Entry p = CellePositions.get(id);
             if (p == null || p.dimension != dim) {
                 continue;
             }
-            drawBox(new BlockPos(p.x, p.y, p.z));
+            String label = p.displayId != null && !p.displayId.isEmpty() ? p.displayId : id;
+            drawLabel(fr, rm, label, p.x + 0.5, p.y + 1.2, p.z + 0.5, MINE_COLOR);
         }
 
-        GlStateManager.enableTexture2D();
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.enableDepth();
         GlStateManager.depthMask(true);
@@ -112,39 +114,18 @@ public class MineCeller {
         GlStateManager.popMatrix();
     }
 
-    private void drawBox(BlockPos pos) {
-        double minX = pos.getX() - PAD;
-        double minY = pos.getY() - PAD;
-        double minZ = pos.getZ() - PAD;
-        double maxX = pos.getX() + 1 + PAD;
-        double maxY = pos.getY() + 1 + PAD;
-        double maxZ = pos.getZ() + 1 + PAD;
-
-        GL11.glColor4f(1.0F, 0.85F, 0.1F, 0.9F);
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINES);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
+    /** Billboarded id text over the sign - no box, just the id, for a calm look. */
+    private void drawLabel(FontRenderer fr, RenderManager rm, String text, double x, double y, double z, int textColor) {
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x, y, z);
+        GlStateManager.rotate(-rm.playerViewY, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(rm.playerViewX, 1.0F, 0.0F, 0.0F);
+        GlStateManager.scale(-LABEL_SCALE, -LABEL_SCALE, LABEL_SCALE);
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        int halfWidth = fr.getStringWidth(text) / 2;
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        fr.drawString(text, -halfWidth, 0, textColor, true);
+        GlStateManager.popMatrix();
     }
 }
