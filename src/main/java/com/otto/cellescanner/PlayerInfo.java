@@ -6,25 +6,30 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Player Info addon: shift + right-click another player (or search by name) to
  * open a menu (GuiPlayerInfo) with their armor, their celle (from "/ce info
- * &lt;name&gt;"), and their bande. The armor and bande are read client-side; the
- * celle is fetched by quietly running /ce info once when the menu opens and
- * parsing the reply (which is hidden from chat).
+ * &lt;name&gt;"), and how many celler they own in total (from "/ce find
+ * &lt;name&gt;"). The two commands are spaced apart so the server's /ce cooldown
+ * doesn't drop one, and their replies are read from chat then hidden.
  */
 public class PlayerInfo {
 
     private static final Pattern HEADER = Pattern.compile("\\{\\s*([A-Za-z]{1,2}[0-9]{2,5})\\s*\\}");
-    private static final Pattern TID_TOKEN = Pattern.compile("(\\d+)\\s*(dage?|timer?|minutter?|sekunder?)", Pattern.CASE_INSENSITIVE);
+    // Loose celle-id token, for counting /ce find output (same shape MineCeller uses).
+    private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,2}[0-9]{2,5}\\b");
     private static final long WINDOW_MS = 4000L;
+    private static final long FIND_DELAY_MS = 1500L;
 
     /** Parsed "/ce info" block for the player the menu is currently showing. */
     public static final class Celle {
@@ -36,20 +41,31 @@ public class PlayerInfo {
         public final List<String> members = new ArrayList<>();
     }
 
-    private static volatile String lookupName = null;   // lowercased target we're waiting on
-    private static volatile Celle celle = null;         // last parsed result
+    private static volatile String lookupName = null;
+    private static volatile Celle celle = null;
     private static volatile boolean loading = false;
     private static volatile long deadline = 0L;
 
-    /** Kicks off a "/ce info <name>" lookup for the menu. */
+    // Delayed "/ce find" for the celler count.
+    private static volatile String findName = null;
+    private static volatile boolean findPending = false;
+    private static volatile long findAt = 0L;
+    private static final Set<String> celleIds = new HashSet<String>();
+
+    /** Kicks off "/ce info" now and "/ce find" shortly after, for the menu. */
     public static void lookup(String username) {
         if (username == null || username.isEmpty()) {
             return;
         }
+        long now = System.currentTimeMillis();
         lookupName = username.toLowerCase(Locale.ROOT);
+        findName = username;
         celle = null;
+        celleIds.clear();
         loading = true;
-        deadline = System.currentTimeMillis() + WINDOW_MS;
+        deadline = now + WINDOW_MS;
+        findPending = true;
+        findAt = now + FIND_DELAY_MS;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {
             mc.thePlayer.sendChatMessage("/ce info " + username);
@@ -60,11 +76,33 @@ public class PlayerInfo {
         return celle;
     }
 
+    /** Total distinct celler the player has access to, from the /ce find reply. */
+    public static int getCelleCount() {
+        return celleIds.size();
+    }
+
     public static boolean isLoading() {
         if (loading && System.currentTimeMillis() > deadline && celle == null) {
-            loading = false; // timed out (e.g. command on cooldown / no such celle)
+            loading = false;
         }
         return loading;
+    }
+
+    @SubscribeEvent
+    public void onTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !findPending) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now < findAt) {
+            return;
+        }
+        findPending = false;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null && findName != null) {
+            mc.thePlayer.sendChatMessage("/ce find " + findName);
+            deadline = now + WINDOW_MS; // keep capturing for the find reply
+        }
     }
 
     @SubscribeEvent
@@ -93,29 +131,40 @@ public class PlayerInfo {
             return;
         }
 
+        // Info-block header: which celle this /ce info reply is about.
         Matcher h = HEADER.matcher(text);
         if (h.find()) {
+            String id = h.group(1);
             celle = new Celle();
-            celle.id = h.group(1);
+            celle.id = id;
+            celleIds.add(id.toUpperCase(Locale.ROOT));
             event.setCanceled(true);
-            return;
-        }
-        if (celle == null) {
             return;
         }
 
         String trimmed = text.trim();
         String lower = trimmed.toLowerCase(Locale.ROOT);
-        boolean part = true;
-        if (lower.startsWith("lokation:")) {
+        if (celle != null && lower.startsWith("lokation:")) {
             celle.gang = value(trimmed);
-        } else if (lower.startsWith("ejer:")) {
+            event.setCanceled(true);
+            return;
+        }
+        if (celle != null && lower.startsWith("ejer:")) {
             celle.owner = value(trimmed);
-        } else if (lower.startsWith("blok:")) {
+            event.setCanceled(true);
+            return;
+        }
+        if (celle != null && lower.startsWith("blok:")) {
             celle.block = value(trimmed);
-        } else if (lower.startsWith("tid:")) {
+            event.setCanceled(true);
+            return;
+        }
+        if (celle != null && lower.startsWith("tid:")) {
             celle.tid = value(trimmed);
-        } else if (lower.startsWith("medlemmer:")) {
+            event.setCanceled(true);
+            return;
+        }
+        if (celle != null && lower.startsWith("medlemmer:")) {
             String v = value(trimmed);
             celle.members.clear();
             if (!v.isEmpty()) {
@@ -125,12 +174,19 @@ public class PlayerInfo {
                     }
                 }
             }
-            loading = false; // members is the last line of the block
-        } else {
-            part = false;
+            event.setCanceled(true);
+            return;
         }
-        if (part) {
-            event.setCanceled(true); // keep our own lookup out of chat
+
+        // Anything else in the window is /ce find output: count its celle ids.
+        Matcher fm = CELLE_ID.matcher(text);
+        boolean found = false;
+        while (fm.find()) {
+            celleIds.add(fm.group().toUpperCase(Locale.ROOT));
+            found = true;
+        }
+        if (found) {
+            event.setCanceled(true);
         }
     }
 

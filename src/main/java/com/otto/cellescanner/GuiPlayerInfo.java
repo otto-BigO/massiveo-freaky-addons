@@ -290,6 +290,10 @@ public class GuiPlayerInfo extends GuiScreen {
     private int drawCelle(int x, int y) {
         drawString(this.fontRendererObj, EnumChatFormatting.AQUA + "Celle", x, y, 0x55FFFF);
         y += 11;
+        int count = PlayerInfo.getCelleCount();
+        String countStr = count > 0 ? String.valueOf(count) : (PlayerInfo.isLoading() ? "henter..." : "0");
+        drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Celler i alt: " + EnumChatFormatting.WHITE + countStr, x + 4, y, 0xFFFFFF);
+        y += 10;
         PlayerInfo.Celle c = PlayerInfo.getCelle();
         if (c == null) {
             String msg = PlayerInfo.isLoading() ? "Henter celle info..." : "Ingen celle fundet";
