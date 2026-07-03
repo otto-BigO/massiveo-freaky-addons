@@ -321,6 +321,172 @@ public final class CelleActions {
         message("Spiller Info: " + (CelleScannerMod.config.playerInfoEnabled ? "til" : "fra"));
     }
 
+    public static void openTroll() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiTroll());
+    }
+
+    public static void toggleTroll() {
+        CelleScannerMod.config.trollEnabled = !CelleScannerMod.config.trollEnabled;
+        CelleScannerMod.config.save();
+        message("Troll Lyde: " + (CelleScannerMod.config.trollEnabled ? "til" : "fra"));
+    }
+
+    public static void toggleTrollDeath() {
+        CelleScannerMod.config.trollDeath = !CelleScannerMod.config.trollDeath;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollKill() {
+        CelleScannerMod.config.trollKill = !CelleScannerMod.config.trollKill;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollFirstHit() {
+        CelleScannerMod.config.trollFirstHit = !CelleScannerMod.config.trollFirstHit;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollJump() {
+        CelleScannerMod.config.trollJump = !CelleScannerMod.config.trollJump;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollAfk() {
+        CelleScannerMod.config.trollAfk = !CelleScannerMod.config.trollAfk;
+        CelleScannerMod.config.save();
+    }
+
+    public static void testTroll(String event) {
+        TrollSounds.play(event);
+    }
+
+    public static void openItemLog() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiItemLog());
+    }
+
+    public static void openPvpMine() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiPvpMine());
+    }
+
+    public static void togglePvpMine() {
+        CelleScannerMod.config.pvpMineEnabled = !CelleScannerMod.config.pvpMineEnabled;
+        CelleScannerMod.config.save();
+        message("PvP Mine: " + (CelleScannerMod.config.pvpMineEnabled ? "til" : "fra"));
+    }
+
+    public static void togglePvpMineAlert() {
+        CelleScannerMod.config.pvpMineAlert = !CelleScannerMod.config.pvpMineAlert;
+        CelleScannerMod.config.save();
+        message("PvP Mine alarm: " + (CelleScannerMod.config.pvpMineAlert ? "til" : "fra"));
+    }
+
+    /**
+     * Diagnostic: dumps everywhere a bande could hide for a player - their
+     * scoreboard team (name/prefix/suffix), the below-name tag, their tab-list
+     * name, and the sidebar - so we can see where the bande name actually is.
+     */
+    public static void dumpScoreboard(String name) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theWorld == null) {
+            message("Ingen verden.");
+            return;
+        }
+        net.minecraft.scoreboard.Scoreboard sc = mc.theWorld.getScoreboard();
+        message("Scoreboard-dump for " + name + ":");
+
+        net.minecraft.scoreboard.ScorePlayerTeam t = sc.getPlayersTeam(name);
+        if (t == null) {
+            message(" hold: (ingen)");
+        } else {
+            message(" hold.navn=" + t.getRegisteredName() + " visning=" + show(t.getTeamName()));
+            message(" hold.prefix=\"" + amp(t.getColorPrefix()) + "\" suffix=\"" + amp(t.getColorSuffix()) + "\"");
+        }
+
+        net.minecraft.scoreboard.ScoreObjective below = sc.getObjectiveInDisplaySlot(2);
+        if (below != null) {
+            int v = sc.getValueFromObjective(name, below).getScorePoints();
+            message(" underNavn: " + show(below.getDisplayName()) + " = " + v);
+        } else {
+            message(" underNavn: (ingen)");
+        }
+
+        try {
+            net.minecraft.client.network.NetworkPlayerInfo npi = mc.getNetHandler().getPlayerInfo(name);
+            if (npi != null && npi.getDisplayName() != null) {
+                message(" tab-navn: \"" + amp(npi.getDisplayName().getFormattedText()) + "\"");
+            }
+        } catch (Throwable ignored) {
+        }
+
+        net.minecraft.scoreboard.ScoreObjective side = sc.getObjectiveInDisplaySlot(1);
+        if (side != null) {
+            message(" sidebar: " + show(side.getDisplayName()));
+            int n = 0;
+            for (Object o : sc.getSortedScores(side)) {
+                net.minecraft.scoreboard.Score s = (net.minecraft.scoreboard.Score) o;
+                String pn = s.getPlayerName();
+                net.minecraft.scoreboard.ScorePlayerTeam st = sc.getPlayersTeam(pn);
+                String line = st != null ? st.formatString(pn) : pn;
+                message("  - \"" + amp(line) + "\" (" + s.getScorePoints() + ")");
+                if (++n >= 15) {
+                    break;
+                }
+            }
+        } else {
+            message(" sidebar: (ingen)");
+        }
+
+        net.minecraft.entity.player.EntityPlayer tp = null;
+        for (Object o : mc.theWorld.playerEntities) {
+            if (o instanceof net.minecraft.entity.player.EntityPlayer
+                    && ((net.minecraft.entity.player.EntityPlayer) o).getName().equalsIgnoreCase(name)) {
+                tp = (net.minecraft.entity.player.EntityPlayer) o;
+                break;
+            }
+        }
+        if (tp == null) {
+            message(" (spiller ikke i nærheden - kan ikke tjekke hologrammer)");
+            return;
+        }
+        message(" hologrammer nær " + name + ":");
+        int n = 0;
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (!(o instanceof net.minecraft.entity.item.EntityArmorStand)) {
+                continue;
+            }
+            net.minecraft.entity.Entity e = (net.minecraft.entity.Entity) o;
+            if (!e.hasCustomName()) {
+                continue;
+            }
+            double dx = e.posX - tp.posX;
+            double dz = e.posZ - tp.posZ;
+            double dy = e.posY - tp.posY;
+            if (dx * dx + dz * dz > 6.0 || Math.abs(dy) > 4.0) {
+                continue;
+            }
+            message("  - \"" + amp(e.getCustomNameTag()) + "\" dxz="
+                    + String.format("%.2f", Math.sqrt(dx * dx + dz * dz)) + " dy=" + String.format("%.2f", dy));
+            if (++n >= 8) {
+                break;
+            }
+        }
+        message(" -> bande: \"" + BandeEsp.bandeTag(tp) + "\"  (navn: \"" + BandeEsp.bandeName(tp) + "\")");
+    }
+
+    private static String show(String s) {
+        return s == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(s);
+    }
+
+    private static String amp(String s) {
+        return s == null ? "" : s.replace('§', '&');
+    }
+
+    public static void toggleItemPickup() {
+        CelleScannerMod.config.itemPickupEnabled = !CelleScannerMod.config.itemPickupEnabled;
+        CelleScannerMod.config.save();
+        message("Item-log: " + (CelleScannerMod.config.itemPickupEnabled ? "til" : "fra"));
+    }
+
     public static void toggleGangAutoQuery() {
         CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
         CelleScannerMod.config.save();
@@ -490,6 +656,12 @@ public final class CelleActions {
         CelleScannerMod.config.bandeAutoTeam = !CelleScannerMod.config.bandeAutoTeam;
         CelleScannerMod.config.save();
         message("Bande auto (samme hold): " + (CelleScannerMod.config.bandeAutoTeam ? "til" : "fra"));
+    }
+
+    public static void toggleBandeEspAll() {
+        CelleScannerMod.config.bandeEspAll = !CelleScannerMod.config.bandeEspAll;
+        CelleScannerMod.config.save();
+        message("ESP på alle spillere: " + (CelleScannerMod.config.bandeEspAll ? "til" : "fra"));
     }
 
     public static void addBandeMember(String name) {

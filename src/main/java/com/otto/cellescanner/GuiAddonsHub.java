@@ -33,6 +33,10 @@ public class GuiAddonsHub extends GuiScreen {
 
     private int firstRowY;
 
+    // Settings gear (bottom-right of the card).
+    private static final int GEAR_SIZE = 9;
+    private int gearX, gearY;
+
     public GuiAddonsHub() {
         this(null);
     }
@@ -161,6 +165,40 @@ public class GuiAddonsHub extends GuiScreen {
                 hint = levelAddons.get(hovered).description();
             }
             drawCenteredString(this.fontRendererObj, hint, cx, this.height / 2 + 138, 0x888888);
+        }
+
+        // Settings gear in the bottom-right corner of the card.
+        int cardRight = cx + Math.min(cx - 8, 170);
+        int cardBottom = this.height / 2 + Math.min(this.height / 2 - 8, 150);
+        gearX = cardRight - GEAR_SIZE - 6;
+        gearY = cardBottom - GEAR_SIZE - 6;
+        boolean gearHover = mouseX >= gearX - 3 && mouseX <= gearX + GEAR_SIZE + 3
+                && mouseY >= gearY - 3 && mouseY <= gearY + GEAR_SIZE + 3;
+        drawGear(gearX, gearY, GEAR_SIZE, gearHover ? 0xFFFFFFFF : 0xFFB0B0B8, 0xFF15151A);
+        if (gearHover) {
+            String t = "Indstillinger";
+            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + t,
+                    gearX - this.fontRendererObj.getStringWidth(t) - 6, gearY + 1, 0xAAAAAA);
+        }
+    }
+
+    private void drawGear(int left, int top, int s, int body, int hole) {
+        int cx = left + s / 2;
+        int cy = top + s / 2;
+        drawRect(cx - 1, top - 2, cx + 2, top + 1, body);            // top tooth
+        drawRect(cx - 1, top + s - 1, cx + 2, top + s + 2, body);    // bottom tooth
+        drawRect(left - 2, cy - 1, left + 1, cy + 2, body);          // left tooth
+        drawRect(left + s - 1, cy - 1, left + s + 2, cy + 2, body);  // right tooth
+        Style.roundedRect(left, top, left + s, top + s, body);       // body
+        drawRect(cx - 1, cy - 1, cx + 2, cy + 2, hole);              // centre hole
+    }
+
+    @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton == 0 && mouseX >= gearX - 3 && mouseX <= gearX + GEAR_SIZE + 3
+                && mouseY >= gearY - 3 && mouseY <= gearY + GEAR_SIZE + 3) {
+            this.mc.displayGuiScreen(new GuiGuiSettings());
         }
     }
 

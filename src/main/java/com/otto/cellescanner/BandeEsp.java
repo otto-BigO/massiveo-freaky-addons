@@ -3,8 +3,8 @@ package com.otto.cellescanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -26,7 +26,7 @@ public class BandeEsp {
         if (!cfg.bandeEspEnabled) {
             return;
         }
-        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam) {
+        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam && !cfg.bandeEspAll) {
             return;
         }
 
@@ -57,10 +57,18 @@ public class BandeEsp {
                 continue;
             }
             EntityPlayer p = (EntityPlayer) obj;
-            if (p == mc.thePlayer || !isBande(mc, p)) {
+            if (p == mc.thePlayer) {
                 continue;
             }
-            drawBox(p, partialTicks);
+            boolean bande = isBande(mc, p);
+            if (!bande && !cfg.bandeEspAll) {
+                continue;
+            }
+            if (bande) {
+                drawBox(p, partialTicks, 0.2f, 1.0f, 0.2f);   // bande = green
+            } else {
+                drawBox(p, partialTicks, 1.0f, 0.25f, 0.25f); // everyone else = red
+            }
         }
 
         GlStateManager.enableTexture2D();
@@ -73,37 +81,69 @@ public class BandeEsp {
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
-        if (CelleScannerMod.config.isBandeMember(p.getName())) {
-            return true;
-        }
-        if (CelleScannerMod.config.bandeAutoTeam) {
-            // NOT isSameTeam: this server puts everyone on one scoreboard team, so
-            // that matched all players. Compare the bande TAG (the team's
-            // prefix/suffix shown by the nametag) instead, and only when yours is
-            // actually set - so no bande tag means no auto-boxing.
-            String mine = bandeTag(mc.thePlayer);
-            String theirs = bandeTag(p);
-            if (mine != null && mine.equals(theirs)) {
-                return true;
-            }
-        }
-        return false;
+        // Auto bande detection is shelved (the hologram read below is unreliable);
+        // only the manual member list decides bande membership for now. The
+        // bandeTag/bandeName helpers are kept for when we remake the detection.
+        return CelleScannerMod.config.isBandeMember(p.getName());
     }
 
-    private static String bandeTag(EntityPlayer player) {
+    /**
+     * The full bande tag on the hologram line under a player's name (e.g.
+     * "Quintero - [24]"), or null. On this server that line is an invisible
+     * armor stand with a custom name at the player's position, so we read the
+     * closest such armor stand.
+     */
+    public static String bandeTag(EntityPlayer target) {
         try {
-            Team t = player.getTeam();
-            if (t == null) {
+            net.minecraft.world.World w = target.worldObj;
+            if (w == null) {
                 return null;
             }
-            String tag = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
-            return tag.isEmpty() ? null : tag;
+            String best = null;
+            double bestH = 1.3 * 1.3;
+            for (Object o : w.loadedEntityList) {
+                if (!(o instanceof EntityArmorStand)) {
+                    continue;
+                }
+                Entity e = (Entity) o;
+                if (!e.hasCustomName()) {
+                    continue;
+                }
+                double dx = e.posX - target.posX;
+                double dz = e.posZ - target.posZ;
+                double h = dx * dx + dz * dz;
+                if (h > bestH || Math.abs(e.posY - target.posY) > 3.0) {
+                    continue;
+                }
+                String raw = EnumChatFormatting.getTextWithoutFormattingCodes(e.getCustomNameTag()).trim();
+                if (!raw.isEmpty()) {
+                    bestH = h;
+                    best = raw;
+                }
+            }
+            return best;
         } catch (Throwable e) {
             return null;
         }
     }
 
-    private void drawBox(EntityPlayer p, float partialTicks) {
+    /** Just the bande name from the tag (before " - " or "["), for matching members. */
+    public static String bandeName(EntityPlayer target) {
+        String tag = bandeTag(target);
+        if (tag == null) {
+            return null;
+        }
+        int dash = tag.indexOf(" - ");
+        String b = dash >= 0 ? tag.substring(0, dash) : tag;
+        int br = b.indexOf('[');
+        if (br > 0) {
+            b = b.substring(0, br);
+        }
+        b = b.trim();
+        return b.isEmpty() ? null : b;
+    }
+
+    private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
         double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
         double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
         double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
@@ -118,8 +158,8 @@ public class BandeEsp {
 
         // Via GlStateManager (not raw glColor4f) so its colour cache tracks this,
         // and the color(1,1,1,1) reset after the ESP actually takes effect -
-        // otherwise the green leaks onto the hand and inventory items.
-        GlStateManager.color(0.2f, 1.0f, 0.2f, 0.9f);
+        // otherwise the colour leaks onto the hand and inventory items.
+        GlStateManager.color(r, g, b, 0.9f);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
         GL11.glVertex3d(minX, minY, minZ);

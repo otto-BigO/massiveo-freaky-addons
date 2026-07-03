@@ -1,0 +1,31 @@
+{
+  "troll.death": {
+    "category": "master",
+    "sounds": [
+      "cellescanner:troll/death/enrique",
+      "cellescanner:troll/death/hellskitchen",
+      "cellescanner:troll/death/fart",
+      "cellescanner:troll/death/spongebobfail",
+      "cellescanner:troll/death/bennlaugh"
+    ]
+  },
+  "troll.firsthit": {
+    "category": "master",
+    "sounds": [ "cellescanner:troll/firsthit/ivegotthis" ]
+  },
+  "troll.kill": {
+    "category": "master",
+    "sounds": [
+      "cellescanner:troll/kill/byegreattime",
+      "cellescanner:troll/kill/shotgun"
+    ]
+  },
+  "troll.afk": {
+    "category": "master",
+    "sounds": [ "cellescanner:troll/afk/afk" ]
+  },
+  "troll.jump": {
+    "category": "master",
+    "sounds": [ "cellescanner:troll/jump/slip" ]
+  }
+}

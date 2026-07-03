@@ -147,6 +147,72 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Troll Lyde";
+            }
+
+            public String description() {
+                return "Fjollede lyde på død, kill, hop, AFK m.m. (kun du hører dem)";
+            }
+
+            public String category() {
+                return "PvP";
+            }
+
+            public boolean isActive() {
+                return config.trollEnabled;
+            }
+
+            public void open() {
+                CelleActions.openTroll();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "PvP Mine";
+            }
+
+            public String description() {
+                return "Drop-timer + alarm når nogen er i PvP minen";
+            }
+
+            public String category() {
+                return "PvP";
+            }
+
+            public boolean isActive() {
+                return config.pvpMineEnabled;
+            }
+
+            public void open() {
+                CelleActions.openPvpMine();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Item-log";
+            }
+
+            public String description() {
+                return "Lille \"+N vare\" notifikation nederst til højre";
+            }
+
+            public String category() {
+                return "World";
+            }
+
+            public boolean isActive() {
+                return config.itemPickupEnabled;
+            }
+
+            public void open() {
+                CelleActions.openItemLog();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Anti-AFK";
             }
 

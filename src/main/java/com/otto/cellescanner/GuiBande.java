@@ -21,6 +21,7 @@ public class GuiBande extends GuiScreen {
     private static final int ID_ESP = 2;
     private static final int ID_AUTO = 3;
     private static final int ID_BACK = 4;
+    private static final int ID_ALL = 5;
     private static final int REMOVE_BASE = 100;
     private static final int MAX_REMOVE_ROWS = 8;
 
@@ -33,6 +34,7 @@ public class GuiBande extends GuiScreen {
     private GuiTextField nameField;
     private GuiButton espButton;
     private GuiButton autoButton;
+    private GuiButton allButton;
     private String statusLine = "";
     private int statusColor = 0xAAAAAA;
 
@@ -47,7 +49,7 @@ public class GuiBande extends GuiScreen {
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
-        int y = this.height / 2 - 106;
+        int y = this.height / 2 - 118;
 
         String carry = nameField != null && nameField.getText() != null ? nameField.getText() : "";
         nameField = new GuiTextField(0, this.fontRendererObj, fieldX, y, FIELD_W, FIELD_H);
@@ -63,6 +65,9 @@ public class GuiBande extends GuiScreen {
 
         this.buttonList.add(espButton = new StyledButton(ID_ESP, fieldX, y, halfW, BTN_H, espLabel()));
         this.buttonList.add(autoButton = new StyledButton(ID_AUTO, fieldX + halfW + 4, y, halfW, BTN_H, autoLabel()));
+        y += BTN_H + ROW_GAP;
+
+        this.buttonList.add(allButton = new StyledButton(ID_ALL, fieldX, y, FIELD_W, BTN_H, allLabel()));
         y += BTN_H + ROW_GAP;
 
         this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
@@ -92,6 +97,10 @@ public class GuiBande extends GuiScreen {
 
     private String autoLabel() {
         return "Auto-hold: " + (CelleScannerMod.config.bandeAutoTeam ? "Til" : "Fra");
+    }
+
+    private String allLabel() {
+        return "ESP på alle (rød): " + (CelleScannerMod.config.bandeEspAll ? "Til" : "Fra");
     }
 
     @Override
@@ -125,6 +134,10 @@ public class GuiBande extends GuiScreen {
             case ID_AUTO:
                 CelleActions.toggleBandeAutoTeam();
                 autoButton.displayString = autoLabel();
+                break;
+            case ID_ALL:
+                CelleActions.toggleBandeEspAll();
+                allButton.displayString = allLabel();
                 break;
             case ID_BACK:
                 CelleActions.openHub();
@@ -177,9 +190,9 @@ public class GuiBande extends GuiScreen {
         drawDefaultBackground();
         Style.card(this.width, this.height);
 
-        int titleY = this.height / 2 - 106 - 22;
+        int titleY = this.height / 2 - 118 - 22;
         drawCenteredString(this.fontRendererObj, "Bande ESP", this.width / 2, titleY, 0xFF5555);
-        drawCenteredString(this.fontRendererObj, "Tilføj spillere i din bande - de får en grøn kasse:", this.width / 2, titleY + 12, 0xAAAAAA);
+        drawCenteredString(this.fontRendererObj, "Bande = grøn kasse. \"ESP på alle\" = rød kasse på alle andre.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         nameField.drawTextBox();
 

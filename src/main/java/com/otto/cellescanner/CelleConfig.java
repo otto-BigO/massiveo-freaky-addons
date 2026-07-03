@@ -86,6 +86,9 @@ public class CelleConfig {
     // if the server happens to back bande membership with a real team.
     public boolean bandeEspEnabled = true;
     public boolean bandeAutoTeam = false;
+    // When on, the ESP boxes EVERY player - bande members green, everyone else
+    // red - so you can see all players through walls, not just your bande.
+    public boolean bandeEspAll = false;
     public List<String> bandeMembers = new ArrayList<String>();
 
     // Chest Alarm addon: watches chat for a keyword (the server's chest-alarm
@@ -138,6 +141,25 @@ public class CelleConfig {
     // Boxed Boolean so a config written before this field existed loads as null
     // (-> default on) rather than false.
     public Boolean playerInfoEnabled = Boolean.TRUE;
+
+    // Troll Sounds addon: plays goofy sound effects (client-side, only you hear
+    // them) reacting to your gameplay - death, kill, first hit, jump, AFK. Off by
+    // default; each event can be toggled individually.
+    public boolean trollEnabled = false;
+    public Boolean trollDeath = Boolean.TRUE;
+    public Boolean trollKill = Boolean.TRUE;
+    public Boolean trollFirstHit = Boolean.TRUE;
+    public Boolean trollJump = Boolean.TRUE;
+    public Boolean trollAfk = Boolean.TRUE;
+
+    // Item pickup log: a small "+N Item" notification in the bottom-right that
+    // fades out when items enter your inventory (SkyHanni style).
+    public Boolean itemPickupEnabled = Boolean.TRUE;
+
+    // PvP Mine watcher: a HUD with the drop-timer sign, and an alert when another
+    // player is inside the mine area (in render distance).
+    public boolean pvpMineEnabled = false;
+    public Boolean pvpMineAlert = Boolean.TRUE;
 
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
@@ -244,6 +266,7 @@ public class CelleConfig {
                 this.antiAfkJump = loaded.antiAfkJump;
                 this.bandeEspEnabled = loaded.bandeEspEnabled;
                 this.bandeAutoTeam = loaded.bandeAutoTeam;
+                this.bandeEspAll = loaded.bandeEspAll;
                 this.bandeMembers = loaded.bandeMembers != null ? loaded.bandeMembers : new ArrayList<String>();
                 this.chestAlarmEnabled = loaded.chestAlarmEnabled;
                 this.chestAlarmToast = loaded.chestAlarmToast;
@@ -256,6 +279,15 @@ public class CelleConfig {
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
                 this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
                 this.playerInfoEnabled = loaded.playerInfoEnabled == null ? Boolean.TRUE : loaded.playerInfoEnabled;
+                this.trollEnabled = loaded.trollEnabled;
+                this.trollDeath = loaded.trollDeath == null ? Boolean.TRUE : loaded.trollDeath;
+                this.trollKill = loaded.trollKill == null ? Boolean.TRUE : loaded.trollKill;
+                this.trollFirstHit = loaded.trollFirstHit == null ? Boolean.TRUE : loaded.trollFirstHit;
+                this.trollJump = loaded.trollJump == null ? Boolean.TRUE : loaded.trollJump;
+                this.trollAfk = loaded.trollAfk == null ? Boolean.TRUE : loaded.trollAfk;
+                this.itemPickupEnabled = loaded.itemPickupEnabled == null ? Boolean.TRUE : loaded.itemPickupEnabled;
+                this.pvpMineEnabled = loaded.pvpMineEnabled;
+                this.pvpMineAlert = loaded.pvpMineAlert == null ? Boolean.TRUE : loaded.pvpMineAlert;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

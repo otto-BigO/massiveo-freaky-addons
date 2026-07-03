@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -16,10 +17,10 @@ import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
@@ -36,26 +37,37 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private static final int ID_BACK = 0;
     private static final int CARD_W = 330;
-    private static final int CARD_H = 208;
+    private static final int CARD_H = 186;
     private static final int MODEL_W = 96;
     private static final int ROW_H = 20;
     private static final int INFO_W = CARD_W - MODEL_W - 32;
 
     private static final String[] SLOT_NAMES = {"Støvler", "Bukser", "Brystplade", "Hjelm"};
 
-    private final EntityPlayer entity;   // null when offline
     private final boolean offline;
     private final String playerName;
     private final String rawName;
     private final String bande;
     private final ItemStack[] armor = new ItemStack[4];
-    private ResourceLocation skin;
+    private final boolean slim;
+    private ResourceLocation skin;         // for the flat head/body fallback
     private boolean modelBroken = false;
-    private EntityPlayer offlineModel;   // fake entity built once the skin loads
 
-    /** Online / loaded player: full data + live 3D model. */
+    // "Alle celler" side panel + its inline toggle button bounds.
+    private boolean showCeller = false;
+    private int cellerScroll = 0;
+    private int cbX, cbY, cbW, cbH;
+    // Panel geometry (set during draw, read on click) + which celle is expanded.
+    private String panelDetailId = null;
+    private int panelX, panelW, panelTop, panelListTop, panelListBottom;
+    private int panelLineH = 11;
+    // A stable fake entity carrying the captured skin (+ armor when online) - the
+    // 3D model always renders this, never the live entity, so it persists even
+    // after the player walks away or unloads.
+    private EntityPlayer modelEntity;
+
+    /** Online / loaded player: full data, model built from the captured skin + armor. */
     public GuiPlayerInfo(EntityPlayer target) {
-        this.entity = target;
         this.offline = false;
         this.rawName = target.getName();
         String name;
@@ -65,39 +77,33 @@ public class GuiPlayerInfo extends GuiScreen {
             name = target.getName();
         }
         this.playerName = name;
-        this.bande = bandeOf(target);
+        this.bande = null; // bande detection shelved - see BandeEsp.bandeTag
         for (int i = 0; i < 4; i++) {
             ItemStack s = target.getCurrentArmor(i);
             armor[i] = s == null ? null : s.copy();
         }
+        ResourceLocation sk = null;
+        boolean sl = false;
         try {
             if (target instanceof AbstractClientPlayer) {
-                skin = ((AbstractClientPlayer) target).getLocationSkin();
+                AbstractClientPlayer acp = (AbstractClientPlayer) target;
+                sk = acp.getLocationSkin();
+                sl = "slim".equals(acp.getSkinType());
             }
         } catch (Throwable ignored) {
         }
+        this.skin = sk;
+        this.slim = sl;
+        this.modelEntity = buildModel(sk, sl, armor);
     }
 
     /** Offline player (not loaded): skin fetched from Mojang, celle via /ce info, no live armor. */
     public GuiPlayerInfo(String username) {
-        this.entity = null;
         this.offline = true;
         this.rawName = username;
         this.playerName = username;
         this.bande = null;
-    }
-
-    private static String bandeOf(EntityPlayer target) {
-        try {
-            Team t = target.getTeam();
-            if (t == null) {
-                return null;
-            }
-            String combo = EnumChatFormatting.getTextWithoutFormattingCodes(t.formatString("")).trim();
-            return combo.isEmpty() ? null : combo;
-        } catch (Throwable t) {
-            return null;
-        }
+        this.slim = false;
     }
 
     private int cardL() {
@@ -123,6 +129,53 @@ public class GuiPlayerInfo extends GuiScreen {
     }
 
     @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+        if (mouseButton != 0) {
+            return;
+        }
+        // Inline toggle button.
+        if (mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
+            showCeller = !showCeller;
+            cellerScroll = 0;
+            panelDetailId = null;
+            return;
+        }
+        if (!showCeller) {
+            return;
+        }
+        // Detail view: "< Tilbage" region.
+        if (panelDetailId != null) {
+            if (mouseX >= panelX + 4 && mouseX <= panelX + panelW - 4 && mouseY >= panelTop + 4 && mouseY <= panelTop + 16) {
+                panelDetailId = null;
+            }
+            return;
+        }
+        // List view: click a celle row to open its details.
+        if (mouseX >= panelX && mouseX <= panelX + panelW && mouseY >= panelListTop && mouseY <= panelListBottom) {
+            int idx = (mouseY - (panelListTop - cellerScroll)) / panelLineH;
+            List<String> ids = PlayerInfo.getCellerList();
+            if (idx >= 0 && idx < ids.size()) {
+                panelDetailId = ids.get(idx);
+                PlayerInfo.selectCelle(panelDetailId);
+            }
+        }
+    }
+
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        if (showCeller) {
+            int d = Mouse.getDWheel();
+            if (d > 0) {
+                cellerScroll = Math.max(0, cellerScroll - 12);
+            } else if (d < 0) {
+                cellerScroll += 12;
+            }
+        }
+    }
+
+    @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
         Minecraft mc = Minecraft.getMinecraft();
@@ -144,13 +197,7 @@ public class GuiPlayerInfo extends GuiScreen {
         int x = mx0 + MODEL_W + 12;
         int y = cardT + 28;
 
-        if (bande != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.RED + "Bande: " + EnumChatFormatting.WHITE + bande, x, y, 0xFFFFFF);
-        } else {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + (offline ? "Bande: ukendt (offline)" : "Bande: ukendt"), x, y, 0xAAAAAA);
-        }
-        y += 15;
-
+        // Bande line shelved (detection unreliable) - see BandeEsp.bandeTag.
         y = drawCelle(x, y);
         y += 6;
 
@@ -162,36 +209,119 @@ public class GuiPlayerInfo extends GuiScreen {
             drawArmor(mc, x, y);
         }
 
+        if (showCeller) {
+            drawCellerPanel();
+        }
+
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
+    private void drawCellerPanel() {
+        int px = cardL() + CARD_W + 6;
+        int pw = 152;
+        if (px + pw > this.width - 2) {
+            px = this.width - 2 - pw;
+        }
+        int py = cardT();
+        int pbottom = cardT() + CARD_H;
+        Style.panel(px, py, px + pw, pbottom);
+        panelX = px;
+        panelW = pw;
+        panelTop = py;
+
+        FontRenderer fr = this.fontRendererObj;
+        if (panelDetailId == null) {
+            drawString(fr, EnumChatFormatting.AQUA + "Alle celler (" + PlayerInfo.getCelleCount() + ")", px + 6, py + 6, 0x55FFFF);
+            drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
+
+            List<String> ids = PlayerInfo.getCellerList();
+            int listTop = py + 22;
+            int listBottom = pbottom - 6;
+            panelListTop = listTop;
+            panelListBottom = listBottom;
+            if (ids.isEmpty()) {
+                drawString(fr, EnumChatFormatting.GRAY + (PlayerInfo.isFindLoading() ? "henter..." : "ingen"), px + 6, listTop + 2, 0xAAAAAA);
+                return;
+            }
+            int lineH = 11;
+            panelLineH = lineH;
+            int max = Math.max(0, ids.size() * lineH - (listBottom - listTop));
+            if (cellerScroll > max) {
+                cellerScroll = max;
+            }
+            int y = listTop - cellerScroll;
+            for (String id : ids) {
+                if (y + lineH >= listTop && y <= listBottom) {
+                    drawString(fr, EnumChatFormatting.WHITE + id + EnumChatFormatting.GRAY + "  >", px + 8, y + 1, 0xE0E0E0);
+                }
+                y += lineH;
+            }
+            return;
+        }
+
+        // Detail view for the clicked celle.
+        drawString(fr, EnumChatFormatting.GOLD + "< Tilbage", px + 6, py + 6, 0xFFD24B);
+        drawRect(px + 6, py + 17, px + pw - 6, py + 18, Style.ACCENT);
+        int dy = py + 22;
+        drawString(fr, EnumChatFormatting.AQUA + panelDetailId, px + 6, dy, 0x55FFFF);
+        dy += 12;
+
+        PlayerInfo.Celle c = PlayerInfo.getSelectedCelle();
+        if (c == null) {
+            drawString(fr, EnumChatFormatting.GRAY + (PlayerInfo.isSelectedLoading() ? "henter..." : "ingen info"), px + 8, dy, 0xAAAAAA);
+            return;
+        }
+        if (c.gang != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Gang: " + EnumChatFormatting.WHITE + trimToWidth(c.gang, pw - 40), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (c.owner != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Ejer: " + EnumChatFormatting.WHITE + trimToWidth(c.owner, pw - 40), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (c.tid != null) {
+            drawString(fr, EnumChatFormatting.GRAY + "Tid: " + EnumChatFormatting.WHITE + trimToWidth(c.tid, pw - 34), px + 8, dy, 0xFFFFFF);
+            dy += 10;
+        }
+        if (!c.members.isEmpty()) {
+            drawString(fr, EnumChatFormatting.GRAY + "Medlemmer:", px + 8, dy, 0xAAAAAA);
+            dy += 10;
+            for (String m : c.members) {
+                if (dy > pbottom - 11) {
+                    break;
+                }
+                drawString(fr, EnumChatFormatting.WHITE + trimToWidth(m, pw - 20), px + 12, dy, 0xE0E0E0);
+                dy += 9;
+            }
+        }
+    }
+
     private void drawModel(Minecraft mc, int mx0, int my0, int mw, int mh, int mouseX, int mouseY) {
-        if (offline) {
+        // Offline: build the model lazily once the skin has been fetched.
+        if (modelEntity == null && offline && !modelBroken) {
             SkinFetcher.Entry sk = SkinFetcher.get(rawName);
             if (sk.location == null) {
                 String msg = "fejl".equals(sk.status) ? "Ingen skin fundet" : "Henter skin...";
                 drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, mx0 + mw / 2, my0 + mh / 2 - 4, 0xAAAAAA);
                 return;
             }
-            // Build a fake entity carrying the fetched skin, so offline players get
-            // the same 3D model as online ones.
-            if (offlineModel == null && !modelBroken) {
-                offlineModel = buildFakeEntity(mc, rawName, sk);
-            }
-            if (offlineModel != null && !modelBroken && renderEntity3D(mc, offlineModel, mx0, my0, mw, mh, mouseX, mouseY)) {
-                return;
-            }
-            // Fallback: flat front-facing skin.
-            int s = Math.max(2, (mh - 20) / 32);
-            drawSkinBody(mc, sk.location, mx0 + mw / 2, my0 + (mh - 32 * s) / 2, s, sk.slim, sk.legacy);
+            this.skin = sk.location;
+            modelEntity = buildModel(sk.location, sk.slim, null);
+        }
+
+        if (modelEntity != null && !modelBroken
+                && renderEntity3D(mc, modelEntity, mx0, my0, mw, mh, mouseX, mouseY)) {
             return;
         }
 
-        if (!modelBroken && entity != null && !entity.isDead
-                && renderEntity3D(mc, entity, mx0, my0, mw, mh, mouseX, mouseY)) {
-            return;
+        // Fallbacks if the model couldn't build/render.
+        if (offline && skin != null) {
+            SkinFetcher.Entry sk = SkinFetcher.get(rawName);
+            int s = Math.max(2, (mh - 20) / 32);
+            drawSkinBody(mc, skin, mx0 + mw / 2, my0 + (mh - 32 * s) / 2, s, sk.slim, sk.legacy);
+        } else {
+            drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
         }
-        drawHead(mc, mx0 + mw / 2 - 16, my0 + 16, 32);
     }
 
     /** Renders a living entity as the rotating 3D model in the panel. Returns false (and sets modelBroken) if it throws. */
@@ -226,14 +356,27 @@ public class GuiPlayerInfo extends GuiScreen {
         }
     }
 
-    private EntityPlayer buildFakeEntity(Minecraft mc, String name, SkinFetcher.Entry sk) {
+    /** Builds the stable fake entity for the 3D model: the given skin, plus armor when supplied (online). */
+    private EntityPlayer buildModel(ResourceLocation skinRL, boolean slimModel, ItemStack[] armorStacks) {
+        if (skinRL == null) {
+            return null;
+        }
         try {
-            World world = mc.theWorld;
+            World world = Minecraft.getMinecraft().theWorld;
             if (world == null) {
                 return null;
             }
-            GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("MassiveoOffline:" + name).getBytes()), name);
-            return new FakeSkinPlayer(world, profile, sk.location, sk.slim);
+            GameProfile profile = new GameProfile(UUID.nameUUIDFromBytes(("MassiveoInfo:" + rawName).getBytes()), rawName);
+            FakeSkinPlayer f = new FakeSkinPlayer(world, profile, skinRL, slimModel);
+            if (armorStacks != null) {
+                // Equipment slots 1..4 = boots, leggings, chestplate, helmet.
+                for (int i = 0; i < 4; i++) {
+                    if (armorStacks[i] != null) {
+                        f.setCurrentItemOrArmor(i + 1, armorStacks[i]);
+                    }
+                }
+            }
+            return f;
         } catch (Throwable t) {
             return null;
         }
@@ -269,31 +412,20 @@ public class GuiPlayerInfo extends GuiScreen {
     private int drawCelle(int x, int y) {
         drawString(this.fontRendererObj, EnumChatFormatting.AQUA + "Celle", x, y, 0x55FFFF);
         y += 11;
-        PlayerInfo.Celle c = PlayerInfo.getCelle();
-        if (c == null) {
-            String msg = PlayerInfo.isLoading() ? "Henter celle info..." : "Ingen celle fundet";
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + msg, x + 4, y, 0xAAAAAA);
-            return y + 11;
-        }
-        String head = c.id != null ? c.id : "?";
-        if (c.gang != null && !c.gang.isEmpty()) {
-            head += "  " + EnumChatFormatting.GRAY + "(" + c.gang + ")";
-        }
-        drawString(this.fontRendererObj, EnumChatFormatting.WHITE + head, x + 4, y, 0xFFFFFF);
-        y += 10;
-        if (c.owner != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Ejer: " + EnumChatFormatting.WHITE + c.owner, x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
-        if (c.tid != null) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Tid: " + EnumChatFormatting.WHITE + c.tid, x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
-        if (!c.members.isEmpty()) {
-            drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Medlemmer: " + EnumChatFormatting.WHITE
-                    + trimToWidth(join(c.members), INFO_W - 8), x + 4, y, 0xFFFFFF);
-            y += 10;
-        }
+        int count = PlayerInfo.getCelleCount();
+        String countStr = count > 0 ? String.valueOf(count) : (PlayerInfo.isFindLoading() ? "henter..." : "0");
+        drawString(this.fontRendererObj, EnumChatFormatting.GRAY + "Celler i alt: " + EnumChatFormatting.WHITE + countStr, x + 4, y, 0xFFFFFF);
+        y += 11;
+
+        // Inline button to open the "all celler" side panel (click a celle there
+        // for its details).
+        cbX = x + 4;
+        cbY = y;
+        cbW = INFO_W - 8;
+        cbH = 13;
+        Style.roundedRect(cbX, cbY, cbX + cbW, cbY + cbH, showCeller ? Style.BTN_BG_HOVER : Style.BTN_BG);
+        drawCenteredString(this.fontRendererObj, (showCeller ? "v " : "> ") + "Vis alle celler", cbX + cbW / 2, cbY + 3, 0xE0E0E0);
+        y += cbH + 4;
         return y;
     }
 
@@ -391,17 +523,6 @@ public class GuiPlayerInfo extends GuiScreen {
 
     private void part(int x, int y, int u, int v, int uw, int vh, int s, float tileH) {
         Gui.drawScaledCustomSizeModalRect(x, y, u, v, uw, vh, uw * s, vh * s, 64.0F, tileH);
-    }
-
-    private static String join(List<String> list) {
-        StringBuilder sb = new StringBuilder();
-        for (String s : list) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append(s);
-        }
-        return sb.toString();
     }
 
     private String trimToWidth(String text, int maxWidth) {
