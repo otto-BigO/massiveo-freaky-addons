@@ -95,6 +95,12 @@ public class CommandCeller extends CommandBase {
             CelleActions.debugDump();
         } else if ("signdump".equals(sub) || "sign".equals(sub)) {
             CelleActions.dumpNearestSign();
+        } else if ("bandedump".equals(sub)) {
+            if (args.length < 2) {
+                CelleActions.message("Brug: /celler bandedump <spiller>");
+            } else {
+                CelleActions.dumpScoreboard(args[1]);
+            }
         } else if ("clear".equals(sub)) {
             CelleActions.clearCache();
         } else if ("move".equals(sub)) {

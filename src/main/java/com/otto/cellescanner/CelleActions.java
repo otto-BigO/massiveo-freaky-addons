@@ -364,6 +364,71 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiItemLog());
     }
 
+    /**
+     * Diagnostic: dumps everywhere a bande could hide for a player - their
+     * scoreboard team (name/prefix/suffix), the below-name tag, their tab-list
+     * name, and the sidebar - so we can see where the bande name actually is.
+     */
+    public static void dumpScoreboard(String name) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theWorld == null) {
+            message("Ingen verden.");
+            return;
+        }
+        net.minecraft.scoreboard.Scoreboard sc = mc.theWorld.getScoreboard();
+        message("Scoreboard-dump for " + name + ":");
+
+        net.minecraft.scoreboard.ScorePlayerTeam t = sc.getPlayersTeam(name);
+        if (t == null) {
+            message(" hold: (ingen)");
+        } else {
+            message(" hold.navn=" + t.getRegisteredName() + " visning=" + show(t.getTeamName()));
+            message(" hold.prefix=\"" + amp(t.getColorPrefix()) + "\" suffix=\"" + amp(t.getColorSuffix()) + "\"");
+        }
+
+        net.minecraft.scoreboard.ScoreObjective below = sc.getObjectiveInDisplaySlot(2);
+        if (below != null) {
+            int v = sc.getValueFromObjective(name, below).getScorePoints();
+            message(" underNavn: " + show(below.getDisplayName()) + " = " + v);
+        } else {
+            message(" underNavn: (ingen)");
+        }
+
+        try {
+            net.minecraft.client.network.NetworkPlayerInfo npi = mc.getNetHandler().getPlayerInfo(name);
+            if (npi != null && npi.getDisplayName() != null) {
+                message(" tab-navn: \"" + amp(npi.getDisplayName().getFormattedText()) + "\"");
+            }
+        } catch (Throwable ignored) {
+        }
+
+        net.minecraft.scoreboard.ScoreObjective side = sc.getObjectiveInDisplaySlot(1);
+        if (side != null) {
+            message(" sidebar: " + show(side.getDisplayName()));
+            int n = 0;
+            for (Object o : sc.getSortedScores(side)) {
+                net.minecraft.scoreboard.Score s = (net.minecraft.scoreboard.Score) o;
+                String pn = s.getPlayerName();
+                net.minecraft.scoreboard.ScorePlayerTeam st = sc.getPlayersTeam(pn);
+                String line = st != null ? st.formatString(pn) : pn;
+                message("  - \"" + amp(line) + "\" (" + s.getScorePoints() + ")");
+                if (++n >= 15) {
+                    break;
+                }
+            }
+        } else {
+            message(" sidebar: (ingen)");
+        }
+    }
+
+    private static String show(String s) {
+        return s == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(s);
+    }
+
+    private static String amp(String s) {
+        return s == null ? "" : s.replace('§', '&');
+    }
+
     public static void toggleItemPickup() {
         CelleScannerMod.config.itemPickupEnabled = !CelleScannerMod.config.itemPickupEnabled;
         CelleScannerMod.config.save();
