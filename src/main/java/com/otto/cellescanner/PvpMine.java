@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * PvP Mine watcher: reads the drop-timer sign for the "PvP minen" and shows it
@@ -33,11 +35,22 @@ public class PvpMine {
     private static final int MIN_Z = -593, MAX_Z = -588;
     private static final BlockPos SIGN = new BlockPos(-47, 49, -608);
 
+    private static final Pattern TIME = Pattern.compile("(\\d{1,2}):(\\d{2})");
+    private static final Pattern DUR = Pattern.compile("(\\d+)\\s*(timer?|minutter?|sekunder?|min|sek|[hmst])", Pattern.CASE_INSENSITIVE);
+
     private String[] signLines = null;
     private final Set<String> inMine = new HashSet<String>();
     private List<String> inMineList = new ArrayList<String>();
     private int tick = 0;
     private static boolean errorLogged = false;
+
+    // Cached drop timer: seconds remaining at the moment it was last read off the
+    // sign, the wall-clock anchor, and the biggest value ever seen (the full
+    // cycle). Lets the countdown keep ticking while the sign is out of range and
+    // loop back to the top when it hits 0.
+    private long timerRemaining = -1;
+    private long timerAnchor = 0;
+    private long timerMax = 0;
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
@@ -52,7 +65,9 @@ public class PvpMine {
             return;
         }
 
-        // Read the drop-timer sign if it's loaded.
+        // Read the drop-timer sign if it's loaded, and re-anchor the cached timer
+        // ONLY on a fresh read (not from stale signLines) so it keeps ticking when
+        // the sign is out of range.
         try {
             TileEntity te = mc.theWorld.getTileEntity(SIGN);
             if (te instanceof TileEntitySign) {
@@ -63,6 +78,14 @@ public class PvpMine {
                         lines[i] = clean(s.signText[i].getUnformattedText());
                     }
                     signLines = lines;
+                    long t = parseTime(lines);
+                    if (t >= 0) {
+                        timerRemaining = t;
+                        timerAnchor = System.currentTimeMillis();
+                        if (t > timerMax) {
+                            timerMax = t;
+                        }
+                    }
                 }
             }
         } catch (Throwable ignored) {
@@ -127,19 +150,13 @@ public class PvpMine {
 
         List<String> lines = new ArrayList<String>();
         lines.add(EnumChatFormatting.GOLD + "PvP Mine");
-        if (signLines != null) {
-            boolean any = false;
-            for (String s : signLines) {
-                if (s != null && !s.isEmpty()) {
-                    lines.add(EnumChatFormatting.GRAY + s);
-                    any = true;
-                }
-            }
-            if (!any) {
-                lines.add(EnumChatFormatting.DARK_GRAY + "(skilt tomt)");
-            }
+        long live = liveRemainingSeconds();
+        if (live >= 0) {
+            lines.add(EnumChatFormatting.GRAY + "Drop om: " + EnumChatFormatting.WHITE + fmt(live));
+        } else if (signLines == null) {
+            lines.add(EnumChatFormatting.DARK_GRAY + "(timer ikke set endnu)");
         } else {
-            lines.add(EnumChatFormatting.DARK_GRAY + "(skilt ikke i syne)");
+            lines.add(EnumChatFormatting.DARK_GRAY + "(ingen timer på skiltet)");
         }
         if (inMineList.isEmpty()) {
             lines.add(EnumChatFormatting.GREEN + "Ingen i minen");
@@ -167,6 +184,74 @@ public class PvpMine {
             fr.drawStringWithShadow(s, x, dy, 0xFFFFFF);
             dy += lineH;
         }
+    }
+
+    /** Seconds left on the cached timer, extrapolated to now and looped at 0. -1 if never read. */
+    private long liveRemainingSeconds() {
+        if (timerAnchor == 0 || timerRemaining < 0) {
+            return -1;
+        }
+        long elapsed = (System.currentTimeMillis() - timerAnchor) / 1000L;
+        long rem = timerRemaining - elapsed;
+        if (timerMax > 0) {
+            rem = ((rem % timerMax) + timerMax) % timerMax; // wrap: 0 restarts at the top
+        } else if (rem < 0) {
+            rem = 0;
+        }
+        return rem;
+    }
+
+    private static long parseTime(String[] lines) {
+        if (lines == null) {
+            return -1;
+        }
+        for (String s : lines) {
+            if (s == null || s.isEmpty()) {
+                continue;
+            }
+            Matcher m = TIME.matcher(s);
+            if (m.find()) {
+                try {
+                    return Long.parseLong(m.group(1)) * 60L + Long.parseLong(m.group(2));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        // Fallback: duration units (e.g. "4m 32s", "3 min").
+        for (String s : lines) {
+            if (s == null) {
+                continue;
+            }
+            Matcher m = DUR.matcher(s);
+            long total = 0;
+            boolean any = false;
+            while (m.find()) {
+                any = true;
+                long v = Long.parseLong(m.group(1));
+                char u = Character.toLowerCase(m.group(2).charAt(0));
+                if (u == 't' || u == 'h') {
+                    total += v * 3600L;
+                } else if (u == 'm') {
+                    total += v * 60L;
+                } else {
+                    total += v;
+                }
+            }
+            if (any) {
+                return total;
+            }
+        }
+        return -1;
+    }
+
+    private static String fmt(long s) {
+        long h = s / 3600;
+        long m = (s % 3600) / 60;
+        long sec = s % 60;
+        if (h > 0) {
+            return String.format("%d:%02d:%02d", h, m, sec);
+        }
+        return String.format("%d:%02d", m, sec);
     }
 
     private static String clean(String t) {
