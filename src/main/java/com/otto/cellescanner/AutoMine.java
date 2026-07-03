@@ -37,7 +37,6 @@ public class AutoMine {
 
     private boolean holding = false;   // whether we currently hold any keys
     private BlockPos mining = null;    // block being broken
-    private long miningStart = 0;      // when we started the current block (for the force-mine fallback)
     private float tYaw, tPitch;        // smoothed rotation targets
     private long pauseUntil = 0;
 
@@ -89,18 +88,44 @@ public class AutoMine {
         // Always look at a block (never level up toward a dropped item), and mine
         // it as soon as it's in reach.
         aimAt(mc, target);
-        if (eyeDist(mc, target) <= REACH) {
-            breakBlock(mc, target);
-            // Advance onto dropped items so they get collected while we mine.
+
+        // Mine the block actually under the crosshair (exactly like manual mining,
+        // so the server accepts it and it doesn't ghost-revert), as long as it's a
+        // mineable block inside the box and in reach.
+        MovingObjectPosition mop = mc.objectMouseOver;
+        BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                ? mop.getBlockPos() : null;
+        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && eyeDist(mc, looked) <= REACH + 0.5) {
+            mineLookedAt(mc, looked, mop.sideHit);
             if (findItem(mc) != null) {
                 walkForward(mc);
             } else {
                 stopWalk(mc);
             }
-        } else {
+        } else if (eyeDist(mc, target) > REACH) {
             walkForward(mc);
             stopMining(mc);
+        } else {
+            // In reach but the crosshair isn't on it yet - keep turning onto it.
+            stopWalk(mc);
+            stopMining(mc);
         }
+    }
+
+    private void mineLookedAt(Minecraft mc, BlockPos pos, EnumFacing side) {
+        if (side == null) {
+            side = EnumFacing.UP;
+        }
+        mining = pos;
+        // onPlayerDamageBlock handles both starting a new block and continuing the
+        // current one, matching vanilla's per-tick mining call.
+        mc.playerController.onPlayerDamageBlock(pos, side);
+        mc.thePlayer.swingItem();
+    }
+
+    private boolean inBox(BlockPos p) {
+        return p.getX() >= MIN_X && p.getX() <= MAX_X && p.getY() >= MIN_Y && p.getY() <= MAX_Y
+                && p.getZ() >= MIN_Z && p.getZ() <= MAX_Z;
     }
 
     private void doReturn(Minecraft mc) {
@@ -172,31 +197,6 @@ public class AutoMine {
         return best;
     }
 
-    private void breakBlock(Minecraft mc, BlockPos pos) {
-        EnumFacing side = EnumFacing.UP;
-        MovingObjectPosition mop = mc.objectMouseOver;
-        if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
-                && pos.equals(mop.getBlockPos()) && mop.sideHit != null) {
-            side = mop.sideHit;
-        }
-        long now = System.currentTimeMillis();
-        if (!pos.equals(mining)) {
-            if (mining != null) {
-                mc.playerController.resetBlockRemoving();
-            }
-            mc.playerController.clickBlock(pos, side);
-            mining = pos;
-            miningStart = now;
-        } else if (now - miningStart > 3000L) {
-            // Force-mine fallback: if a block hasn't broken in 3s, restart the dig
-            // on it (fixes the occasional block that just won't break).
-            mc.playerController.resetBlockRemoving();
-            mc.playerController.clickBlock(pos, side);
-            miningStart = now;
-        }
-        mc.playerController.onPlayerDamageBlock(pos, side);
-        mc.thePlayer.swingItem();
-    }
 
     private void stopMining(Minecraft mc) {
         if (mining != null) {
