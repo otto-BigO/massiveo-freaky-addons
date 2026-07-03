@@ -321,6 +321,45 @@ public final class CelleActions {
         message("Spiller Info: " + (CelleScannerMod.config.playerInfoEnabled ? "til" : "fra"));
     }
 
+    public static void openTroll() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiTroll());
+    }
+
+    public static void toggleTroll() {
+        CelleScannerMod.config.trollEnabled = !CelleScannerMod.config.trollEnabled;
+        CelleScannerMod.config.save();
+        message("Troll Lyde: " + (CelleScannerMod.config.trollEnabled ? "til" : "fra"));
+    }
+
+    public static void toggleTrollDeath() {
+        CelleScannerMod.config.trollDeath = !CelleScannerMod.config.trollDeath;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollKill() {
+        CelleScannerMod.config.trollKill = !CelleScannerMod.config.trollKill;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollFirstHit() {
+        CelleScannerMod.config.trollFirstHit = !CelleScannerMod.config.trollFirstHit;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollJump() {
+        CelleScannerMod.config.trollJump = !CelleScannerMod.config.trollJump;
+        CelleScannerMod.config.save();
+    }
+
+    public static void toggleTrollAfk() {
+        CelleScannerMod.config.trollAfk = !CelleScannerMod.config.trollAfk;
+        CelleScannerMod.config.save();
+    }
+
+    public static void testTroll(String event) {
+        TrollSounds.play(event);
+    }
+
     public static void toggleGangAutoQuery() {
         CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
         CelleScannerMod.config.save();

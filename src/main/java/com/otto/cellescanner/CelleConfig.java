@@ -142,6 +142,16 @@ public class CelleConfig {
     // (-> default on) rather than false.
     public Boolean playerInfoEnabled = Boolean.TRUE;
 
+    // Troll Sounds addon: plays goofy sound effects (client-side, only you hear
+    // them) reacting to your gameplay - death, kill, first hit, jump, AFK. Off by
+    // default; each event can be toggled individually.
+    public boolean trollEnabled = false;
+    public Boolean trollDeath = Boolean.TRUE;
+    public Boolean trollKill = Boolean.TRUE;
+    public Boolean trollFirstHit = Boolean.TRUE;
+    public Boolean trollJump = Boolean.TRUE;
+    public Boolean trollAfk = Boolean.TRUE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -260,6 +270,12 @@ public class CelleConfig {
                 this.myCelleIds = loaded.myCelleIds != null ? loaded.myCelleIds : new ArrayList<String>();
                 this.gangAutoQuery = loaded.gangAutoQuery == null ? Boolean.TRUE : loaded.gangAutoQuery;
                 this.playerInfoEnabled = loaded.playerInfoEnabled == null ? Boolean.TRUE : loaded.playerInfoEnabled;
+                this.trollEnabled = loaded.trollEnabled;
+                this.trollDeath = loaded.trollDeath == null ? Boolean.TRUE : loaded.trollDeath;
+                this.trollKill = loaded.trollKill == null ? Boolean.TRUE : loaded.trollKill;
+                this.trollFirstHit = loaded.trollFirstHit == null ? Boolean.TRUE : loaded.trollFirstHit;
+                this.trollJump = loaded.trollJump == null ? Boolean.TRUE : loaded.trollJump;
+                this.trollAfk = loaded.trollAfk == null ? Boolean.TRUE : loaded.trollAfk;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

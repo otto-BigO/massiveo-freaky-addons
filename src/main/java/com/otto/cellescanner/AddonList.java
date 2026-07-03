@@ -147,6 +147,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Troll Lyde";
+            }
+
+            public String description() {
+                return "Fjollede lyde på død, kill, hop, AFK m.m. (kun du hører dem)";
+            }
+
+            public String category() {
+                return "PvP";
+            }
+
+            public boolean isActive() {
+                return config.trollEnabled;
+            }
+
+            public void open() {
+                CelleActions.openTroll();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Anti-AFK";
             }
 
