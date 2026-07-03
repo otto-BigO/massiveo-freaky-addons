@@ -213,6 +213,28 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Mod-brugere";
+            }
+
+            public String description() {
+                return "Lilla ikon foran andre mod-brugeres navn (test)";
+            }
+
+            public String category() {
+                return "World";
+            }
+
+            public boolean isActive() {
+                return config.modIconEnabled != null && config.modIconEnabled;
+            }
+
+            public void open() {
+                CelleActions.openModIcon();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Item-log";
             }
 

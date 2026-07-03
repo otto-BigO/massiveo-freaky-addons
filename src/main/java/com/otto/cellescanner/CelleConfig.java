@@ -172,6 +172,10 @@ public class CelleConfig {
     // when the inventory is full, and resumes when the mine resets.
     public boolean autoMineEnabled = false;
 
+    // Mod-user badge: a small icon before the name of players who also run the
+    // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
+    public Boolean modIconEnabled = Boolean.TRUE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -304,6 +308,7 @@ public class CelleConfig {
                 this.pvpMineX = loaded.pvpMineX;
                 this.pvpMineY = loaded.pvpMineY;
                 this.autoMineEnabled = loaded.autoMineEnabled;
+                this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

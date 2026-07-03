@@ -380,6 +380,16 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiAutoMine());
     }
 
+    public static void openModIcon() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiModIcon());
+    }
+
+    public static void toggleModIcon() {
+        CelleScannerMod.config.modIconEnabled = !CelleScannerMod.config.modIconEnabled;
+        CelleScannerMod.config.save();
+        message("Mod-ikon: " + (CelleScannerMod.config.modIconEnabled ? "til" : "fra"));
+    }
+
     public static void toggleAutoMine() {
         CelleScannerMod.config.autoMineEnabled = !CelleScannerMod.config.autoMineEnabled;
         CelleScannerMod.config.save();
