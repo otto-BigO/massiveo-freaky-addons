@@ -3,6 +3,9 @@ package com.otto.cellescanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -28,9 +31,8 @@ import java.util.Random;
  */
 public class AutoMine {
 
-    // The auto-mine box (Otto's two corners) and the deposit point.
+    // The auto-mine box (Otto's two corners).
     private static final int MIN_X = 37, MAX_X = 52, MIN_Y = 42, MAX_Y = 60, MIN_Z = -692, MAX_Z = -677;
-    private static final BlockPos RETURN_POINT = new BlockPos(20, 60, -684);
 
     private static final double REACH = 4.3;
     private static final double COLLECT_R = 6.0;  // walk over to drops within this
@@ -51,7 +53,6 @@ public class AutoMine {
     private BlockPos mining = null;    // block being broken
     private BlockPos target = null;    // block we're heading for
     private float tYaw, tPitch;        // smoothed rotation targets
-    private long pauseUntil = 0;
     private long chaseSince = 0;       // when we started walking to the current drop
     private long skipDropsUntil = 0;   // ignore drops until this (breaks a stuck chase)
     private int tick = 0;              // tick counter, for throttling scans
@@ -67,6 +68,11 @@ public class AutoMine {
 
     // Positions of blocks we've broken recently, so we only collect our own drops.
     private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
+
+    // When the inventory is full we turn aside and throw out the junk (cobblestone,
+    // sandstone, lapis), keeping pickaxes, iron ore and everything else, then mine on.
+    private boolean dumping = false;
+    private float dumpYaw = 0f;
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -95,13 +101,18 @@ public class AutoMine {
 
         applyRotation(mc); // every tick, for smooth turning
 
-        if (System.currentTimeMillis() < pauseUntil) {
-            releaseKeys(mc);
-            return;
-        }
-
-        if (inventoryFull(mc)) {
-            doReturn(mc);
+        if (dumping) {
+            // Keep dumping until all the junk is gone, then get back to mining.
+            if (hasJunk(mc)) {
+                doDump(mc);
+            } else {
+                dumping = false;
+                doMine(mc);
+            }
+        } else if (inventoryFull(mc) && hasJunk(mc)) {
+            dumping = true;
+            dumpYaw = mc.thePlayer.rotationYaw + 90f; // turn aside to throw it out
+            doDump(mc);
         } else {
             doMine(mc);
         }
@@ -212,18 +223,51 @@ public class AutoMine {
                 && p.getZ() >= MIN_Z && p.getZ() <= MAX_Z;
     }
 
-    private void doReturn(Minecraft mc) {
+    /** Stand still, look to the side, and throw out junk stacks one at a time. */
+    private void doDump(Minecraft mc) {
         stopMining(mc);
-        double dx = (RETURN_POINT.getX() + 0.5) - mc.thePlayer.posX;
-        double dz = (RETURN_POINT.getZ() + 0.5) - mc.thePlayer.posZ;
-        double dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 1.4) {
-            stopAll(mc);
-            pauseUntil = System.currentTimeMillis() + 1500 + rng.nextInt(2000); // wait while you deposit/sell
-            return;
+        stopWalk(mc);
+        tYaw = dumpYaw;
+        tPitch = 12f;
+        // One stack every other tick - fast enough, but not a 20/sec burst.
+        if (tick % 2 == 0) {
+            dropOneJunkStack(mc);
         }
-        aimYaw(mc, dx, dz);
-        approach(mc, RETURN_POINT.getX() + 0.5, RETURN_POINT.getZ() + 0.5);
+    }
+
+    /** Cobblestone, sandstone and lapis are junk; everything else (picks, iron ore) is kept. */
+    private boolean isJunk(ItemStack s) {
+        if (s == null) {
+            return false;
+        }
+        Item it = s.getItem();
+        return it == Item.getItemFromBlock(Blocks.cobblestone)
+                || it == Item.getItemFromBlock(Blocks.sandstone)
+                || it == Item.getItemFromBlock(Blocks.lapis_block)
+                || (it == Items.dye && s.getMetadata() == 4); // lapis lazuli
+    }
+
+    private boolean hasJunk(Minecraft mc) {
+        for (ItemStack s : mc.thePlayer.inventory.mainInventory) {
+            if (isJunk(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Throw out the first junk stack found (whole stack), server-side via a window click. */
+    private void dropOneJunkStack(Minecraft mc) {
+        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
+        for (int i = 0; i < inv.length; i++) {
+            if (isJunk(inv[i])) {
+                // mainInventory 0-8 (hotbar) map to container slots 36-44; 9-35 stay.
+                int slot = i < 9 ? i + 36 : i;
+                // mode 4 = throw, button 1 = whole stack (like ctrl+Q).
+                mc.playerController.windowClick(mc.thePlayer.inventoryContainer.windowId, slot, 1, 4, mc.thePlayer);
+                return;
+            }
+        }
     }
 
     /**
@@ -378,11 +422,6 @@ public class AutoMine {
         tPitch = (float) (-Math.toDegrees(Math.atan2(dy, dh)));
     }
 
-    private void aimYaw(Minecraft mc, double dx, double dz) {
-        tYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        tPitch = 2f;
-    }
-
     /**
      * Ease the player's look toward the target with a capped step, so it turns
      * smoothly instead of snapping. No per-tick jitter: that made the crosshair
@@ -448,6 +487,7 @@ public class AutoMine {
         target = null;
         cachedDrop = null;
         chaseSince = 0;
+        dumping = false;
         // Restart the pattern from the top next time it's switched on.
         planIndex = 0;
         finished = false;
