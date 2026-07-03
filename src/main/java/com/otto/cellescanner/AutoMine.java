@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
@@ -30,6 +31,8 @@ public class AutoMine {
 
     private static final double REACH = 4.3;
     private static final int SCAN_R = 6;
+    private static final double COLLECT_R = 6.0;  // walk over to drops within this
+    private static final double IGNORE_NEAR = 1.3; // drops this close auto-collect, don't walk
 
     private final Random rng = new Random();
 
@@ -38,6 +41,8 @@ public class AutoMine {
     private BlockPos target = null;    // block we're heading for (sticky until gone)
     private float tYaw, tPitch;        // smoothed rotation targets
     private long pauseUntil = 0;
+    private long chaseSince = 0;       // when we started walking to the current drop
+    private long skipDropsUntil = 0;   // ignore drops until this (breaks a stuck chase)
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -83,6 +88,29 @@ public class AutoMine {
             stopMining(mc);
             approach(mc, (MIN_X + MAX_X) / 2.0 + 0.5, (MIN_Z + MAX_Z) / 2.0 + 0.5);
             return;
+        }
+
+        // Sweep up dropped items before mining more, so nothing is left behind.
+        // The facing gate keeps this from wandering, and we aim down at the item
+        // (it's on the ground) so the head never levels/looks up like it used to.
+        EntityItem drop = System.currentTimeMillis() < skipDropsUntil ? null : findItem(mc);
+        if (drop != null) {
+            if (chaseSince == 0) {
+                chaseSince = System.currentTimeMillis();
+            }
+            if (System.currentTimeMillis() - chaseSince > 5000) {
+                // Chasing too long - probably can't reach it. Skip drops a moment
+                // and go mine, so we don't get stuck walking at it forever.
+                skipDropsUntil = System.currentTimeMillis() + 3000;
+                chaseSince = 0;
+            } else {
+                stopMining(mc);
+                aimAtEntity(mc, drop);
+                approach(mc, drop.posX, drop.posZ);
+                return;
+            }
+        } else {
+            chaseSince = 0;
         }
 
         // Stick to one target until it's mined out, then pick the nearest block.
@@ -201,6 +229,44 @@ public class AutoMine {
         return best;
     }
 
+    /** Nearest dropped item inside the box (with margin) worth walking to, or null. */
+    private EntityItem findItem(Minecraft mc) {
+        double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
+        EntityItem best = null;
+        double bestD = COLLECT_R * COLLECT_R;
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (!(o instanceof EntityItem)) {
+                continue;
+            }
+            EntityItem it = (EntityItem) o;
+            if (it.posX < MIN_X - 2 || it.posX > MAX_X + 3 || it.posZ < MIN_Z - 2 || it.posZ > MAX_Z + 3
+                    || it.posY < MIN_Y - 3 || it.posY > MAX_Y + 3) {
+                continue;
+            }
+            double dx = it.posX - px, dz = it.posZ - pz;
+            // Drops right next to us get picked up automatically - don't walk for them.
+            if (dx * dx + dz * dz < IGNORE_NEAR * IGNORE_NEAR) {
+                continue;
+            }
+            double dy = it.posY - py;
+            double d = dx * dx + dy * dy + dz * dz;
+            if (d < bestD) {
+                bestD = d;
+                best = it;
+            }
+        }
+        return best;
+    }
+
+    private void aimAtEntity(Minecraft mc, EntityItem e) {
+        double dx = e.posX - mc.thePlayer.posX;
+        double dy = e.posY - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        double dz = e.posZ - mc.thePlayer.posZ;
+        double dh = Math.sqrt(dx * dx + dz * dz);
+        tYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        tPitch = (float) (-Math.toDegrees(Math.atan2(dy, dh))); // item is below eye, so this looks down
+    }
+
     private void stopMining(Minecraft mc) {
         if (mining != null) {
             mc.playerController.resetBlockRemoving();
@@ -284,6 +350,7 @@ public class AutoMine {
     private void stopAll(Minecraft mc) {
         releaseKeys(mc);
         target = null;
+        chaseSince = 0;
         holding = false;
     }
 
