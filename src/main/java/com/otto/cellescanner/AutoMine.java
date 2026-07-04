@@ -1,7 +1,6 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.init.Blocks;
@@ -77,12 +76,6 @@ public class AutoMine {
     // Positions of blocks we've broken recently, so we only collect our own drops.
     private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
 
-    // When the inventory is full we carry the junk (cobblestone, sandstone, lapis)
-    // to the drop-off spot and throw it out there, away from the mine, so we don't
-    // walk back into the pile. Pickaxes, iron ore and everything else are kept.
-    private static final BlockPos DUMP_POINT = new BlockPos(20, 60, -684);
-    private boolean dumping = false;
-
     // Auto-eat so we don't starve while mining. Eat when hunger drops to EAT_BELOW,
     // stop when full (or out of food).
     private static final int EAT_BELOW = 16;
@@ -101,11 +94,16 @@ public class AutoMine {
     // so the server sees real inventory interactions (not slot pokes it might block).
     // Dropping = click the item (pick up), then click outside to drop it.
     // Pickaxe = click the spare pickaxe (pick up), then click a hotbar slot.
-    private static final int INV_NONE = 0, INV_DUMP = 1, INV_PICKAXE = 2;
-    private int invMode = INV_NONE;
-    private boolean cursorHolding = false; // we've picked an item up, next click drops/places it
-    private int placeTarget = -1;          // hotbar container slot to place a picked-up pickaxe into
     private boolean toggleKeyWasDown = false; // edge-detect the toggle key while a GUI is open
+
+    // Deposit: the bot never moves items itself (the server flags that). When full,
+    // it walks to the Skraldespand, opens it and pings the player to shift-click the
+    // junk in by hand, then resumes.
+    private static final BlockPos DEPOSIT_SIGN = new BlockPos(55, 61, -691);
+    private boolean depositing = false;
+    private long lastDepositClick = 0;
+    private boolean notifiedDeposit = false;
+    private boolean notifiedPickaxe = false;
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -121,8 +119,8 @@ public class AutoMine {
         Minecraft mc = Minecraft.getMinecraft();
 
         // Let the Auto Mine keybind toggle it on/off even while a GUI is open (e.g.
-        // while we're dumping in the inventory). The normal keybind handler doesn't
-        // fire when a screen is open, so poll the key here.
+        // while the deposit chest is open). The normal keybind handler doesn't fire
+        // when a screen is open, so poll the key here.
         if (mc.currentScreen != null) {
             pollToggleKey();
         } else {
@@ -143,17 +141,9 @@ public class AutoMine {
             return;
         }
 
-        // A manual inventory job is in progress - drive the open GUI, don't bail on
-        // it like we do for other screens.
-        if (invMode != INV_NONE) {
-            holding = true;
-            tick++;
-            doInvOps(mc);
-            return;
-        }
-
         if (mc.currentScreen != null) {
-            // Some other screen is open (user, or a shop) - pause.
+            // A screen is open (the deposit/shop, or the user's own) - stand still
+            // and let the player do their thing. We never touch the inventory.
             releaseKeys(mc);
             if (eating) {
                 stopEating(mc);
@@ -171,14 +161,16 @@ public class AutoMine {
 
         if (buying) {
             doBuy(mc);
-            return; // buying a pickaxe - hold off on mining
+            return; // at the shop - hold off on mining
         }
-        // Keep a pickaxe in hand. Select a hotbar one if we have it; else open the
-        // inventory to move a spare up; else there's none, go buy one.
+        // Keep a pickaxe in hand. Select a hotbar one if we have it. We never move
+        // items ourselves, so if the only spare is in the main inventory we ask the
+        // player to slot it; if there's none at all we go to the shop.
         if (!holdingPickaxe(mc) && !selectHotbarPickaxe(mc)) {
-            if (hasPickaxeInMain(mc)) {
-                invMode = INV_PICKAXE;
-                doInvOps(mc);
+            if (hasPickaxe(mc)) {
+                stopMining(mc);
+                stopWalk(mc);
+                notifyPickaxe(mc);
                 return;
             }
             buying = true;
@@ -186,18 +178,20 @@ public class AutoMine {
             doBuy(mc);
             return;
         }
+        notifiedPickaxe = false;
 
-        if (dumping) {
-            // Keep dumping until all the junk is gone, then get back to mining.
-            if (hasJunk(mc)) {
-                doDump(mc);
+        if (depositing) {
+            // Stay in deposit mode until there's room again (player emptied some).
+            if (inventoryFull(mc) && hasJunk(mc)) {
+                doDeposit(mc);
             } else {
-                dumping = false;
+                depositing = false;
+                notifiedDeposit = false;
                 doMine(mc);
             }
         } else if (inventoryFull(mc) && hasJunk(mc)) {
-            dumping = true;
-            doDump(mc);
+            depositing = true;
+            doDeposit(mc);
         } else {
             doMine(mc);
         }
@@ -362,7 +356,7 @@ public class AutoMine {
         eating = false;
     }
 
-    /** A hotbar slot holding food; moves a food item into the hotbar if needed, or -1. */
+    /** A hotbar slot holding food (just a held-item change, never a moved item), or -1. */
     private int findFoodSlot(Minecraft mc) {
         ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
         for (int i = 0; i < 9; i++) {
@@ -370,14 +364,7 @@ public class AutoMine {
                 return i;
             }
         }
-        // No food in the hotbar - swap one in from the main inventory (into slot 8).
-        for (int i = 9; i < inv.length; i++) {
-            if (inv[i] != null && inv[i].getItem() instanceof ItemFood) {
-                mc.playerController.windowClick(mc.thePlayer.inventoryContainer.windowId, i, 8, 2, mc.thePlayer);
-                return 8;
-            }
-        }
-        return -1;
+        return -1; // no food in the hotbar - we don't move items, so keep food in the hotbar
     }
 
     private boolean holdingPickaxe(Minecraft mc) {
@@ -397,17 +384,6 @@ public class AutoMine {
         return false;
     }
 
-    /** True if there's a pickaxe sitting in the main inventory (not the hotbar). */
-    private boolean hasPickaxeInMain(Minecraft mc) {
-        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
-        for (int i = 9; i < inv.length; i++) {
-            if (inv[i] != null && inv[i].getItem() instanceof ItemPickaxe) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean hasPickaxe(Minecraft mc) {
         for (ItemStack s : mc.thePlayer.inventory.mainInventory) {
             if (s != null && s.getItem() instanceof ItemPickaxe) {
@@ -415,51 +391,6 @@ public class AutoMine {
             }
         }
         return false;
-    }
-
-    /**
-     * Drive an open inventory GUI to do a manual job: throw out junk (click item,
-     * click outside) or move a pickaxe into the hotbar (click pickaxe, click a
-     * hotbar slot). Opens the inventory first if it isn't already showing.
-     */
-    private void doInvOps(Minecraft mc) {
-        stopWalk(mc);
-        stopMining(mc);
-        if (!(mc.currentScreen instanceof GuiInventory)) {
-            mc.displayGuiScreen(new GuiInventory(mc.thePlayer));
-            return; // opened this tick, act on the next one
-        }
-        if (tick % 3 != 0) {
-            return; // a click every 3 ticks - deliberate, human-paced
-        }
-        int win = mc.thePlayer.inventoryContainer.windowId;
-
-        if (invMode == INV_DUMP) {
-            int slot = firstJunkContainerSlot(mc);
-            if (slot < 0) {
-                finishInvOps(mc); // all junk gone
-                return;
-            }
-            // Ctrl+Q on the hovered stack: drop the whole stack (mode 4, button 1).
-            mc.playerController.windowClick(win, slot, 1, 4, mc.thePlayer);
-        } else if (invMode == INV_PICKAXE) {
-            if (!cursorHolding) {
-                int slot = firstPickaxeMainContainerSlot(mc);
-                if (slot < 0) {
-                    finishInvOps(mc); // nothing to move (already in hotbar or gone)
-                    return;
-                }
-                placeTarget = emptyHotbarContainerSlot(mc);
-                mc.playerController.windowClick(win, slot, 0, 0, mc.thePlayer); // pick the pickaxe up
-                cursorHolding = true;
-            } else {
-                mc.playerController.windowClick(win, placeTarget, 0, 0, mc.thePlayer); // place in hotbar
-                cursorHolding = false;
-                finishInvOps(mc); // one pickaxe in the hotbar is enough
-            }
-        } else {
-            finishInvOps(mc);
-        }
     }
 
     /** Poll the Auto Mine keybind while a GUI is open, so it can be switched off there. */
@@ -473,48 +404,6 @@ public class AutoMine {
             CelleActions.toggleAutoMine();
         }
         toggleKeyWasDown = down;
-    }
-
-    private void finishInvOps(Minecraft mc) {
-        // displayGuiScreen(null) closes the client GUI and fires onContainerClosed
-        // (which puts down anything still on the cursor).
-        mc.displayGuiScreen(null);
-        invMode = INV_NONE;
-        cursorHolding = false;
-        placeTarget = -1;
-    }
-
-    /** Container slot of the first junk stack, or -1. */
-    private int firstJunkContainerSlot(Minecraft mc) {
-        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
-        for (int i = 0; i < inv.length; i++) {
-            if (isJunk(inv[i])) {
-                return i < 9 ? i + 36 : i; // hotbar 0-8 -> 36-44, main 9-35 -> 9-35
-            }
-        }
-        return -1;
-    }
-
-    /** Container slot of the first pickaxe in the main inventory (9-35), or -1. */
-    private int firstPickaxeMainContainerSlot(Minecraft mc) {
-        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
-        for (int i = 9; i < inv.length; i++) {
-            if (inv[i] != null && inv[i].getItem() instanceof ItemPickaxe) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /** An empty hotbar slot's container slot (36-44); falls back to slot 8 if none free. */
-    private int emptyHotbarContainerSlot(Minecraft mc) {
-        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
-        for (int i = 0; i < 9; i++) {
-            if (inv[i] == null) {
-                return i + 36;
-            }
-        }
-        return 44; // hotbar slot 8
     }
 
     /**
@@ -560,24 +449,51 @@ public class AutoMine {
         }
     }
 
-    /** Carry junk to the drop-off spot, then throw out the junk stacks one at a time. */
-    private void doDump(Minecraft mc) {
+    /**
+     * Walk to the Skraldespand, open the deposit chest (a normal block interaction),
+     * then stand by and ping the player to shift-click the junk in. We never move
+     * items ourselves - that's what the server flags - so the player does that part.
+     */
+    private void doDeposit(Minecraft mc) {
         stopMining(mc);
-        aimAt(mc, DUMP_POINT);
-
-        double dx = (DUMP_POINT.getX() + 0.5) - mc.thePlayer.posX;
-        double dz = (DUMP_POINT.getZ() + 0.5) - mc.thePlayer.posZ;
-        if (Math.sqrt(dx * dx + dz * dz) > 1.6) {
-            // Not there yet - walk to the drop-off spot before dropping anything.
-            approach(mc, DUMP_POINT.getX() + 0.5, DUMP_POINT.getZ() + 0.5);
+        aimAt(mc, DEPOSIT_SIGN);
+        if (eyeDist(mc, DEPOSIT_SIGN) > 3.3) {
+            approach(mc, DEPOSIT_SIGN.getX() + 0.5, DEPOSIT_SIGN.getZ() + 0.5);
             return;
         }
-
-        // At the drop-off spot - open the inventory and throw the junk out by hand
-        // (click item, click outside). doInvOps clears invMode when it's all gone.
         stopWalk(mc);
-        invMode = INV_DUMP;
-        doInvOps(mc);
+
+        // In reach - right-click the sign to open the Diposit chest (throttled), then
+        // ping the player. Once the chest opens, onTick pauses us (screen open) until
+        // they've deposited and closed it.
+        MovingObjectPosition mop = mc.objectMouseOver;
+        if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && DEPOSIT_SIGN.equals(mop.getBlockPos())
+                && System.currentTimeMillis() - lastDepositClick > 1000) {
+            mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
+                    mc.thePlayer.getCurrentEquippedItem(), DEPOSIT_SIGN, mop.sideHit, mop.hitVec);
+            mc.thePlayer.swingItem();
+            lastDepositClick = System.currentTimeMillis();
+        }
+        notifyDeposit(mc);
+    }
+
+    private void notifyDeposit(Minecraft mc) {
+        if (!notifiedDeposit) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    "§eAuto Mine: inventory fuldt - shift-klik dit skrald i Skraldespanden, så fortsætter jeg."));
+            mc.thePlayer.playSound("random.orb", 1f, 1f);
+            notifiedDeposit = true;
+        }
+    }
+
+    private void notifyPickaxe(Minecraft mc) {
+        if (!notifiedPickaxe) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    "§eAuto Mine: læg en hakke i hotbaren, så fortsætter jeg."));
+            mc.thePlayer.playSound("random.orb", 1f, 1f);
+            notifiedPickaxe = true;
+        }
     }
 
     /** Cobblestone, sandstone and lapis are junk; everything else (picks, iron ore) is kept. */
@@ -841,11 +757,10 @@ public class AutoMine {
         target = null;
         cachedDrop = null;
         chaseSince = 0;
-        dumping = false;
+        depositing = false;
+        notifiedDeposit = false;
+        notifiedPickaxe = false;
         buying = false;
-        invMode = INV_NONE;
-        cursorHolding = false;
-        placeTarget = -1;
         // Restart the pattern from the top next time it's switched on.
         planIndex = 0;
         finished = false;
