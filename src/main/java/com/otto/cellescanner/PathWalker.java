@@ -58,6 +58,7 @@ public class PathWalker {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+            AutoEat.stop(mc);
         }
     }
 
@@ -82,7 +83,13 @@ public class PathWalker {
         // Pause (hands off the keys) while any screen is open.
         if (mc.currentScreen != null) {
             releaseKeys(mc);
+            AutoEat.stop(mc);
             return;
+        }
+        // Auto-eat so we don't starve on a long walk (sprinting burns hunger).
+        if (AutoEat.tick(mc)) {
+            releaseKeys(mc);
+            return; // eating - hold still
         }
         tickWalk(mc);
     }
