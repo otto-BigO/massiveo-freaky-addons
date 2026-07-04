@@ -217,10 +217,13 @@ public class AutoMine {
             return;
         }
 
-        // Outside the mine outline (e.g. right after a reset) - walk over to the
-        // start corner before mining, instead of jamming into the box wall.
+        // Outside the mine outline (e.g. after buying a pickaxe, depositing, or a
+        // reset) - turn toward the start corner and walk back to it. We must aim
+        // first: approach() only walks when already facing the target, it doesn't
+        // turn us, so without this it stands there facing the shop/deposit.
         if (!nearBox(mc, 2)) {
             stopMining(mc);
+            aimAt(mc, START);
             approach(mc, START.getX() + 0.5, START.getZ() + 0.5);
             return;
         }
