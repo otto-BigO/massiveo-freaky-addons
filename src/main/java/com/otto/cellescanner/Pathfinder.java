@@ -5,6 +5,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.world.World;
@@ -74,12 +75,13 @@ public final class Pathfinder {
         if (isLadder(w, p) && passable(w, p.up())) {
             out.add(p.up()); // climb straight up
         }
+        boolean srcHeadClear = passable(w, p.up()) && headClear; // room to jump from here
         for (EnumFacing d : MOVE_DIRS) {
             BlockPos fwd = p.offset(d);
             if (canStand(w, fwd)) {
                 out.add(fwd); // walk level (or step onto a ladder)
-            } else if (headClear && canStand(w, fwd.up())) {
-                out.add(fwd.up()); // step up 1
+            } else if (srcHeadClear && canAscend(w, fwd)) {
+                out.add(fwd.up()); // jump up 1 onto a full block (Baritone-style checks)
             } else if (passable(w, fwd) && passable(w, fwd.up())) {
                 for (int k = 1; k <= 3; k++) { // drop down up to 3
                     BlockPos dn = fwd.down(k);
@@ -112,18 +114,37 @@ public final class Pathfinder {
         return out;
     }
 
-    /** A feet position you can be in: a ladder holds you, else body+head clear on solid ground. */
+    /** A feet position you can be in: a ladder holds you, else body+head clear on a full block. */
     public static boolean canStand(World w, BlockPos p) {
         if (isLadder(w, p)) {
             return passable(w, p.up());
         }
-        return passable(w, p) && passable(w, p.up()) && !passable(w, p.down());
+        return passable(w, p) && passable(w, p.up()) && canWalkOn(w, p.down());
+    }
+
+    /**
+     * Can we jump up 1 to stand on {@code fwd}? (fwd is a full block to land on, feet
+     * and head clear above it.) The source-side jump headroom is checked by the caller.
+     */
+    private static boolean canAscend(World w, BlockPos fwd) {
+        return canWalkOn(w, fwd)
+                && passable(w, fwd.up())        // dest feet
+                && passable(w, fwd.up().up());   // dest head (no bonk landing)
     }
 
     /** True if you can move through this block (no collision box). */
     public static boolean passable(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
         return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
+    }
+
+    /** True if this is a full-height solid block you can actually stand on top of. */
+    public static boolean canWalkOn(World w, BlockPos p) {
+        IBlockState st = w.getBlockState(p);
+        AxisAlignedBB box = st.getBlock().getCollisionBoundingBox(w, p, st);
+        // Full-height top (maxY at the block's top), so we don't try to "stand on"
+        // slabs, fences, walls or air and think we can step onto them.
+        return box != null && (box.maxY - p.getY()) >= 0.99;
     }
 
     public static boolean isLadder(World w, BlockPos p) {

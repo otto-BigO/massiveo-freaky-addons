@@ -457,7 +457,7 @@ public class AutoMine {
         }
 
         aimAt(mc, step);
-        approach(mc, step.getX() + 0.5, step.getZ() + 0.5, Pathfinder.straightRun(path, pathIndex, 3));
+        approach(mc, step.getX() + 0.5, step.getZ() + 0.5, Pathfinder.straightRun(path, pathIndex, 4));
     }
 
     private void clearPath() {

@@ -152,7 +152,7 @@ public class PathWalker {
                 return;
             }
         }
-        boolean sprint = Pathfinder.straightRun(path, index, 3);
+        boolean sprint = Pathfinder.straightRun(path, index, 4);
         faceAndWalk(mc, step.getX() + 0.5, step.getZ() + 0.5, sprint);
     }
 
