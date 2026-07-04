@@ -89,7 +89,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "PvP";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -111,7 +111,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "PvP";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -133,7 +133,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "PvP";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -155,7 +155,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "PvP";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -177,7 +177,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "PvP";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -221,7 +221,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -243,7 +243,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -265,7 +265,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -287,7 +287,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -309,7 +309,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -331,7 +331,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -353,7 +353,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {
@@ -375,7 +375,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Quality of life";
             }
 
             public boolean isActive() {

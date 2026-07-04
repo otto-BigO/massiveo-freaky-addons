@@ -100,11 +100,14 @@ public class GuiAddonsHub extends GuiScreen {
         if ("Celler".equals(category)) {
             return EnumChatFormatting.GREEN.toString();
         }
-        if ("PvP".equals(category)) {
+        if ("Tracking".equals(category)) {
             return EnumChatFormatting.RED.toString();
         }
-        if ("World".equals(category)) {
+        if ("Quality of life".equals(category)) {
             return EnumChatFormatting.AQUA.toString();
+        }
+        if ("World".equals(category)) {
+            return EnumChatFormatting.GOLD.toString();
         }
         return EnumChatFormatting.WHITE.toString();
     }
