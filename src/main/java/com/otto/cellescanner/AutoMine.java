@@ -17,6 +17,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -104,6 +105,7 @@ public class AutoMine {
     private int invMode = INV_NONE;
     private boolean cursorHolding = false; // we've picked an item up, next click drops/places it
     private int placeTarget = -1;          // hotbar container slot to place a picked-up pickaxe into
+    private boolean toggleKeyWasDown = false; // edge-detect the toggle key while a GUI is open
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -117,6 +119,16 @@ public class AutoMine {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
+
+        // Let the Auto Mine keybind toggle it on/off even while a GUI is open (e.g.
+        // while we're dumping in the inventory). The normal keybind handler doesn't
+        // fire when a screen is open, so poll the key here.
+        if (mc.currentScreen != null) {
+            pollToggleKey();
+        } else {
+            toggleKeyWasDown = false;
+        }
+
         if (!CelleScannerMod.config.autoMineEnabled) {
             if (holding) {
                 stopAll(mc);
@@ -423,18 +435,13 @@ public class AutoMine {
         int win = mc.thePlayer.inventoryContainer.windowId;
 
         if (invMode == INV_DUMP) {
-            if (!cursorHolding) {
-                int slot = firstJunkContainerSlot(mc);
-                if (slot < 0) {
-                    finishInvOps(mc); // all junk gone
-                    return;
-                }
-                mc.playerController.windowClick(win, slot, 0, 0, mc.thePlayer); // pick the stack up
-                cursorHolding = true;
-            } else {
-                mc.playerController.windowClick(win, -999, 0, 0, mc.thePlayer); // click outside = drop it
-                cursorHolding = false;
+            int slot = firstJunkContainerSlot(mc);
+            if (slot < 0) {
+                finishInvOps(mc); // all junk gone
+                return;
             }
+            // Ctrl+Q on the hovered stack: drop the whole stack (mode 4, button 1).
+            mc.playerController.windowClick(win, slot, 1, 4, mc.thePlayer);
         } else if (invMode == INV_PICKAXE) {
             if (!cursorHolding) {
                 int slot = firstPickaxeMainContainerSlot(mc);
@@ -453,6 +460,19 @@ public class AutoMine {
         } else {
             finishInvOps(mc);
         }
+    }
+
+    /** Poll the Auto Mine keybind while a GUI is open, so it can be switched off there. */
+    private void pollToggleKey() {
+        if (CelleScannerMod.autoMineKey == null) {
+            return;
+        }
+        int kc = CelleScannerMod.autoMineKey.getKeyCode();
+        boolean down = kc != 0 && Keyboard.isKeyDown(kc);
+        if (down && !toggleKeyWasDown) {
+            CelleActions.toggleAutoMine();
+        }
+        toggleKeyWasDown = down;
     }
 
     private void finishInvOps(Minecraft mc) {
