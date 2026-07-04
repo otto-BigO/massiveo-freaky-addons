@@ -96,6 +96,13 @@ public class AutoMine {
     // Pickaxe = click the spare pickaxe (pick up), then click a hotbar slot.
     private boolean toggleKeyWasDown = false; // edge-detect the toggle key while a GUI is open
 
+    // The mine resets every ~10 min and teleports us out. A teleport shows up as the
+    // position jumping far in a single tick - detect that, restart the pattern from
+    // the top, and let the normal return loop walk us back into the mine.
+    private static final double TELEPORT_DIST = 8.0;
+    private double lastPosX, lastPosY, lastPosZ;
+    private boolean lastPosSet = false;
+
     // Deposit: the bot never moves items itself (the server flags that). When full,
     // it walks to the Skraldespand, opens it and pings the player to shift-click the
     // junk in by hand, then resumes.
@@ -152,6 +159,26 @@ public class AutoMine {
         }
         holding = true;
         tick++;
+
+        // Teleported (mine reset)? Restart the pattern from the top; the "outside the
+        // box" branch in doMine then walks us back to the start corner.
+        if (lastPosSet) {
+            double mdx = mc.thePlayer.posX - lastPosX;
+            double mdy = mc.thePlayer.posY - lastPosY;
+            double mdz = mc.thePlayer.posZ - lastPosZ;
+            if (mdx * mdx + mdy * mdy + mdz * mdz > TELEPORT_DIST * TELEPORT_DIST) {
+                stopMining(mc);
+                planIndex = 0;
+                finished = false;
+                planIndexSince = System.currentTimeMillis();
+                target = null;
+                cachedDrop = null;
+            }
+        }
+        lastPosX = mc.thePlayer.posX;
+        lastPosY = mc.thePlayer.posY;
+        lastPosZ = mc.thePlayer.posZ;
+        lastPosSet = true;
 
         applyRotation(mc); // every tick, for smooth turning
 
@@ -764,6 +791,7 @@ public class AutoMine {
         notifiedDeposit = false;
         notifiedPickaxe = false;
         buying = false;
+        lastPosSet = false; // don't treat the next re-enable as a teleport
         // Restart the pattern from the top next time it's switched on.
         planIndex = 0;
         finished = false;
