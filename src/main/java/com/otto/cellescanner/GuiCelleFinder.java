@@ -26,6 +26,7 @@ public class GuiCelleFinder extends GuiScreen {
     private static final int ID_FIND = 1;
     private static final int ID_STOP = 2;
     private static final int ID_BACK = 3;
+    private static final int ID_WALK = 4;
     // Recent-celle quick-pick buttons get ids RECENT_BASE + index.
     private static final int RECENT_BASE = 100;
     private static final int MAX_RECENT = 8;
@@ -69,6 +70,9 @@ public class GuiCelleFinder extends GuiScreen {
         int halfW = (FIELD_W - 4) / 2;
         this.buttonList.add(new StyledButton(ID_FIND, fieldX, y, halfW, BTN_H, "Find"));
         this.buttonList.add(new StyledButton(ID_STOP, fieldX + halfW + 4, y, halfW, BTN_H, "Stop"));
+        y += BTN_H + ROW_GAP;
+
+        this.buttonList.add(new StyledButton(ID_WALK, fieldX, y, FIELD_W, BTN_H, "Gå til celle"));
         y += BTN_H + ROW_GAP;
 
         this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
@@ -116,6 +120,9 @@ public class GuiCelleFinder extends GuiScreen {
                 break;
             case ID_FIND:
                 find();
+                break;
+            case ID_WALK:
+                CelleActions.walkToCelle(idField.getText());
                 break;
             case ID_STOP:
                 CelleActions.clearFinderTarget();

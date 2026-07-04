@@ -1,0 +1,212 @@
+package com.otto.cellescanner;
+
+import net.minecraft.block.BlockLadder;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.entity.Entity;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.world.World;
+import org.lwjgl.opengl.GL11;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+
+/**
+ * A* pathfinding over standable positions (feet blocks). Steps up 1, drops down
+ * up to 3, and climbs ladders - the moves the walker can actually follow. Shared
+ * by the Auto Mine bot and the "Walk to celle" feature, and it can draw the
+ * planned route as a line on the floor.
+ */
+public final class Pathfinder {
+
+    private static final EnumFacing[] MOVE_DIRS =
+            {EnumFacing.NORTH, EnumFacing.SOUTH, EnumFacing.EAST, EnumFacing.WEST};
+
+    private Pathfinder() {
+    }
+
+    /** A route from start to a standable spot within {@code reach} of goal, or null. */
+    public static List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach) {
+        return findPath(w, start, goal, reach, 6000);
+    }
+
+    public static List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach, int maxNodes) {
+        PriorityQueue<Node> open = new PriorityQueue<Node>();
+        HashMap<BlockPos, Double> gScore = new HashMap<BlockPos, Double>();
+        HashSet<BlockPos> closed = new HashSet<BlockPos>();
+        open.add(new Node(start, null, 0, heur(start, goal)));
+        gScore.put(start, 0.0);
+        int expanded = 0;
+        while (!open.isEmpty() && expanded < maxNodes) {
+            Node cur = open.poll();
+            if (closed.contains(cur.pos)) {
+                continue;
+            }
+            closed.add(cur.pos);
+            expanded++;
+            if (dist(cur.pos, goal) <= reach) {
+                return reconstruct(cur);
+            }
+            for (BlockPos nb : neighbors(w, cur.pos)) {
+                if (closed.contains(nb)) {
+                    continue;
+                }
+                double g = cur.g + stepCost(cur.pos, nb);
+                Double old = gScore.get(nb);
+                if (old == null || g < old) {
+                    gScore.put(nb, g);
+                    open.add(new Node(nb, cur, g, g + heur(nb, goal)));
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<BlockPos> neighbors(World w, BlockPos p) {
+        List<BlockPos> out = new ArrayList<BlockPos>(8);
+        boolean headClear = passable(w, p.up().up()); // room to hop
+        if (isLadder(w, p) && passable(w, p.up())) {
+            out.add(p.up()); // climb straight up
+        }
+        for (EnumFacing d : MOVE_DIRS) {
+            BlockPos fwd = p.offset(d);
+            if (canStand(w, fwd)) {
+                out.add(fwd); // walk level (or step onto a ladder)
+            } else if (headClear && canStand(w, fwd.up())) {
+                out.add(fwd.up()); // step up 1
+            } else if (passable(w, fwd) && passable(w, fwd.up())) {
+                for (int k = 1; k <= 3; k++) { // drop down up to 3
+                    BlockPos dn = fwd.down(k);
+                    if (canStand(w, dn)) {
+                        out.add(dn);
+                        break;
+                    }
+                    if (!passable(w, dn)) {
+                        break; // hit ground we can't stand on
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** A feet position you can be in: a ladder holds you, else body+head clear on solid ground. */
+    public static boolean canStand(World w, BlockPos p) {
+        if (isLadder(w, p)) {
+            return passable(w, p.up());
+        }
+        return passable(w, p) && passable(w, p.up()) && !passable(w, p.down());
+    }
+
+    /** True if you can move through this block (no collision box). */
+    public static boolean passable(World w, BlockPos p) {
+        IBlockState st = w.getBlockState(p);
+        return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
+    }
+
+    public static boolean isLadder(World w, BlockPos p) {
+        return w.getBlockState(p).getBlock() == Blocks.ladder;
+    }
+
+    /** The direction to push (walk) to climb this ladder: toward the solid wall it's on. */
+    public static EnumFacing ladderInto(World w, BlockPos p) {
+        IBlockState st = w.getBlockState(p);
+        if (st.getBlock() == Blocks.ladder) {
+            EnumFacing wall = ((EnumFacing) st.getValue(BlockLadder.FACING)).getOpposite();
+            if (!passable(w, p.offset(wall))) {
+                return wall;
+            }
+        }
+        for (EnumFacing d : MOVE_DIRS) {
+            if (!passable(w, p.offset(d))) {
+                return d;
+            }
+        }
+        return null;
+    }
+
+    public static float yawOf(EnumFacing f) {
+        return (float) (Math.toDegrees(Math.atan2(f.getFrontOffsetZ(), f.getFrontOffsetX())) - 90.0);
+    }
+
+    private static double stepCost(BlockPos a, BlockPos b) {
+        int dy = b.getY() - a.getY();
+        return dy > 0 ? 1.3 : (dy < 0 ? 1.1 : 1.0);
+    }
+
+    private static double heur(BlockPos a, BlockPos b) {
+        return dist(a, b);
+    }
+
+    private static double dist(BlockPos a, BlockPos b) {
+        double dx = a.getX() - b.getX(), dy = a.getY() - b.getY(), dz = a.getZ() - b.getZ();
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    private static List<BlockPos> reconstruct(Node end) {
+        ArrayList<BlockPos> list = new ArrayList<BlockPos>();
+        for (Node n = end; n != null; n = n.parent) {
+            list.add(n.pos);
+        }
+        Collections.reverse(list);
+        return list;
+    }
+
+    /** Draw the route as a line just above the floor, through each waypoint. */
+    public static void renderPath(List<BlockPos> path, Entity viewer, float pt, float r, float g, float b) {
+        if (path == null || path.size() < 2 || viewer == null) {
+            return;
+        }
+        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * pt;
+        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * pt;
+        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * pt;
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(-px, -py, -pz);
+        GlStateManager.disableLighting();
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+
+        GL11.glLineWidth(4.0f);
+        GlStateManager.color(r, g, b, 0.9f);
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (BlockPos p : path) {
+            GL11.glVertex3d(p.getX() + 0.5, p.getY() + 0.08, p.getZ() + 0.5);
+        }
+        GL11.glEnd();
+
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+        GlStateManager.depthMask(true);
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableLighting();
+        GlStateManager.popMatrix();
+    }
+
+    private static final class Node implements Comparable<Node> {
+        final BlockPos pos;
+        final Node parent;
+        final double g, f;
+
+        Node(BlockPos pos, Node parent, double g, double f) {
+            this.pos = pos;
+            this.parent = parent;
+            this.g = g;
+            this.f = f;
+        }
+
+        public int compareTo(Node o) {
+            return Double.compare(this.f, o.f);
+        }
+    }
+}

@@ -785,7 +785,31 @@ public final class CelleActions {
 
     public static void clearFinderTarget() {
         CelleFinder.clearTarget();
+        PathWalker.stop();
         message("Finder stoppet.");
+    }
+
+    /** Pathfind and walk to a scanned celle by id (routes around walls, climbs ladders). */
+    public static void walkToCelle(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            message("Indtast et celle-id først.");
+            return;
+        }
+        id = id.trim();
+        CellePositions.Entry e = CellePositions.get(id);
+        if (e == null) {
+            message("\"" + id + "\" er ikke set endnu - gå rundt indtil dens skilt bliver scannet.");
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theWorld != null && mc.theWorld.provider.getDimensionId() != e.dimension) {
+            message("Cellen er i en anden dimension - kan ikke gå dertil herfra.");
+            return;
+        }
+        CelleFinder.setTarget(id); // also show the finder ESP/HUD while walking
+        PathWalker.walkTo(new net.minecraft.util.BlockPos(e.x, e.y, e.z));
+        mc.displayGuiScreen(null); // close the menu so the walk can run
+        message("Går til celle " + id + "...");
     }
 
     public static void message(String text) {
