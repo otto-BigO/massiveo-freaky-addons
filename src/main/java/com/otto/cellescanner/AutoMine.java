@@ -1,5 +1,6 @@
 package com.otto.cellescanner;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
@@ -14,13 +15,17 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.world.World;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 /**
@@ -102,6 +107,14 @@ public class AutoMine {
     private static final double TELEPORT_DIST = 8.0;
     private double lastPosX, lastPosY, lastPosZ;
     private boolean lastPosSet = false;
+
+    // A* path to a far target (shop/deposit/return). Straight-line walking can't get
+    // over a 2-high wall (auto-jump only clears 1), so we plan a route that only
+    // steps up 1 at a time and follow it waypoint by waypoint.
+    private List<BlockPos> path = null;
+    private int pathIndex = 0;
+    private BlockPos pathGoal = null;
+    private long pathProgressAt = 0;
 
     // Deposit: the bot never moves items itself (the server flags that). When full,
     // it walks to the Skraldespand, opens it and pings the player to shift-click the
@@ -245,15 +258,14 @@ public class AutoMine {
         }
 
         // Outside the mine outline (e.g. after buying a pickaxe, depositing, or a
-        // reset) - turn toward the start corner and walk back to it. We must aim
-        // first: approach() only walks when already facing the target, it doesn't
-        // turn us, so without this it stands there facing the shop/deposit.
+        // reset teleport) - pathfind back to the start corner (routes around walls
+        // it can't just jump).
         if (!nearBox(mc, 2)) {
             stopMining(mc);
-            aimAt(mc, START);
-            approach(mc, START.getX() + 0.5, START.getZ() + 0.5);
+            navigate(mc, START, 2.0);
             return;
         }
+        clearPath(); // inside the box - drop any travel path
 
         // Sweep up OUR dropped items before mining more, so nothing is left behind.
         // The facing gate keeps this from wandering, and we aim down at the item
@@ -315,6 +327,168 @@ public class AutoMine {
             walkForward(mc);
         } else {
             stopWalk(mc);
+        }
+    }
+
+    /**
+     * Route to within {@code reach} of {@code goal} using a planned path (so it
+     * goes around/over 2-high walls it can't just jump), following it waypoint by
+     * waypoint. Falls back to a straight walk if no path is found in budget.
+     */
+    private void navigate(Minecraft mc, BlockPos goal, double reach) {
+        World w = mc.theWorld;
+        BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
+                MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
+
+        boolean recompute = path == null || pathGoal == null || !pathGoal.equals(goal)
+                || System.currentTimeMillis() - pathProgressAt > 3000; // stuck / stale
+        if (recompute) {
+            path = findPath(w, feet, goal, reach);
+            pathGoal = goal;
+            pathIndex = 0;
+            pathProgressAt = System.currentTimeMillis();
+        }
+
+        if (path == null || path.isEmpty()) {
+            // No route found - just head straight at it and hope (old behaviour).
+            aimAt(mc, goal);
+            approach(mc, goal.getX() + 0.5, goal.getZ() + 0.5);
+            return;
+        }
+
+        // Drop waypoints we've reached.
+        while (pathIndex < path.size()) {
+            BlockPos wp = path.get(pathIndex);
+            double dx = (wp.getX() + 0.5) - mc.thePlayer.posX;
+            double dz = (wp.getZ() + 0.5) - mc.thePlayer.posZ;
+            if (dx * dx + dz * dz < 0.45 && Math.abs(wp.getY() - mc.thePlayer.posY) < 1.3) {
+                pathIndex++;
+                pathProgressAt = System.currentTimeMillis();
+            } else {
+                break;
+            }
+        }
+        BlockPos step = pathIndex < path.size() ? path.get(pathIndex) : goal;
+        aimAt(mc, step);
+        approach(mc, step.getX() + 0.5, step.getZ() + 0.5);
+    }
+
+    private void clearPath() {
+        path = null;
+        pathGoal = null;
+        pathIndex = 0;
+    }
+
+    // ---- A* over standable positions (feet blocks), 1-up / 3-down steps ----
+
+    private static final EnumFacing[] MOVE_DIRS = {EnumFacing.NORTH, EnumFacing.SOUTH, EnumFacing.EAST, EnumFacing.WEST};
+
+    private List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach) {
+        final int MAX_NODES = 3000;
+        PriorityQueue<Node> open = new PriorityQueue<Node>();
+        HashMap<BlockPos, Double> gScore = new HashMap<BlockPos, Double>();
+        HashSet<BlockPos> closed = new HashSet<BlockPos>();
+        open.add(new Node(start, null, 0, heur(start, goal)));
+        gScore.put(start, 0.0);
+        int expanded = 0;
+        while (!open.isEmpty() && expanded < MAX_NODES) {
+            Node cur = open.poll();
+            if (closed.contains(cur.pos)) {
+                continue;
+            }
+            closed.add(cur.pos);
+            expanded++;
+            if (dist(cur.pos, goal) <= reach) {
+                return reconstruct(cur);
+            }
+            for (BlockPos nb : neighbors(w, cur.pos)) {
+                if (closed.contains(nb)) {
+                    continue;
+                }
+                double g = cur.g + stepCost(cur.pos, nb);
+                Double old = gScore.get(nb);
+                if (old == null || g < old) {
+                    gScore.put(nb, g);
+                    open.add(new Node(nb, cur, g, g + heur(nb, goal)));
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<BlockPos> neighbors(World w, BlockPos p) {
+        List<BlockPos> out = new ArrayList<BlockPos>(8);
+        boolean headClear = passable(w, p.up().up()); // room to hop
+        for (EnumFacing d : MOVE_DIRS) {
+            BlockPos fwd = p.offset(d);
+            if (canStand(w, fwd)) {
+                out.add(fwd); // walk level
+            } else if (headClear && canStand(w, fwd.up())) {
+                out.add(fwd.up()); // step up 1
+            } else if (passable(w, fwd) && passable(w, fwd.up())) {
+                for (int k = 1; k <= 3; k++) { // drop down up to 3
+                    BlockPos dn = fwd.down(k);
+                    if (canStand(w, dn)) {
+                        out.add(dn);
+                        break;
+                    }
+                    if (!passable(w, dn)) {
+                        break; // hit ground we can't stand on
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** A feet position you can stand in: body + head clear, solid ground under it. */
+    private boolean canStand(World w, BlockPos p) {
+        return passable(w, p) && passable(w, p.up()) && !passable(w, p.down());
+    }
+
+    /** True if you can move through this block (no collision box). */
+    private boolean passable(World w, BlockPos p) {
+        IBlockState st = w.getBlockState(p);
+        return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
+    }
+
+    private double stepCost(BlockPos a, BlockPos b) {
+        int dy = b.getY() - a.getY();
+        return dy > 0 ? 1.3 : (dy < 0 ? 1.1 : 1.0);
+    }
+
+    private double heur(BlockPos a, BlockPos b) {
+        return dist(a, b);
+    }
+
+    private double dist(BlockPos a, BlockPos b) {
+        double dx = a.getX() - b.getX(), dy = a.getY() - b.getY(), dz = a.getZ() - b.getZ();
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    private List<BlockPos> reconstruct(Node end) {
+        ArrayList<BlockPos> list = new ArrayList<BlockPos>();
+        for (Node n = end; n != null; n = n.parent) {
+            list.add(n.pos);
+        }
+        java.util.Collections.reverse(list);
+        return list;
+    }
+
+    private static final class Node implements Comparable<Node> {
+        final BlockPos pos;
+        final Node parent;
+        final double g, f;
+
+        Node(BlockPos pos, Node parent, double g, double f) {
+            this.pos = pos;
+            this.parent = parent;
+            this.g = g;
+            this.f = f;
+        }
+
+        public int compareTo(Node o) {
+            return Double.compare(this.f, o.f);
         }
     }
 
@@ -460,12 +634,13 @@ public class AutoMine {
             return;
         }
 
-        aimAt(mc, SHOP_SIGN);
         if (eyeDist(mc, SHOP_SIGN) > 3.3) {
-            approach(mc, SHOP_SIGN.getX() + 0.5, SHOP_SIGN.getZ() + 0.5);
+            navigate(mc, SHOP_SIGN, 2.5); // pathfind over/around obstacles
             return;
         }
         stopWalk(mc);
+        clearPath();
+        aimAt(mc, SHOP_SIGN);
 
         // Aimed at the sign and in reach - right-click it (throttled).
         MovingObjectPosition mop = mc.objectMouseOver;
@@ -486,12 +661,13 @@ public class AutoMine {
      */
     private void doDeposit(Minecraft mc) {
         stopMining(mc);
-        aimAt(mc, DEPOSIT_SIGN);
         if (eyeDist(mc, DEPOSIT_SIGN) > 3.3) {
-            approach(mc, DEPOSIT_SIGN.getX() + 0.5, DEPOSIT_SIGN.getZ() + 0.5);
+            navigate(mc, DEPOSIT_SIGN, 2.5); // pathfind over/around obstacles
             return;
         }
         stopWalk(mc);
+        clearPath();
+        aimAt(mc, DEPOSIT_SIGN);
 
         // In reach - right-click the sign to open the Diposit chest (throttled), then
         // ping the player. Once the chest opens, onTick pauses us (screen open) until
@@ -792,6 +968,7 @@ public class AutoMine {
         notifiedPickaxe = false;
         buying = false;
         lastPosSet = false; // don't treat the next re-enable as a teleport
+        clearPath();
         // Restart the pattern from the top next time it's switched on.
         planIndex = 0;
         finished = false;
