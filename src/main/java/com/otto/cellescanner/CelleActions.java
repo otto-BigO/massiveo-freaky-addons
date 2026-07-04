@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -787,6 +788,16 @@ public final class CelleActions {
         CelleFinder.clearTarget();
         PathWalker.stop();
         message("Finder stoppet.");
+    }
+
+    /** Copy a celle id to the clipboard (left-click a celle id anywhere in the hub). */
+    public static void copyCelleId(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            return;
+        }
+        id = id.trim();
+        GuiScreen.setClipboardString(id);
+        message("Kopieret celle-id: " + id);
     }
 
     /** Pathfind and walk to a scanned celle by id (routes around walls, climbs ladders). */

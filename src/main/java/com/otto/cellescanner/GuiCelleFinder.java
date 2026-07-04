@@ -103,10 +103,11 @@ public class GuiCelleFinder extends GuiScreen {
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id >= RECENT_BASE) {
+            // Left-click a celle id copies it; right-click (handled in mouseClicked)
+            // pathfinds to it.
             int index = button.id - RECENT_BASE;
             if (index >= 0 && index < recentShown.size()) {
-                idField.setText(recentShown.get(index));
-                find();
+                CelleActions.copyCelleId(recentShown.get(index));
             }
             return;
         }
@@ -170,6 +171,20 @@ public class GuiCelleFinder extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        // Right-click a recent celle id -> pathfind (walk) to it.
+        if (mouseButton == 1) {
+            for (Object o : this.buttonList) {
+                GuiButton b = (GuiButton) o;
+                if (b.id >= RECENT_BASE && mouseX >= b.xPosition && mouseX < b.xPosition + b.width
+                        && mouseY >= b.yPosition && mouseY < b.yPosition + b.height) {
+                    int index = b.id - RECENT_BASE;
+                    if (index >= 0 && index < recentShown.size()) {
+                        CelleActions.walkToCelle(recentShown.get(index));
+                    }
+                    return;
+                }
+            }
+        }
         super.mouseClicked(mouseX, mouseY, mouseButton);
         idField.mouseClicked(mouseX, mouseY, mouseButton);
     }

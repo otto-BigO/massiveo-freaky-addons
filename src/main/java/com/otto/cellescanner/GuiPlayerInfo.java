@@ -131,11 +131,11 @@ public class GuiPlayerInfo extends GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
-        if (mouseButton != 0) {
+        if (mouseButton != 0 && mouseButton != 1) {
             return;
         }
-        // Inline toggle button.
-        if (mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
+        // Inline toggle button (left-click).
+        if (mouseButton == 0 && mouseX >= cbX && mouseX <= cbX + cbW && mouseY >= cbY && mouseY <= cbY + cbH) {
             showCeller = !showCeller;
             cellerScroll = 0;
             panelDetailId = null;
@@ -144,20 +144,27 @@ public class GuiPlayerInfo extends GuiScreen {
         if (!showCeller) {
             return;
         }
-        // Detail view: "< Tilbage" region.
+        // Detail view: "< Tilbage" region (left-click).
         if (panelDetailId != null) {
-            if (mouseX >= panelX + 4 && mouseX <= panelX + panelW - 4 && mouseY >= panelTop + 4 && mouseY <= panelTop + 16) {
+            if (mouseButton == 0 && mouseX >= panelX + 4 && mouseX <= panelX + panelW - 4
+                    && mouseY >= panelTop + 4 && mouseY <= panelTop + 16) {
                 panelDetailId = null;
             }
             return;
         }
-        // List view: click a celle row to open its details.
+        // List view: left-click a celle row = copy its id + open details; right-click = walk to it.
         if (mouseX >= panelX && mouseX <= panelX + panelW && mouseY >= panelListTop && mouseY <= panelListBottom) {
             int idx = (mouseY - (panelListTop - cellerScroll)) / panelLineH;
             List<String> ids = PlayerInfo.getCellerList();
             if (idx >= 0 && idx < ids.size()) {
-                panelDetailId = ids.get(idx);
-                PlayerInfo.selectCelle(panelDetailId);
+                String id = ids.get(idx);
+                if (mouseButton == 1) {
+                    CelleActions.walkToCelle(id);
+                } else {
+                    CelleActions.copyCelleId(id);
+                    panelDetailId = id;
+                    PlayerInfo.selectCelle(id);
+                }
             }
         }
     }
