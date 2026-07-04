@@ -29,8 +29,9 @@ public class PathWalker {
     private static List<BlockPos> path;
     private static int index;
     private static long progressAt;
-    private static long startAt;
     private static long lastSearch;
+    private static double bestGoalDist;   // closest we've been to the goal
+    private static long bestGoalDistAt;   // when that improved (for the stuck check)
     private static boolean active;
 
     /** Start walking to a block (in the current world). */
@@ -42,8 +43,9 @@ public class PathWalker {
         path = null;
         index = 0;
         progressAt = System.currentTimeMillis();
-        startAt = progressAt;
         lastSearch = 0; // search on the very first tick
+        bestGoalDist = Double.MAX_VALUE;
+        bestGoalDistAt = progressAt;
         active = true;
     }
 
@@ -86,6 +88,8 @@ public class PathWalker {
     }
 
     private void tickWalk(Minecraft mc) {
+        long now = System.currentTimeMillis();
+
         // Arrived?
         double gdx = (goal.getX() + 0.5) - mc.thePlayer.posX;
         double gdz = (goal.getZ() + 0.5) - mc.thePlayer.posZ;
@@ -96,11 +100,16 @@ public class PathWalker {
             stop();
             return;
         }
-        // Give up if it's taking too long (blocked, unreachable, wrong dimension).
-        if (System.currentTimeMillis() - startAt > 60000) {
-            message(mc, path == null
-                    ? "§cWalk to celle: fandt ingen sti til cellen (for langt væk eller ikke indlæst?)."
-                    : "§cWalk to celle: kunne ikke nå cellen.");
+
+        // Track progress toward the goal; give up only if we stop getting closer for
+        // a while (so a far but reachable celle keeps going, segment by segment).
+        double goalDist = Math.sqrt(gdx * gdx + gdy * gdy + gdz * gdz);
+        if (goalDist < bestGoalDist - 0.5) {
+            bestGoalDist = goalDist;
+            bestGoalDistAt = now;
+        }
+        if (now - bestGoalDistAt > 20000) {
+            message(mc, "§cWalk to celle: sidder fast / kan ikke komme tættere på cellen.");
             stop();
             return;
         }
@@ -109,7 +118,6 @@ public class PathWalker {
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
 
-        long now = System.currentTimeMillis();
         boolean stale = path == null || now - progressAt > 3000; // no path yet, or stuck
         if (stale && now - lastSearch >= SEARCH_EVERY) {
             path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET);
@@ -120,7 +128,7 @@ public class PathWalker {
             }
         }
         if (path == null || path.isEmpty()) {
-            // No route found yet - stand still and keep searching (no blind walking).
+            // Not even a partial toward the goal - stand still and keep searching.
             releaseKeys(mc);
             return;
         }
@@ -131,12 +139,24 @@ public class PathWalker {
             double dz = (wp.getZ() + 0.5) - mc.thePlayer.posZ;
             if (dx * dx + dz * dz < 0.45 && Math.abs(wp.getY() - mc.thePlayer.posY) < 1.3) {
                 index++;
-                progressAt = System.currentTimeMillis();
+                progressAt = now;
             } else {
                 break;
             }
         }
-        BlockPos step = index < path.size() ? path.get(index) : goal;
+        if (index >= path.size()) {
+            // Reached the end of a partial path - re-plan from here now (new chunks
+            // have loaded as we walked, so the next segment goes further).
+            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET);
+            lastSearch = now;
+            index = 0;
+            progressAt = now;
+            if (path == null || path.isEmpty()) {
+                releaseKeys(mc);
+                return;
+            }
+        }
+        BlockPos step = path.get(index);
 
         // Climb a ladder: face into its wall and push forward every tick (no jump).
         boolean up = step.getY() > MathHelper.floor_double(mc.thePlayer.posY);

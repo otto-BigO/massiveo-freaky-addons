@@ -434,7 +434,13 @@ public class AutoMine {
                 break;
             }
         }
-        BlockPos step = pathIndex < path.size() ? path.get(pathIndex) : goal;
+        if (pathIndex >= path.size()) {
+            // Consumed a (possibly partial) path but not there yet - re-plan from here.
+            stopWalk(mc);
+            pathProgressAt = 0; // force a fresh search next allowed tick
+            return;
+        }
+        BlockPos step = path.get(pathIndex);
 
         // Climbing a ladder to get out: face into the ladder's wall and hold forward
         // (pushing into it is what makes you climb up), instead of trying to walk.

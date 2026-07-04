@@ -44,6 +44,9 @@ public final class Pathfinder {
         open.add(new Node(start, null, 0, heur(start, goal)));
         gScore.put(start, 0.0);
         int expanded = 0;
+        double startH = dist(start, goal);
+        Node best = null;         // closest node to the goal we've reached
+        double bestH = startH;
         while (!open.isEmpty() && expanded < maxNodes) {
             Node cur = open.poll();
             if (closed.contains(cur.pos)) {
@@ -51,8 +54,13 @@ public final class Pathfinder {
             }
             closed.add(cur.pos);
             expanded++;
-            if (dist(cur.pos, goal) <= reach) {
-                return reconstruct(cur);
+            double h = dist(cur.pos, goal);
+            if (h <= reach) {
+                return reconstruct(cur); // reached the goal
+            }
+            if (h < bestH) {
+                bestH = h;
+                best = cur;
             }
             for (BlockPos nb : neighbors(w, cur.pos)) {
                 if (closed.contains(nb)) {
@@ -65,6 +73,11 @@ public final class Pathfinder {
                     open.add(new Node(nb, cur, g, g + heur(nb, goal)));
                 }
             }
+        }
+        // Couldn't reach the goal (too far / not loaded / blocked). Head toward the
+        // closest point we found so we make progress and re-plan as chunks load.
+        if (best != null && bestH < startH - 0.5) {
+            return reconstruct(best);
         }
         return null;
     }
