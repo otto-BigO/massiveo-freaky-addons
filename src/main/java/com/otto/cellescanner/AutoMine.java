@@ -417,7 +417,7 @@ public class AutoMine {
                 tPitch = 0f;
                 float diff = Math.abs(MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw));
                 if (diff < 45f) {
-                    walkForward(mc); // push into the wall = climb
+                    climbForward(mc); // face the wall + push into it = climb (NO jumping)
                 } else {
                     stopWalk(mc); // turn to face the ladder first
                 }
@@ -1023,6 +1023,16 @@ public class AutoMine {
         // no auto-step). Walking down is just gravity once it can move off a ledge.
         boolean jump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), jump);
+    }
+
+    /**
+     * Climb a ladder the 1.8.9 way: press forward with NO jump. You climb by pushing
+     * into the wall the ladder is on (which we're facing); jumping does nothing on a
+     * ladder and just hops you off at the base.
+     */
+    private void climbForward(Minecraft mc) {
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
     }
 
     private void stopWalk(Minecraft mc) {
