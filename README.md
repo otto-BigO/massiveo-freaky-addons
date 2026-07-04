@@ -47,7 +47,15 @@ your own client.
 - **Prisguide**: browse FreakyVille's price guide in-game, fetched live.
 - **Item-log**: a small "+N item" notification in the bottom-right when items
   enter your inventory.
+- **Auto Mine**: mines a fixed mine area on a set pattern, walks to the
+  Skraldespand and pings you to deposit when full, restocks pickaxes and
+  auto-eats. It never moves items for you. Automation, off by default, use at
+  your own risk.
+- **Mod-brugere**: a small badge before other mod users' names (test).
 - **Opdatering**: the GitHub auto-updater, with an optional pre-release channel.
+
+A settings gear in the hub opens a HUD editor to drag every HUD where you want
+it.
 
 </details>
 
