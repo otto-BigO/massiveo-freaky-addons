@@ -1,5 +1,6 @@
 package com.otto.cellescanner;
 
+import net.minecraft.block.BlockLadder;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
@@ -16,6 +17,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
@@ -40,8 +42,9 @@ import java.util.Random;
  */
 public class AutoMine {
 
-    // The auto-mine box (Otto's two corners).
-    private static final int MIN_X = 37, MAX_X = 52, MIN_Y = 42, MAX_Y = 60, MIN_Z = -692, MAX_Z = -677;
+    // The auto-mine box (Otto's two corners: 34 60 -683 and 55 42 -685). Ladders
+    // at x=33 (33 41 -683 / 33 60 -685) let the bot climb out of the mine.
+    private static final int MIN_X = 34, MAX_X = 55, MIN_Y = 42, MAX_Y = 60, MIN_Z = -685, MAX_Z = -683;
     // Where mining begins (top corner, first block of the plan). When we're outside
     // the box (e.g. the mine just reset) we walk here before mining.
     private static final BlockPos START = new BlockPos(MIN_X, MAX_Y, MIN_Z);
@@ -108,6 +111,11 @@ public class AutoMine {
     private double lastPosX, lastPosY, lastPosZ;
     private boolean lastPosSet = false;
 
+    // The server warns "b will be resetting in 10 seconds." before it refills the
+    // mine. We restart the pattern right after that reset lands, so we don't keep
+    // grinding at spots that no longer exist and look like a dumb bot.
+    private long restartPlanAt = 0;
+
     // A* path to a far target (shop/deposit/return). Straight-line walking can't get
     // over a 2-high wall (auto-jump only clears 1), so we plan a route that only
     // steps up 1 at a time and follow it waypoint by waypoint.
@@ -173,19 +181,21 @@ public class AutoMine {
         holding = true;
         tick++;
 
-        // Teleported (mine reset)? Restart the pattern from the top; the "outside the
-        // box" branch in doMine then walks us back to the start corner.
+        // The mine reset just landed (timed off the chat warning) - restart the
+        // pattern so we re-mine the refilled mine from the top.
+        if (restartPlanAt > 0 && System.currentTimeMillis() >= restartPlanAt) {
+            restartPlan(mc);
+            restartPlanAt = 0;
+        }
+
+        // Teleported (mine reset also yanks us out)? Restart the pattern too; the
+        // "outside the box" branch in doMine then walks us back to the start corner.
         if (lastPosSet) {
             double mdx = mc.thePlayer.posX - lastPosX;
             double mdy = mc.thePlayer.posY - lastPosY;
             double mdz = mc.thePlayer.posZ - lastPosZ;
             if (mdx * mdx + mdy * mdy + mdz * mdz > TELEPORT_DIST * TELEPORT_DIST) {
-                stopMining(mc);
-                planIndex = 0;
-                finished = false;
-                planIndexSince = System.currentTimeMillis();
-                target = null;
-                cachedDrop = null;
+                restartPlan(mc);
             }
         }
         lastPosX = mc.thePlayer.posX;
@@ -235,6 +245,31 @@ public class AutoMine {
         } else {
             doMine(mc);
         }
+    }
+
+    /** The mine resets every ~10 min; the server warns in chat first. Arm a restart. */
+    @SubscribeEvent
+    public void onChat(ClientChatReceivedEvent event) {
+        if (!CelleScannerMod.config.autoMineEnabled || event.message == null) {
+            return;
+        }
+        String msg = event.message.getUnformattedText();
+        if (msg != null && msg.toLowerCase().contains("will be resetting")) {
+            // Reset lands ~10s after the warning; restart just after so the mine has
+            // refilled (add a little buffer).
+            restartPlanAt = System.currentTimeMillis() + 10500;
+        }
+    }
+
+    /** Restart the mining pattern from the top and drop any stale travel/target state. */
+    private void restartPlan(Minecraft mc) {
+        stopMining(mc);
+        planIndex = 0;
+        finished = false;
+        planIndexSince = System.currentTimeMillis();
+        target = null;
+        cachedDrop = null;
+        clearPath();
     }
 
     private void doMine(Minecraft mc) {
@@ -369,6 +404,27 @@ public class AutoMine {
             }
         }
         BlockPos step = pathIndex < path.size() ? path.get(pathIndex) : goal;
+
+        // Climbing a ladder to get out: face into the ladder's wall and hold forward
+        // (pushing into it is what makes you climb up), instead of trying to walk.
+        boolean up = step.getY() > MathHelper.floor_double(mc.thePlayer.posY);
+        BlockPos ladderPos = isLadder(w, feet) ? feet : (isLadder(w, feet.up()) ? feet.up()
+                : (isLadder(w, step) ? step : null));
+        if (up && ladderPos != null) {
+            EnumFacing into = ladderInto(w, ladderPos);
+            if (into != null) {
+                tYaw = yawOf(into);
+                tPitch = 0f;
+                float diff = Math.abs(MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw));
+                if (diff < 45f) {
+                    walkForward(mc); // push into the wall = climb
+                } else {
+                    stopWalk(mc); // turn to face the ladder first
+                }
+                return;
+            }
+        }
+
         aimAt(mc, step);
         approach(mc, step.getX() + 0.5, step.getZ() + 0.5);
     }
@@ -419,10 +475,14 @@ public class AutoMine {
     private List<BlockPos> neighbors(World w, BlockPos p) {
         List<BlockPos> out = new ArrayList<BlockPos>(8);
         boolean headClear = passable(w, p.up().up()); // room to hop
+        // On a ladder we can climb straight up to get out of the mine.
+        if (isLadder(w, p) && passable(w, p.up())) {
+            out.add(p.up());
+        }
         for (EnumFacing d : MOVE_DIRS) {
             BlockPos fwd = p.offset(d);
             if (canStand(w, fwd)) {
-                out.add(fwd); // walk level
+                out.add(fwd); // walk level (or step onto a ladder)
             } else if (headClear && canStand(w, fwd.up())) {
                 out.add(fwd.up()); // step up 1
             } else if (passable(w, fwd) && passable(w, fwd.up())) {
@@ -441,8 +501,11 @@ public class AutoMine {
         return out;
     }
 
-    /** A feet position you can stand in: body + head clear, solid ground under it. */
+    /** A feet position you can be in: a ladder holds you, else body+head clear on solid ground. */
     private boolean canStand(World w, BlockPos p) {
+        if (isLadder(w, p)) {
+            return passable(w, p.up());
+        }
         return passable(w, p) && passable(w, p.up()) && !passable(w, p.down());
     }
 
@@ -450,6 +513,23 @@ public class AutoMine {
     private boolean passable(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
         return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
+    }
+
+    private boolean isLadder(World w, BlockPos p) {
+        return w.getBlockState(p).getBlock() == Blocks.ladder;
+    }
+
+    /** The direction to push (walk) to climb this ladder: into the wall behind it. */
+    private EnumFacing ladderInto(World w, BlockPos p) {
+        IBlockState st = w.getBlockState(p);
+        if (st.getBlock() == Blocks.ladder) {
+            return ((EnumFacing) st.getValue(BlockLadder.FACING)).getOpposite();
+        }
+        return null;
+    }
+
+    private float yawOf(EnumFacing f) {
+        return (float) (Math.toDegrees(Math.atan2(f.getFrontOffsetZ(), f.getFrontOffsetX())) - 90.0);
     }
 
     private double stepCost(BlockPos a, BlockPos b) {
