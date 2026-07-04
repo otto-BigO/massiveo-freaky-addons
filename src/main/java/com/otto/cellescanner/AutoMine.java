@@ -115,10 +115,12 @@ public class AutoMine {
     // A* path to a far target (shop/deposit/return). Straight-line walking can't get
     // over a 2-high wall (auto-jump only clears 1), so we plan a route that only
     // steps up 1 at a time and follow it waypoint by waypoint.
+    private static final int PATH_BUDGET = 20000; // A* node budget for shop/deposit/start routes
     private List<BlockPos> path = null;
     private int pathIndex = 0;
     private BlockPos pathGoal = null;
     private long pathProgressAt = 0;
+    private long pathSearchAt = 0;
 
     // Deposit: the bot never moves items itself (the server flags that). When full,
     // it walks to the Skraldespand, opens it and pings the player to shift-click the
@@ -374,28 +376,39 @@ public class AutoMine {
     }
 
     /**
-     * Route to within {@code reach} of {@code goal} using a planned path (so it
-     * goes around/over 2-high walls it can't just jump), following it waypoint by
-     * waypoint. Falls back to a straight walk if no path is found in budget.
+     * Route to within {@code reach} of {@code goal} using a planned path (so it goes
+     * around/over 2-high walls and up ladders), following it waypoint by waypoint.
+     * While no path is found yet it stands still and keeps searching - it never walks
+     * blindly straight at the goal.
      */
     private void navigate(Minecraft mc, BlockPos goal, double reach) {
         World w = mc.theWorld;
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
 
-        boolean recompute = path == null || pathGoal == null || !pathGoal.equals(goal)
-                || System.currentTimeMillis() - pathProgressAt > 3000; // stuck / stale
-        if (recompute) {
-            path = Pathfinder.findPath(w, feet, goal, reach);
+        long now = System.currentTimeMillis();
+        if (pathGoal == null || !pathGoal.equals(goal)) {
+            // New destination - search right away.
+            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET);
             pathGoal = goal;
             pathIndex = 0;
-            pathProgressAt = System.currentTimeMillis();
+            pathSearchAt = now;
+            if (path != null) {
+                pathProgressAt = now;
+            }
+        } else if ((path == null || now - pathProgressAt > 3000) && now - pathSearchAt >= 1000) {
+            // No path yet, or stuck - re-search (throttled so the A* isn't run every tick).
+            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET);
+            pathSearchAt = now;
+            pathIndex = 0;
+            if (path != null) {
+                pathProgressAt = now;
+            }
         }
 
         if (path == null || path.isEmpty()) {
-            // No route found - just head straight at it and hope (old behaviour).
-            aimAt(mc, goal);
-            approach(mc, goal.getX() + 0.5, goal.getZ() + 0.5);
+            // No route yet - stand still and keep searching, don't walk blindly.
+            stopWalk(mc);
             return;
         }
 
