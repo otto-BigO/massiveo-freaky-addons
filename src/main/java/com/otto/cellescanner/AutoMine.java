@@ -413,14 +413,14 @@ public class AutoMine {
         if (up && ladderPos != null) {
             EnumFacing into = ladderInto(w, ladderPos);
             if (into != null) {
-                tYaw = yawOf(into);
+                // Snap to face the wall and push in EVERY tick. On a ladder, any tick
+                // we're not pushing into the wall we slide back down, so we can't
+                // afford an eased turn or a facing gate here.
+                float y = yawOf(into);
+                mc.thePlayer.rotationYaw = y;
+                tYaw = y;
                 tPitch = 0f;
-                float diff = Math.abs(MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw));
-                if (diff < 45f) {
-                    climbForward(mc); // face the wall + push into it = climb (NO jumping)
-                } else {
-                    stopWalk(mc); // turn to face the ladder first
-                }
+                climbForward(mc); // forward into the wall = climb (NO jumping)
                 return;
             }
         }
@@ -519,11 +519,21 @@ public class AutoMine {
         return w.getBlockState(p).getBlock() == Blocks.ladder;
     }
 
-    /** The direction to push (walk) to climb this ladder: into the wall behind it. */
+    /** The direction to push (walk) to climb this ladder: toward the solid wall it's on. */
     private EnumFacing ladderInto(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
         if (st.getBlock() == Blocks.ladder) {
-            return ((EnumFacing) st.getValue(BlockLadder.FACING)).getOpposite();
+            // The ladder's FACING points away from its wall; the wall is opposite.
+            EnumFacing wall = ((EnumFacing) st.getValue(BlockLadder.FACING)).getOpposite();
+            if (!passable(w, p.offset(wall))) {
+                return wall;
+            }
+        }
+        // Fallback (or if FACING looked wrong): push toward whichever side is solid.
+        for (EnumFacing d : MOVE_DIRS) {
+            if (!passable(w, p.offset(d))) {
+                return d;
+            }
         }
         return null;
     }
