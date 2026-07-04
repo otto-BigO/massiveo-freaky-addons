@@ -93,6 +93,22 @@ public final class Pathfinder {
                 }
             }
         }
+        // Diagonal level moves, so on open ground it cuts straight across ("skaevt")
+        // instead of zig-zagging. Only if both orthogonal cells are clear (no corner
+        // cutting through a block).
+        EnumFacing[] ns = {EnumFacing.NORTH, EnumFacing.SOUTH};
+        EnumFacing[] ew = {EnumFacing.EAST, EnumFacing.WEST};
+        for (EnumFacing a : ns) {
+            for (EnumFacing b : ew) {
+                BlockPos oa = p.offset(a), ob = p.offset(b);
+                BlockPos diag = oa.offset(b);
+                if (canStand(w, diag)
+                        && passable(w, oa) && passable(w, oa.up())
+                        && passable(w, ob) && passable(w, ob.up())) {
+                    out.add(diag);
+                }
+            }
+        }
         return out;
     }
 
@@ -136,8 +152,38 @@ public final class Pathfinder {
     }
 
     private static double stepCost(BlockPos a, BlockPos b) {
+        int dx = Math.abs(b.getX() - a.getX());
+        int dz = Math.abs(b.getZ() - a.getZ());
         int dy = b.getY() - a.getY();
-        return dy > 0 ? 1.3 : (dy < 0 ? 1.1 : 1.0);
+        double horiz = (dx != 0 && dz != 0) ? 1.414 : 1.0; // diagonals cost their real length
+        double vert = dy > 0 ? 0.4 : (dy < 0 ? 0.2 : 0.0);
+        return horiz + vert;
+    }
+
+    /**
+     * True if the path from index {@code i} runs straight (same horizontal direction,
+     * flat) for at least {@code minSteps} - a stretch worth sprinting.
+     */
+    public static boolean straightRun(List<BlockPos> path, int i, int minSteps) {
+        if (path == null || i < 0 || i + minSteps >= path.size()) {
+            return false;
+        }
+        BlockPos a = path.get(i), b = path.get(i + 1);
+        int dx = Integer.signum(b.getX() - a.getX());
+        int dz = Integer.signum(b.getZ() - a.getZ());
+        if (dx == 0 && dz == 0) {
+            return false;
+        }
+        for (int k = i + 1; k <= i + minSteps && k + 1 < path.size(); k++) {
+            BlockPos c = path.get(k), d = path.get(k + 1);
+            if (Integer.signum(d.getX() - c.getX()) != dx || Integer.signum(d.getZ() - c.getZ()) != dz) {
+                return false;
+            }
+            if (d.getY() != c.getY()) {
+                return false; // keep it flat for a clean sprint-jump
+            }
+        }
+        return true;
     }
 
     private static double heur(BlockPos a, BlockPos b) {

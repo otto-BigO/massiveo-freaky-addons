@@ -55,6 +55,7 @@ public class PathWalker {
         if (mc != null && mc.gameSettings != null) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         }
     }
 
@@ -91,6 +92,7 @@ public class PathWalker {
         double gdy = goal.getY() - mc.thePlayer.posY;
         if (gdx * gdx + gdz * gdz < REACH * REACH && Math.abs(gdy) < 3.0) {
             message(mc, "§aWalk to celle: ankommet.");
+            CelleFinder.clearTarget(); // stop showing the sign outline once we're there
             stop();
             return;
         }
@@ -146,14 +148,20 @@ public class PathWalker {
                 mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
                 return;
             }
         }
-        faceAndWalk(mc, step.getX() + 0.5, step.getZ() + 0.5);
+        boolean sprint = Pathfinder.straightRun(path, index, 3);
+        faceAndWalk(mc, step.getX() + 0.5, step.getZ() + 0.5, sprint);
     }
 
-    /** Ease the look toward (x,z), walk once roughly facing it, auto-jump 1-block steps. */
-    private void faceAndWalk(Minecraft mc, double x, double z) {
+    /**
+     * Ease the look toward (x,z) and walk once roughly facing it. On a long straight
+     * stretch it sprints and sprint-jumps (bunny-hops) to cover ground faster; near
+     * turns it drops to a walk and auto-jumps 1-block steps.
+     */
+    private void faceAndWalk(Minecraft mc, double x, double z, boolean sprint) {
         double dx = x - mc.thePlayer.posX;
         double dz = z - mc.thePlayer.posZ;
         float want = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
@@ -162,10 +170,14 @@ public class PathWalker {
         step = step < -18f ? -18f : (step > 18f ? 18f : step);
         mc.thePlayer.rotationYaw += step;
 
-        if (Math.abs(diff) < 35f) {
+        float adiff = Math.abs(diff);
+        if (adiff < 35f) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
-            boolean jump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), jump);
+            boolean sprinting = sprint && adiff < 12f; // only sprint when well-lined-up
+            boolean autoJump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprinting);
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(),
+                    sprinting ? mc.thePlayer.onGround : autoJump);
         } else {
             releaseKeys(mc);
         }
@@ -174,6 +186,7 @@ public class PathWalker {
     private void releaseKeys(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
     }
 
     private void message(Minecraft mc, String text) {

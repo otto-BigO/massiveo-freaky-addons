@@ -364,12 +364,22 @@ public class AutoMine {
      * drift and circle, so we gate movement on the yaw being close first.
      */
     private void approach(Minecraft mc, double x, double z) {
+        approach(mc, x, z, false);
+    }
+
+    /** As approach, but sprint + sprint-jump (bunny-hop) on a long straight stretch. */
+    private void approach(Minecraft mc, double x, double z, boolean sprint) {
         double dx = x - mc.thePlayer.posX;
         double dz = z - mc.thePlayer.posZ;
         float wantYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
         float diff = Math.abs(MathHelper.wrapAngleTo180_float(wantYaw - mc.thePlayer.rotationYaw));
         if (diff < WALK_ANGLE) {
             walkForward(mc);
+            boolean sprinting = sprint && diff < 12f; // only sprint when well-lined-up
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprinting);
+            if (sprinting) {
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), mc.thePlayer.onGround);
+            }
         } else {
             stopWalk(mc);
         }
@@ -447,7 +457,7 @@ public class AutoMine {
         }
 
         aimAt(mc, step);
-        approach(mc, step.getX() + 0.5, step.getZ() + 0.5);
+        approach(mc, step.getX() + 0.5, step.getZ() + 0.5, Pathfinder.straightRun(path, pathIndex, 3));
     }
 
     private void clearPath() {
@@ -922,6 +932,7 @@ public class AutoMine {
     private void stopWalk(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
     }
 
     private void releaseKeys(Minecraft mc) {
