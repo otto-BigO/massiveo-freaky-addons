@@ -21,12 +21,16 @@ import java.util.List;
 public class PathWalker {
 
     private static final double REACH = 2.0;
+    // Celle walks can be long, so let the search work harder than the miner's short hops.
+    private static final int SEARCH_BUDGET = 20000;
+    private static final long SEARCH_EVERY = 1000; // ms between (re)searches while walking
 
     private static BlockPos goal;
     private static List<BlockPos> path;
     private static int index;
     private static long progressAt;
     private static long startAt;
+    private static long lastSearch;
     private static boolean active;
 
     /** Start walking to a block (in the current world). */
@@ -39,6 +43,7 @@ public class PathWalker {
         index = 0;
         progressAt = System.currentTimeMillis();
         startAt = progressAt;
+        lastSearch = 0; // search on the very first tick
         active = true;
     }
 
@@ -91,7 +96,9 @@ public class PathWalker {
         }
         // Give up if it's taking too long (blocked, unreachable, wrong dimension).
         if (System.currentTimeMillis() - startAt > 60000) {
-            message(mc, "§cWalk to celle: kunne ikke nå cellen.");
+            message(mc, path == null
+                    ? "§cWalk to celle: fandt ingen sti til cellen (for langt væk eller ikke indlæst?)."
+                    : "§cWalk to celle: kunne ikke nå cellen.");
             stop();
             return;
         }
@@ -100,13 +107,19 @@ public class PathWalker {
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
 
-        if (path == null || System.currentTimeMillis() - progressAt > 3000) {
-            path = Pathfinder.findPath(w, feet, goal, REACH);
+        long now = System.currentTimeMillis();
+        boolean stale = path == null || now - progressAt > 3000; // no path yet, or stuck
+        if (stale && now - lastSearch >= SEARCH_EVERY) {
+            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET);
+            lastSearch = now;
             index = 0;
-            progressAt = System.currentTimeMillis();
+            if (path != null) {
+                progressAt = now;
+            }
         }
         if (path == null || path.isEmpty()) {
-            faceAndWalk(mc, goal.getX() + 0.5, goal.getZ() + 0.5); // no route - head straight
+            // No route found yet - stand still and keep searching (no blind walking).
+            releaseKeys(mc);
             return;
         }
 
