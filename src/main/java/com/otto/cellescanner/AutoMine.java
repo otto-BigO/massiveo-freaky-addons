@@ -327,6 +327,19 @@ public class AutoMine {
         // Next block in the fixed serpentine order (computed first, so the reset
         // check below runs no matter where we're standing).
         target = planTarget(mc);
+
+        // Layer safety (4A): if another player has mined a pit under us and we've
+        // dropped well below our working layer, don't fight to climb back - adopt the
+        // layer we landed on and mine there (join their layer).
+        if (target != null && nearBox(mc, 1)) {
+            int feetY = MathHelper.floor_double(mc.thePlayer.posY);
+            if (feetY >= MIN_Y && feetY <= MAX_Y && feetY < currentLayerY - 1) {
+                skipToLayer(feetY);
+                currentLayerY = feetY;
+                target = planTarget(mc);
+            }
+        }
+
         if (target == null) {
             // Whole plan cleared - idle. Every second, if the mine reset (blocks are
             // back), start the pattern over from the top. Checked from anywhere, so
@@ -771,6 +784,13 @@ public class AutoMine {
     private void advanceIndex() {
         planIndex++;
         planIndexSince = System.currentTimeMillis();
+    }
+
+    /** Advance the plan (top-down) down to layer y, skipping the layers above it. */
+    private void skipToLayer(int y) {
+        while (planIndex < plan.size() && plan.get(planIndex).getY() > y) {
+            advanceIndex();
+        }
     }
 
     /** First non-air in-box block on layer y (a straggler to clean up), or null. */
