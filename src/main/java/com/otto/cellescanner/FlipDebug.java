@@ -22,6 +22,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 public class FlipDebug {
 
     private boolean inFlip = false;
+    private boolean loggedTitle = false;
     private String[] prev = null;
     private int tick = 0;
 
@@ -32,11 +33,40 @@ public class FlipDebug {
         }
         if (CelleScannerMod.config.debugEnabled == null || !CelleScannerMod.config.debugEnabled) {
             inFlip = false;
+            loggedTitle = false;
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
-        IInventory inv = flipChest(mc);
-        if (inv == null) {
+
+        // Not a chest at all - reset.
+        if (!(mc.currentScreen instanceof GuiChest)) {
+            inFlip = false;
+            loggedTitle = false;
+            prev = null;
+            return;
+        }
+
+        // It's a chest. Read its title + inventory (defensively) and log the title once
+        // so we can SEE what it actually is (in case the "Flip" match was off).
+        IInventory inv = null;
+        String title = "";
+        try {
+            Container c = ((GuiChest) mc.currentScreen).inventorySlots;
+            if (c instanceof ContainerChest) {
+                inv = ((ContainerChest) c).getLowerChestInventory();
+                if (inv != null && inv.getDisplayName() != null) {
+                    title = inv.getDisplayName().getUnformattedText();
+                }
+            }
+        } catch (Throwable t) {
+            msg(mc, "§c[debug] fejl: " + t);
+        }
+        if (!loggedTitle) {
+            msg(mc, "§6[debug] chest åben, titel = '" + title + "' (" + (inv == null ? "?" : inv.getSizeInventory()) + " slots)");
+            loggedTitle = true;
+        }
+
+        if (inv == null || !title.toLowerCase().contains("flip")) {
             inFlip = false;
             prev = null;
             return;
@@ -72,20 +102,6 @@ public class FlipDebug {
                 prev[i] = d;
             }
         }
-    }
-
-    /** The lower chest inventory if the open screen is a "Flip!" chest, else null. */
-    private IInventory flipChest(Minecraft mc) {
-        if (!(mc.currentScreen instanceof GuiChest)) {
-            return null;
-        }
-        Container c = ((GuiChest) mc.currentScreen).inventorySlots;
-        if (!(c instanceof ContainerChest)) {
-            return null;
-        }
-        IInventory inv = ((ContainerChest) c).getLowerChestInventory();
-        String title = inv.getDisplayName() != null ? inv.getDisplayName().getUnformattedText() : "";
-        return title != null && title.contains("Flip") ? inv : null;
     }
 
     /** "item meta=M x count name='DISPLAY' lore=[...]" or null for empty. */
