@@ -21,9 +21,11 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * Auto Mine addon (automation - off by default, use only where the server
@@ -48,11 +50,16 @@ public class AutoMine {
     private static final double COLLECT_R = 6.0;  // walk over to drops within this
     private static final double IGNORE_NEAR = 1.3; // drops this close auto-collect, don't walk
 
-    // Only collect drops that came from blocks WE broke: an item counts as ours if
-    // it sits near a block we broke in the last DROP_TTL. Keeps us from chasing
-    // other players' drops in the same mine.
-    private static final long DROP_TTL = 20000;
-    private static final double DROP_MATCH = 1.9;
+    // We only detour to collect IRON ORE (the prize), and only iron that WE dropped.
+    // Ownership: when an iron item first appears near a block we just broke, we claim
+    // it by entity id and follow it by id after that - so other players' iron in the
+    // same area is never claimed. Junk (cobble/sandstone/lapis) is not chased; what we
+    // walk over is auto-picked and trashed at the Skraldespand later.
+    private static final long BREAK_TTL = 5000;    // keep recent breaks this long (for claiming)
+    private static final long CLAIM_WINDOW = 2500; // an iron item must appear within this of the break
+    private static final double CLAIM_MATCH = 1.7;  // ...and this close to the broken block
+    private final Set<Integer> seenItems = new HashSet<Integer>(); // item ids we've judged
+    private final Set<Integer> ourIron = new HashSet<Integer>();   // iron item ids claimed as ours
 
     // If we can't clear a planned block for this long (unreachable/stuck), skip it.
     private static final long SKIP_STUCK = 8000;
@@ -122,6 +129,12 @@ public class AutoMine {
     private long lastDepositClick = 0;
     private boolean notifiedDeposit = false;
     private boolean notifiedPickaxe = false;
+
+    // Iron storage: when the bag is full of iron (no junk left to trash), walk to the
+    // old drop-off spot and ping the player to store it, then resume once there's room.
+    private static final BlockPos IRON_DROP = new BlockPos(20, 60, -684);
+    private boolean storingIron = false;
+    private boolean notifiedIron = false;
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -222,18 +235,31 @@ public class AutoMine {
         }
         notifiedPickaxe = false;
 
+        // Full-inventory routing: trash junk at the Skraldespand first (frees space,
+        // keeps iron); once it's pure iron and full, store it at the drop-off spot.
+        boolean full = inventoryFull(mc);
         if (depositing) {
-            // Stay in deposit mode until there's room again (player emptied some).
-            if (inventoryFull(mc) && hasJunk(mc)) {
+            if (full && hasJunk(mc)) {
                 doDeposit(mc);
-            } else {
-                depositing = false;
-                notifiedDeposit = false;
-                doMine(mc);
+                return;
             }
-        } else if (inventoryFull(mc) && hasJunk(mc)) {
+            depositing = false;
+            notifiedDeposit = false;
+        }
+        if (storingIron) {
+            if (full && !hasJunk(mc)) {
+                doStoreIron(mc);
+                return;
+            }
+            storingIron = false;
+            notifiedIron = false;
+        }
+        if (full && hasJunk(mc)) {
             depositing = true;
             doDeposit(mc);
+        } else if (full) {
+            storingIron = true;
+            doStoreIron(mc);
         } else {
             doMine(mc);
         }
@@ -278,6 +304,7 @@ public class AutoMine {
 
     private void doMine(Minecraft mc) {
         recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
+        claimDrops(mc);   // claim iron that came out of our breaks
 
         // Next block in the fixed serpentine order (computed first, so the reset
         // check below runs no matter where we're standing).
@@ -604,6 +631,29 @@ public class AutoMine {
         }
     }
 
+    /** Bag is full of iron: walk to the drop-off spot and ping the player to store it. */
+    private void doStoreIron(Minecraft mc) {
+        stopMining(mc);
+        double dx = (IRON_DROP.getX() + 0.5) - mc.thePlayer.posX;
+        double dz = (IRON_DROP.getZ() + 0.5) - mc.thePlayer.posZ;
+        if (Math.sqrt(dx * dx + dz * dz) > 1.8) {
+            navigate(mc, IRON_DROP, 2.0);
+            return;
+        }
+        stopWalk(mc);
+        clearPath();
+        notifyIron(mc); // then just wait until the player frees space
+    }
+
+    private void notifyIron(Minecraft mc) {
+        if (!notifiedIron) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    "§eAuto Mine: inventory fuldt af jern - opbevar det her (20 60 -684), så fortsætter jeg."));
+            mc.thePlayer.playSound("random.orb", 1f, 1f);
+            notifiedIron = true;
+        }
+    }
+
     private void notifyPickaxe(Minecraft mc) {
         if (!notifiedPickaxe) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
@@ -708,7 +758,7 @@ public class AutoMine {
         return total > 0 && solid >= (total + 1) / 2;
     }
 
-    /** Record blocks we finished breaking, and drop entries older than DROP_TTL. */
+    /** Record blocks we finished breaking, and drop entries older than BREAK_TTL. */
     private void recordBroken(Minecraft mc) {
         if (mining != null && mc.theWorld.isAirBlock(mining)) {
             broken.add(new long[]{mining.getX(), mining.getY(), mining.getZ(), System.currentTimeMillis()});
@@ -716,19 +766,50 @@ public class AutoMine {
         }
         long now = System.currentTimeMillis();
         for (Iterator<long[]> it = broken.iterator(); it.hasNext(); ) {
-            if (now - it.next()[3] > DROP_TTL) {
+            if (now - it.next()[3] > BREAK_TTL) {
                 it.remove();
             }
         }
     }
 
-    /** True if this item sits near a block we broke recently (i.e. it's our drop). */
-    private boolean isOurDrop(EntityItem it) {
+    /** Iron ore (the prize). Vanilla 1.8.9 iron_ore block. */
+    private boolean isIronDrop(EntityItem e) {
+        ItemStack s = e.getEntityItem();
+        return s != null && s.getItem() == Item.getItemFromBlock(Blocks.iron_ore);
+    }
+
+    /**
+     * Claim iron items that just came out of a block WE broke, by entity id. Once
+     * claimed we follow them by id, so another player's iron near our spot is never
+     * taken. Also prunes ids for items that despawned or got picked up.
+     */
+    private void claimDrops(Minecraft mc) {
+        long now = System.currentTimeMillis();
+        Set<Integer> present = new HashSet<Integer>();
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (!(o instanceof EntityItem)) {
+                continue;
+            }
+            EntityItem it = (EntityItem) o;
+            int id = it.getEntityId();
+            present.add(id);
+            if (seenItems.add(id) && isIronDrop(it) && bornFromOurBreak(it, now)) {
+                ourIron.add(id); // fresh iron from our break -> it's ours
+            }
+        }
+        seenItems.retainAll(present);
+        ourIron.retainAll(present);
+    }
+
+    private boolean bornFromOurBreak(EntityItem it, long now) {
         for (long[] b : broken) {
+            if (now - b[3] > CLAIM_WINDOW) {
+                continue;
+            }
             double dx = it.posX - (b[0] + 0.5);
             double dz = it.posZ - (b[2] + 0.5);
             double dy = it.posY - b[1];
-            if (dx * dx + dz * dz <= DROP_MATCH * DROP_MATCH && Math.abs(dy) <= 2.0) {
+            if (dx * dx + dz * dz <= CLAIM_MATCH * CLAIM_MATCH && Math.abs(dy) <= 2.0) {
                 return true;
             }
         }
@@ -736,10 +817,8 @@ public class AutoMine {
     }
 
     /**
-     * A drop to walk to, re-scanning the entity list only every 5 ticks (4x/sec)
-     * instead of every tick. Scanning every loaded entity 20x/sec is wasted work
-     * on a busy server; 4x/sec is plenty to notice and collect drops. Between
-     * scans we reuse the cached drop as long as it's still alive.
+     * A drop to walk to, re-scanning only every 5 ticks (4x/sec). We only ever detour
+     * for iron we've claimed as ours; junk is never chased.
      */
     private EntityItem currentDrop(Minecraft mc) {
         if (cachedDrop == null || cachedDrop.isDead || tick % 5 == 0) {
@@ -748,8 +827,11 @@ public class AutoMine {
         return cachedDrop;
     }
 
-    /** Nearest dropped item inside the box (with margin) worth walking to, or null. */
+    /** Nearest of OUR iron drops worth walking to, or null. */
     private EntityItem findItem(Minecraft mc) {
+        if (ourIron.isEmpty()) {
+            return null;
+        }
         double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
         EntityItem best = null;
         double bestD = COLLECT_R * COLLECT_R;
@@ -758,16 +840,11 @@ public class AutoMine {
                 continue;
             }
             EntityItem it = (EntityItem) o;
-            if (it.posX < MIN_X - 2 || it.posX > MAX_X + 3 || it.posZ < MIN_Z - 2 || it.posZ > MAX_Z + 3
-                    || it.posY < MIN_Y - 3 || it.posY > MAX_Y + 3) {
-                continue;
-            }
-            // Only our own drops (from blocks we broke), not other players'.
-            if (!isOurDrop(it)) {
+            if (!ourIron.contains(it.getEntityId())) {
                 continue;
             }
             double dx = it.posX - px, dz = it.posZ - pz;
-            // Drops right next to us get picked up automatically - don't walk for them.
+            // Iron right next to us gets picked up automatically - don't walk for it.
             if (dx * dx + dz * dz < IGNORE_NEAR * IGNORE_NEAR) {
                 continue;
             }
@@ -888,6 +965,8 @@ public class AutoMine {
         depositing = false;
         notifiedDeposit = false;
         notifiedPickaxe = false;
+        storingIron = false;
+        notifiedIron = false;
         buying = false;
         lastPosSet = false; // don't treat the next re-enable as a teleport
         clearPath();
@@ -896,6 +975,8 @@ public class AutoMine {
         finished = false;
         planIndexSince = System.currentTimeMillis();
         broken.clear();
+        seenItems.clear();
+        ourIron.clear();
         holding = false;
     }
 
