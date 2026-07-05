@@ -468,7 +468,7 @@ public class AutoMine {
         long now = System.currentTimeMillis();
         if (pathGoal == null || !pathGoal.equals(goal)) {
             // New destination - search right away.
-            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET);
+            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             pathGoal = goal;
             pathIndex = 0;
             pathSearchAt = now;
@@ -477,7 +477,7 @@ public class AutoMine {
             }
         } else if ((path == null || now - pathProgressAt > 3000) && now - pathSearchAt >= 1000) {
             // No path yet, or stuck - re-search (throttled so the A* isn't run every tick).
-            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET);
+            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             pathSearchAt = now;
             pathIndex = 0;
             if (path != null) {

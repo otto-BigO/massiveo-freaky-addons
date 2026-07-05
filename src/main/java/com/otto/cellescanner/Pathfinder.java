@@ -4,6 +4,7 @@ import net.minecraft.block.BlockLadder;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
@@ -34,10 +35,19 @@ public final class Pathfinder {
 
     /** A route from start to a standable spot within {@code reach} of goal, or null. */
     public static List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach) {
-        return findPath(w, start, goal, reach, 6000);
+        return findPath(w, start, goal, reach, 6000, 4);
     }
 
     public static List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach, int maxNodes) {
+        return findPath(w, start, goal, reach, maxNodes, 4);
+    }
+
+    /**
+     * {@code maxFall} = how many blocks it may drop down in one move. Bigger values
+     * let it take a straight drop instead of a giant detour; the caller sizes it off
+     * current health so a fall never kills.
+     */
+    public static List<BlockPos> findPath(World w, BlockPos start, BlockPos goal, double reach, int maxNodes, int maxFall) {
         PriorityQueue<Node> open = new PriorityQueue<Node>();
         HashMap<BlockPos, Double> gScore = new HashMap<BlockPos, Double>();
         HashSet<BlockPos> closed = new HashSet<BlockPos>();
@@ -62,7 +72,7 @@ public final class Pathfinder {
                 bestH = h;
                 best = cur;
             }
-            for (BlockPos nb : neighbors(w, cur.pos)) {
+            for (BlockPos nb : neighbors(w, cur.pos, maxFall)) {
                 if (closed.contains(nb)) {
                     continue;
                 }
@@ -82,13 +92,14 @@ public final class Pathfinder {
         return null;
     }
 
-    private static List<BlockPos> neighbors(World w, BlockPos p) {
+    private static List<BlockPos> neighbors(World w, BlockPos p, int maxFall) {
         List<BlockPos> out = new ArrayList<BlockPos>(8);
         boolean headClear = passable(w, p.up().up()); // room to hop
         if (isLadder(w, p) && passable(w, p.up())) {
             out.add(p.up()); // climb straight up
         }
         boolean srcHeadClear = passable(w, p.up()) && headClear; // room to jump from here
+        int fall = Math.max(1, maxFall);
         for (EnumFacing d : MOVE_DIRS) {
             BlockPos fwd = p.offset(d);
             if (canStand(w, fwd)) {
@@ -96,7 +107,7 @@ public final class Pathfinder {
             } else if (srcHeadClear && canAscend(w, fwd)) {
                 out.add(fwd.up()); // jump up 1 onto a full block (Baritone-style checks)
             } else if (passable(w, fwd) && passable(w, fwd.up())) {
-                for (int k = 1; k <= 3; k++) { // drop down up to 3
+                for (int k = 1; k <= fall; k++) { // drop down up to maxFall (survivable)
                     BlockPos dn = fwd.down(k);
                     if (canStand(w, dn)) {
                         out.add(dn);
@@ -151,6 +162,22 @@ public final class Pathfinder {
         return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
     }
 
+    /**
+     * How far the player may safely drop, from current health. Fall damage is
+     * (blocks - 3) half-hearts, so we allow blocks up to (health - 3) to keep a
+     * ~3-heart buffer and never die. Always allows small drops, capped at 20.
+     */
+    public static int safeFall(EntityPlayer p) {
+        int maxFall = (int) Math.floor(p.getHealth()) - 3; // damage(=fall-3) <= health-6
+        if (maxFall < 3) {
+            maxFall = 3;
+        }
+        if (maxFall > 20) {
+            maxFall = 20;
+        }
+        return maxFall;
+    }
+
     /** True if this is a full-height solid block you can actually stand on top of. */
     public static boolean canWalkOn(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
@@ -190,7 +217,10 @@ public final class Pathfinder {
         int dz = Math.abs(b.getZ() - a.getZ());
         int dy = b.getY() - a.getY();
         double horiz = (dx != 0 && dz != 0) ? 1.414 : 1.0; // diagonals cost their real length
-        double vert = dy > 0 ? 0.4 : (dy < 0 ? 0.2 : 0.0);
+        // A drop costs a bit per block so it prefers small drops (and flat) but will
+        // still take a big drop over a much longer detour. Cheaper than walking (1.0
+        // per block) so a straight drop beats a long way around.
+        double vert = dy > 0 ? dy * 1.2 : (dy < 0 ? (-dy) * 0.45 : 0.0);
         return horiz + vert;
     }
 

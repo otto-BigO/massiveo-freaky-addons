@@ -127,7 +127,7 @@ public class PathWalker {
 
         boolean stale = path == null || now - progressAt > 3000; // no path yet, or stuck
         if (stale && now - lastSearch >= SEARCH_EVERY) {
-            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET);
+            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             lastSearch = now;
             index = 0;
             if (path != null) {
@@ -154,7 +154,7 @@ public class PathWalker {
         if (index >= path.size()) {
             // Reached the end of a partial path - re-plan from here now (new chunks
             // have loaded as we walked, so the next segment goes further).
-            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET);
+            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             lastSearch = now;
             index = 0;
             progressAt = now;
