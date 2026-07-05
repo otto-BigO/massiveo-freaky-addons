@@ -176,6 +176,10 @@ public class CelleConfig {
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
     public Boolean modIconEnabled = Boolean.TRUE;
 
+    // Debug: dumps the contents of the "Flip!" GUI to chat (for building the flip
+    // case-opening addon). Off by default.
+    public Boolean debugEnabled = Boolean.FALSE;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
@@ -309,6 +313,7 @@ public class CelleConfig {
                 this.pvpMineY = loaded.pvpMineY;
                 this.autoMineEnabled = loaded.autoMineEnabled;
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
+                this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;

@@ -14,8 +14,11 @@ public class GuiGuiSettings extends GuiScreen {
 
     private static final int ID_MOVE_HUD = 0;
     private static final int ID_BACK = 1;
+    private static final int ID_DEBUG = 2;
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
+
+    private GuiButton debugButton;
 
     @Override
     public void initGui() {
@@ -24,7 +27,14 @@ public class GuiGuiSettings extends GuiScreen {
         int y = this.height / 2 - 6;
         this.buttonList.add(new StyledButton(ID_MOVE_HUD, left, y, PANEL_W, BTN_H, "Flyt HUD'er"));
         y += BTN_H + 6;
+        this.buttonList.add(debugButton = new StyledButton(ID_DEBUG, left, y, PANEL_W, BTN_H, debugLabel()));
+        y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+    }
+
+    private String debugLabel() {
+        boolean on = CelleScannerMod.config.debugEnabled != null && CelleScannerMod.config.debugEnabled;
+        return "Debug: " + (on ? "Til" : "Fra");
     }
 
     @Override
@@ -32,6 +42,12 @@ public class GuiGuiSettings extends GuiScreen {
         switch (button.id) {
             case ID_MOVE_HUD:
                 CelleActions.openHudEditor();
+                break;
+            case ID_DEBUG:
+                boolean on = CelleScannerMod.config.debugEnabled != null && CelleScannerMod.config.debugEnabled;
+                CelleScannerMod.config.debugEnabled = !on;
+                CelleScannerMod.config.save();
+                debugButton.displayString = debugLabel();
                 break;
             case ID_BACK:
                 CelleActions.openHub();
