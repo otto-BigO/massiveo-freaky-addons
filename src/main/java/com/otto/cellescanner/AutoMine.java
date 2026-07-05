@@ -83,6 +83,12 @@ public class AutoMine {
     private long planIndexSince = 0;   // when planIndex last changed (stuck detection)
     private boolean finished = false;  // whole plan cleared - idle until the mine resets
 
+    // Layer completeness: before descending to the next layer, make sure every block
+    // in the current layer is actually broken (the serpentine can skip stragglers).
+    private int currentLayerY = MAX_Y;
+    private int cleanupLayer = Integer.MIN_VALUE; // layer we're currently cleaning up
+    private long cleanupSince = 0;                // when cleanup of that layer started
+
     // Positions of blocks we've broken recently, so we only collect our own drops.
     private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
 
@@ -297,6 +303,7 @@ public class AutoMine {
         planIndex = 0;
         finished = false;
         planIndexSince = System.currentTimeMillis();
+        currentLayerY = MAX_Y;
         target = null;
         cachedDrop = null;
         clearPath();
@@ -330,8 +337,25 @@ public class AutoMine {
                 planIndex = 0;
                 finished = false;
                 planIndexSince = System.currentTimeMillis();
+                currentLayerY = MAX_Y;
             }
             return;
+        }
+
+        // Layer completeness: before descending to a lower layer, sweep the layer we
+        // just finished for any straggler blocks (skipped ones, or left by a player)
+        // and clear them first. Give up on a layer after a while so we can't get
+        // wedged on an unreachable straggler.
+        int ty = target.getY();
+        if (ty < currentLayerY) {
+            BlockPos leftover = leftoverInLayer(mc, currentLayerY);
+            if (leftover != null && !cleanupTimedOut(currentLayerY)) {
+                target = leftover; // mine the straggler before descending
+            } else {
+                currentLayerY = ty; // layer clean (or timed out) - descend
+            }
+        } else if (ty > currentLayerY) {
+            currentLayerY = ty; // went up (e.g. after a reset)
         }
 
         // Outside the mine outline (e.g. after buying a pickaxe, depositing, or a
@@ -749,6 +773,32 @@ public class AutoMine {
         planIndexSince = System.currentTimeMillis();
     }
 
+    /** First non-air in-box block on layer y (a straggler to clean up), or null. */
+    private BlockPos leftoverInLayer(Minecraft mc, int y) {
+        if (y < MIN_Y || y > MAX_Y) {
+            return null;
+        }
+        for (int x = MIN_X; x <= MAX_X; x++) {
+            for (int z = MIN_Z; z <= MAX_Z; z++) {
+                BlockPos p = new BlockPos(x, y, z);
+                if (!mc.theWorld.isAirBlock(p)) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** True once we've been cleaning up layer y too long (probably an unreachable straggler). */
+    private boolean cleanupTimedOut(int y) {
+        long now = System.currentTimeMillis();
+        if (cleanupLayer != y) {
+            cleanupLayer = y;
+            cleanupSince = now;
+        }
+        return now - cleanupSince > 6000;
+    }
+
     /**
      * True when the mine has clearly refilled (a reset), not just a few leftover
      * blocks we skipped. Requires at least half of the sampled positions to be
@@ -985,6 +1035,7 @@ public class AutoMine {
         planIndex = 0;
         finished = false;
         planIndexSince = System.currentTimeMillis();
+        currentLayerY = MAX_Y;
         broken.clear();
         seenItems.clear();
         ourIron.clear();
