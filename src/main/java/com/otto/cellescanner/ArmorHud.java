@@ -20,6 +20,8 @@ public class ArmorHud {
 
     private static boolean errorLogged = false;
 
+    private static long lastWarnSoundTime = 0L;
+
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL || !CelleScannerMod.config.armorHudEnabled) {
@@ -28,7 +30,7 @@ public class ArmorHud {
         // A thrown exception in a render handler crashes the whole game, so it's
         // contained here: the HUD just goes dark and logs once instead.
         try {
-            render();
+            render(event);
         } catch (Throwable t) {
             if (!errorLogged) {
                 errorLogged = true;
@@ -37,7 +39,7 @@ public class ArmorHud {
         }
     }
 
-    private void render() {
+    private void render(RenderGameOverlayEvent.Post event) {
         CelleConfig cfg = CelleScannerMod.config;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.inventory == null) {
@@ -50,6 +52,8 @@ public class ArmorHud {
         RenderItem ri = mc.getRenderItem();
         int x = cfg.armorHudX;
         int y = cfg.armorHudY;
+
+        boolean anyLowDurability = false;
 
         // Pass 1: item icons + vanilla durability bar (needs GUI item lighting).
         RenderHelper.enableGUIStandardItemLighting();
@@ -82,8 +86,29 @@ public class ArmorHud {
                 int pct = max > 0 ? (remaining * 100 / max) : 100;
                 int color = pct <= cfg.armorHudWarnPercent ? 0xFF5555 : (pct <= 25 ? 0xFFFF55 : 0xFFFFFF);
                 fr.drawStringWithShadow(remaining + "/" + max, x + 20, ry + 4, color);
+
+                if (pct <= cfg.armorHudWarnPercent) {
+                    anyLowDurability = true;
+                }
             }
             row++;
+        }
+
+        // Pass 3: Flashing screen alert & sound warning for low durability
+        if (anyLowDurability) {
+            long now = System.currentTimeMillis();
+            boolean flash = (now / 250) % 2 == 0;
+            if (flash) {
+                int cx = event.resolution.getScaledWidth() / 2;
+                int cy = event.resolution.getScaledHeight() / 2 + 16;
+                String alert = net.minecraft.util.EnumChatFormatting.RED + "ADVARSEL: LAV HOLDENHED!";
+                fr.drawStringWithShadow(alert, cx - fr.getStringWidth(alert) / 2, cy, 0xFF5555);
+            }
+
+            if (now - lastWarnSoundTime > 8000L) { // Warn sound every 8 seconds
+                lastWarnSoundTime = now;
+                mc.thePlayer.playSound("random.orb", 0.6f, 0.5f);
+            }
         }
     }
 }

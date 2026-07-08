@@ -24,6 +24,8 @@ public class CustomArmorLayer extends LayerBipedArmor {
     // Protection is enchantment id 0 in 1.8.
     private static final int PROTECTION_ID = 0;
 
+    public static String previewPackOverride = null;
+
     private static final Map<String, ResourceLocation> CACHE = new HashMap<String, ResourceLocation>();
 
     public CustomArmorLayer(RendererLivingEntity<?> renderer) {
@@ -50,8 +52,33 @@ public class CustomArmorLayer extends LayerBipedArmor {
         }
         // Vanilla uses layer_2 for leggings (slot 2), layer_1 for the rest.
         int layer = (slot == 2) ? 2 : 1;
-        String pack = "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "hypixel" : "mesterholm";
-        String key = pack + "/" + material + "_p" + level + "_layer_" + layer;
+        String pack = previewPackOverride != null ? previewPackOverride 
+                : ("hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "hypixel" : "mesterholm");
+        
+        String targetPack = pack;
+        String targetMaterial = material;
+        int targetLevel = level;
+
+        if ("hypixel".equals(pack)) {
+            if ("iron".equals(material)) {
+                targetPack = "mesterholm";
+            } else if ("diamond".equals(material)) {
+                if (level == 1) {
+                    targetPack = "mesterholm";
+                } else if (level == 2) {
+                    targetMaterial = "diamond";
+                    targetLevel = 4;
+                } else if (level == 3) {
+                    targetMaterial = "iron";
+                    targetLevel = 4;
+                } else if (level == 4) {
+                    targetMaterial = "diamond";
+                    targetLevel = 2;
+                }
+            }
+        }
+
+        String key = targetPack + "/" + targetMaterial + "_p" + targetLevel + "_layer_" + layer;
         ResourceLocation res = CACHE.get(key);
         if (res == null) {
             res = new ResourceLocation("cellescanner", "textures/models/armor/" + key + ".png");

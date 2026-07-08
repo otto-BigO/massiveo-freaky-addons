@@ -20,6 +20,10 @@ import java.util.regex.Pattern;
  * "Gange" screen: every remembered celle grouped by its gang (corridor), each
  * with its live countdown. Gange are filled in automatically by GangInfo, which
  * learns them from "/ce info". Click a celle to point the Celle Finder at it.
+ *
+ * SHELVED: the Gange addon is intentionally parked. Its hub tile is commented
+ * out in AddonList, so this screen is currently unreachable. Kept for when the
+ * addon is picked up again - do not delete.
  */
 public class GuiGange extends GuiScreen {
 
@@ -139,7 +143,7 @@ public class GuiGange extends GuiScreen {
     }
 
     // Letter prefix (level) + number of a celle id, for the observed-span readout.
-    private static final Pattern ID = Pattern.compile("([A-Za-z]{1,2})([0-9]{1,7})");
+    private static final Pattern ID = Pattern.compile("([A-Za-z]{1,5})([0-9]{1,7})");
 
     /**
      * The id span actually seen for a gang, per level letter, e.g. "B286-B494"

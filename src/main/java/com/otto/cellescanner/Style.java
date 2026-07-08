@@ -36,10 +36,22 @@ public final class Style {
         Gui.drawRect(x1 + 1, y2 - 1, x2 - 1, y2, color);
     }
 
-    /** A panel: a dark rounded body with a 1px darker border. */
+    /** A panel: a dark rounded body with a gradient background and glowing borders. */
     public static void panel(int x1, int y1, int x2, int y2) {
-        roundedRect(x1, y1, x2, y2, PANEL_BORDER);
-        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, PANEL_BG);
+        // Outer border
+        roundedRect(x1, y1, x2, y2, 0xFF18181F);
+        // Inner glowing border
+        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0x334BE08C); // 20% alpha accent glow
+        
+        // Gradient fill
+        for (int y = y1 + 2; y < y2 - 2; y++) {
+            float ratio = (float)(y - y1) / (y2 - y1);
+            int r = (int)(0x1C * (1 - ratio) + 0x0E * ratio);
+            int g = (int)(0x1C * (1 - ratio) + 0x0E * ratio);
+            int b = (int)(0x24 * (1 - ratio) + 0x12 * ratio);
+            int color = 0xE6000000 | (r << 16) | (g << 8) | b;
+            Gui.drawRect(x1 + 2, y, x2 - 2, y + 1, color);
+        }
     }
 
     /**

@@ -65,7 +65,7 @@ public class GuiItemValues extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Viser en vares værdi under navnet i tooltippet.", cx, titleY + 14, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, ItemValues.count() + " varer i prislisten.", cx, titleY + 24, 0xAAAAAA);
 
-        int infoY = this.height / 2 + 40;
+        int infoY = this.height / 2 + 68;
         drawCenteredString(this.fontRendererObj, "Rediger priser i: config/massiveo_prices.json", cx, infoY, 0x888888);
         drawCenteredString(this.fontRendererObj, "og tryk Genindlæs priser (ingen genstart nødvendig).", cx, infoY + 11, 0x888888);
 

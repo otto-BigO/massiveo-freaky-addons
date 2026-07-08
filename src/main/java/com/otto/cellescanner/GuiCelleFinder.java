@@ -29,7 +29,7 @@ public class GuiCelleFinder extends GuiScreen {
     private static final int ID_WALK = 4;
     // Recent-celle quick-pick buttons get ids RECENT_BASE + index.
     private static final int RECENT_BASE = 100;
-    private static final int MAX_RECENT = 8;
+    private static final int MAX_RECENT = 4;
 
     private static final int FIELD_W = 200;
     private static final int FIELD_H = 18;

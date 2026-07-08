@@ -2,7 +2,12 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,10 +15,10 @@ import java.util.List;
 
 /**
  * The main menu for Massiveo's Freaky Addons - the hub from the keybind (B).
- * Two levels: the genre list (Celler / PvP / World), and, when a genre is
- * chosen, the addons inside it. Each level is its own instance of this screen
- * (navigation uses displayGuiScreen, never an in-place buttonList rebuild during
- * a click - that caused clicks to "fall through" onto the newly-placed button).
+ * Displays a search field at the top to search and toggle any addon.
+ * If no search query is active, groups addons by category.
+ * Support right-click on any addon to quickly enable/disable it.
+ * Features scroll functionality to handle unlimited addons/categories.
  */
 public class GuiAddonsHub extends GuiScreen {
 
@@ -29,9 +34,17 @@ public class GuiAddonsHub extends GuiScreen {
 
     private final List<String> levelCategories = new ArrayList<String>();
     private final List<MassiveoAddons.Addon> levelAddons = new ArrayList<MassiveoAddons.Addon>();
+    private final List<MassiveoAddons.Addon> searchResults = new ArrayList<MassiveoAddons.Addon>();
     private final List<GuiButton> itemButtons = new ArrayList<GuiButton>();
 
-    private int firstRowY;
+    private GuiTextField searchField;
+
+    // Scrolling state
+    private float scroll = 0f;
+    private int targetScroll = 0;
+    private int maxScroll = 0;
+    private String lastQuery = "";
+    private String lastCategory = "";
 
     // Settings gear (bottom-right of the card).
     private static final int GEAR_SIZE = 9;
@@ -47,46 +60,137 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     public void initGui() {
+        Keyboard.enableRepeatEvents(true);
         AddonList.ensureRegistered();
+
+        String carryText = (searchField != null) ? searchField.getText() : "";
+        int cx = this.width / 2;
+        int cy = this.height / 2;
+
+        searchField = new GuiTextField(999, this.fontRendererObj, cx - PANEL_W / 2, cy - 116, PANEL_W, 16);
+        searchField.setMaxStringLength(32);
+        searchField.setText(carryText);
+        searchField.setFocused(true);
+
+        rebuild();
+    }
+
+    @Override
+    public void onGuiClosed() {
+        Keyboard.enableRepeatEvents(false);
+    }
+
+    private void clampScroll() {
+        if (targetScroll < 0) targetScroll = 0;
+        if (targetScroll > maxScroll) targetScroll = maxScroll;
+    }
+
+    private void updateButtonPositions() {
+        int cy = this.height / 2;
+        int startY = cy - 70 - (int) scroll;
+        for (int i = 0; i < itemButtons.size(); i++) {
+            GuiButton b = itemButtons.get(i);
+            b.yPosition = startY + i * ROW_H;
+        }
+    }
+
+    @Override
+    public void updateScreen() {
+        // Smooth scroll interpolation
+        float diff = targetScroll - scroll;
+        if (Math.abs(diff) > 0.05f) {
+            scroll += diff * 0.2f;
+            updateButtonPositions();
+        } else {
+            scroll = targetScroll;
+            updateButtonPositions();
+        }
+    }
+
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        int d = Mouse.getDWheel();
+        if (d > 0) {
+            targetScroll -= ROW_H; // scroll up 1 row
+        } else if (d < 0) {
+            targetScroll += ROW_H; // scroll down 1 row
+        }
+        if (d != 0) {
+            clampScroll();
+        }
+    }
+
+    private void rebuild() {
         this.buttonList.clear();
         this.levelCategories.clear();
         this.levelAddons.clear();
+        this.searchResults.clear();
         this.itemButtons.clear();
 
-        int rowCount;
-        if (category == null) {
-            levelCategories.addAll(MassiveoAddons.categories());
-            rowCount = levelCategories.size();
-        } else {
-            levelAddons.addAll(MassiveoAddons.addonsIn(category));
-            rowCount = levelAddons.size();
+        String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
+        boolean isSearching = !query.isEmpty();
+
+        String catKey = category == null ? "" : category;
+        if (!query.equals(lastQuery) || !catKey.equals(lastCategory)) {
+            scroll = 0f;
+            targetScroll = 0;
+            lastQuery = query;
+            lastCategory = catKey;
         }
 
         int left = this.width / 2 - PANEL_W / 2;
-        int contentH = (rowCount + 1) * ROW_H; // items + close/back
-        int y = Math.max(this.height / 2 - 130, this.height / 2 - contentH / 2);
-        firstRowY = y;
+        int y = this.height / 2 - 70;
 
-        int id = 0;
-        if (category == null) {
-            for (String cat : levelCategories) {
-                int count = MassiveoAddons.addonsIn(cat).size();
-                String label = catColor(cat) + cat + "  " + EnumChatFormatting.GRAY + "(" + count + ")";
-                GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, label);
-                this.buttonList.add(b);
-                this.itemButtons.add(b);
-                y += ROW_H;
+        if (isSearching) {
+            // Find matching addons across all categories
+            for (String cat : MassiveoAddons.categories()) {
+                for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
+                    if (a.name().toLowerCase().contains(query) || a.description().toLowerCase().contains(query)) {
+                        searchResults.add(a);
+                    }
+                }
             }
-            this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Luk"));
-        } else {
-            for (MassiveoAddons.Addon addon : levelAddons) {
+
+            int id = 0;
+            for (MassiveoAddons.Addon addon : searchResults) {
                 GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, addonLabel(addon));
                 this.buttonList.add(b);
                 this.itemButtons.add(b);
                 y += ROW_H;
             }
-            this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
+            this.buttonList.add(new StyledButton(ID_BACK, left, this.height / 2 + 110, PANEL_W, BTN_H, "Ryd søgning"));
+        } else {
+            if (category == null) {
+                levelCategories.addAll(MassiveoAddons.categories());
+                int id = 0;
+                for (String cat : levelCategories) {
+                    int count = MassiveoAddons.addonsIn(cat).size();
+                    String label = catColor(cat) + cat + "  " + EnumChatFormatting.GRAY + "(" + count + ")";
+                    GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, label);
+                    this.buttonList.add(b);
+                    this.itemButtons.add(b);
+                    y += ROW_H;
+                }
+                this.buttonList.add(new StyledButton(ID_CLOSE, left, this.height / 2 + 110, PANEL_W, BTN_H, "Luk"));
+            } else {
+                levelAddons.addAll(MassiveoAddons.addonsIn(category));
+                int id = 0;
+                for (MassiveoAddons.Addon addon : levelAddons) {
+                    GuiButton b = new StyledButton(id++, left, y, PANEL_W, BTN_H, addonLabel(addon));
+                    this.buttonList.add(b);
+                    this.itemButtons.add(b);
+                    y += ROW_H;
+                }
+                this.buttonList.add(new StyledButton(ID_BACK, left, this.height / 2 + 110, PANEL_W, BTN_H, "< Tilbage"));
+            }
         }
+
+        int count = isSearching ? searchResults.size() : (category == null ? levelCategories.size() : levelAddons.size());
+        int totalHeight = count * ROW_H;
+        maxScroll = Math.max(0, totalHeight - 170); // Viewport is 170px high (from cy - 70 to cy + 100)
+        clampScroll();
+        updateButtonPositions();
     }
 
     private static String addonLabel(MassiveoAddons.Addon addon) {
@@ -114,26 +218,42 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
-        // All navigation swaps to a fresh screen rather than rebuilding this
-        // one's buttons mid-click, so a click can never fall through.
         if (button.id == ID_CLOSE) {
             this.mc.displayGuiScreen(null);
             return;
         }
         if (button.id == ID_BACK) {
-            this.mc.displayGuiScreen(new GuiAddonsHub());
+            if (searchField != null && !searchField.getText().isEmpty()) {
+                searchField.setText("");
+                rebuild();
+            } else {
+                this.mc.displayGuiScreen(new GuiAddonsHub());
+            }
             return;
         }
         if (button.id >= 0) {
-            if (category == null && button.id < levelCategories.size()) {
-                this.mc.displayGuiScreen(new GuiAddonsHub(levelCategories.get(button.id)));
-            } else if (category != null && button.id < levelAddons.size()) {
-                levelAddons.get(button.id).open();
+            String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
+            boolean isSearching = !query.isEmpty();
+
+            if (isSearching) {
+                if (button.id < searchResults.size()) {
+                    searchResults.get(button.id).open();
+                }
+            } else {
+                if (category == null && button.id < levelCategories.size()) {
+                    this.mc.displayGuiScreen(new GuiAddonsHub(levelCategories.get(button.id)));
+                } else if (category != null && button.id < levelAddons.size()) {
+                    levelAddons.get(button.id).open();
+                }
             }
         }
     }
 
     private int hoveredItem(int mouseX, int mouseY) {
+        int cy = this.height / 2;
+        if (mouseY < cy - 80 || mouseY > cy + 100) {
+            return -1; // Not hovering within viewport bounds
+        }
         for (int i = 0; i < itemButtons.size(); i++) {
             GuiButton b = itemButtons.get(i);
             if (mouseX >= b.xPosition && mouseX <= b.xPosition + b.width
@@ -150,18 +270,69 @@ public class GuiAddonsHub extends GuiScreen {
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
-        int titleY = firstRowY - 34;
-        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx, titleY, 0xFF55FF);
-        String subtitle = category == null ? "Vælg en kategori" : catColor(category) + category;
-        drawCenteredString(this.fontRendererObj, subtitle, cx, titleY + 11, 0xAAAAAA);
-        drawRect(cx - PANEL_W / 2, titleY + 22, cx + PANEL_W / 2, titleY + 23, Style.ACCENT);
+        int cy = this.height / 2;
 
-        super.drawScreen(mouseX, mouseY, partialTicks);
+        int titleY = cy - 138;
+        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx, titleY, 0xFF55FF);
+
+        String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
+        boolean isSearching = !query.isEmpty();
+        String subtitle = isSearching ? "Søgeresultater" : (category == null ? "Vælg en kategori" : catColor(category) + category);
+        drawCenteredString(this.fontRendererObj, subtitle, cx, cy - 92, 0xAAAAAA);
+
+        searchField.drawTextBox();
+        if (searchField.getText().isEmpty() && !searchField.isFocused()) {
+            drawString(this.fontRendererObj, EnumChatFormatting.ITALIC + "Skriv for at s\u00f8ge...", cx - PANEL_W / 2 + 4, cy - 112, 0x888888);
+        }
+
+        // Render viewport with scissoring
+        ScaledResolution sr = new ScaledResolution(this.mc);
+        int scale = sr.getScaleFactor();
+        int scissorX = (cx - PANEL_W / 2) * scale;
+        int scissorY = (this.mc.displayHeight - (cy + 100) * scale);
+        int scissorW = PANEL_W * scale;
+        int scissorH = 180 * scale; // Viewport height from cy-80 to cy+100 is 180px
+
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
+
+        // Render addon buttons inside scissor
+        for (GuiButton b : this.buttonList) {
+            if (b.id >= 0 && b.id < 1000) {
+                b.drawButton(this.mc, mouseX, mouseY);
+            }
+        }
+
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+        // Render other buttons (back/close) outside scissor
+        for (GuiButton b : this.buttonList) {
+            if (b.id == ID_CLOSE || b.id == ID_BACK) {
+                b.drawButton(this.mc, mouseX, mouseY);
+            }
+        }
+
+        // Draw scrollbar if content overflows
+        if (maxScroll > 0) {
+            int totalHeight = (isSearching ? searchResults.size() : (category == null ? levelCategories.size() : levelAddons.size())) * ROW_H;
+            double visibleRatio = 170.0 / totalHeight;
+            int trackH = 172;
+            int thumbH = (int) Math.max(15, visibleRatio * trackH);
+            double scrollRatio = (double) scroll / maxScroll;
+            int thumbY = (cy - 76) + (int) (scrollRatio * (trackH - thumbH));
+
+            // Track background
+            drawRect(cx + PANEL_W / 2 + 4, cy - 76, cx + PANEL_W / 2 + 6, cy + 96, 0x33FFFFFF);
+            // Thumb
+            Style.roundedRect(cx + PANEL_W / 2 + 3, thumbY, cx + PANEL_W / 2 + 7, thumbY + thumbH, Style.ACCENT);
+        }
 
         int hovered = hoveredItem(mouseX, mouseY);
         if (hovered >= 0) {
             String hint;
-            if (category == null) {
+            if (isSearching) {
+                hint = searchResults.get(hovered).description();
+            } else if (category == null) {
                 String cat = levelCategories.get(hovered);
                 hint = MassiveoAddons.addonsIn(cat).size() + " addons i " + cat;
             } else {
@@ -198,10 +369,69 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        int cy = this.height / 2;
+        boolean clickInViewport = (mouseY >= cy - 80 && mouseY <= cy + 100);
+
+        if (mouseButton == 1) { // Right-click to quick toggle
+            if (clickInViewport) {
+                for (GuiButton b : this.buttonList) {
+                    if (b.id >= 0 && b.id < 1000 && b.mousePressed(this.mc, mouseX, mouseY) && b.enabled) {
+                        String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
+                        boolean isSearching = !query.isEmpty();
+
+                        b.playPressSound(this.mc.getSoundHandler());
+                        if (isSearching && b.id < searchResults.size()) {
+                            MassiveoAddons.Addon addon = searchResults.get(b.id);
+                            addon.toggle();
+                            b.displayString = addonLabel(addon);
+                        } else if (!isSearching && category != null && b.id < levelAddons.size()) {
+                            MassiveoAddons.Addon addon = levelAddons.get(b.id);
+                            addon.toggle();
+                            b.displayString = addonLabel(addon);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Temporarily disable viewport buttons if click was outside the list area
+        if (!clickInViewport) {
+            for (GuiButton b : this.buttonList) {
+                if (b.id >= 0 && b.id < 1000) {
+                    b.enabled = false;
+                }
+            }
+        }
+
         super.mouseClicked(mouseX, mouseY, mouseButton);
+
+        // Re-enable them
+        if (!clickInViewport) {
+            for (GuiButton b : this.buttonList) {
+                if (b.id >= 0 && b.id < 1000) {
+                    b.enabled = true;
+                }
+            }
+        }
+
+        if (searchField != null) {
+            searchField.mouseClicked(mouseX, mouseY, mouseButton);
+        }
         if (mouseButton == 0 && mouseX >= gearX - 3 && mouseX <= gearX + GEAR_SIZE + 3
                 && mouseY >= gearY - 3 && mouseY <= gearY + GEAR_SIZE + 3) {
             this.mc.displayGuiScreen(new GuiGuiSettings());
+        }
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (keyCode == 1) { // ESC closes
+            this.mc.displayGuiScreen(null);
+            return;
+        }
+        if (searchField != null && searchField.textboxKeyTyped(typedChar, keyCode)) {
+            rebuild();
         }
     }
 

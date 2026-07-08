@@ -24,8 +24,8 @@ import java.util.regex.Pattern;
  */
 public class PlayerInfo {
 
-    private static final Pattern HEADER = Pattern.compile("\\{\\s*([A-Za-z]{1,2}[0-9]{2,5})\\s*\\}");
-    private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,2}[0-9]{2,5}\\b");
+    private static final Pattern HEADER = Pattern.compile("\\{\\s*([A-Za-z]{1,5}[0-9]{1,5})\\s*\\}");
+    private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,5}[0-9]{1,5}\\b");
     private static final long WINDOW_MS = 4000L;
 
     /** Parsed "/ce info" block for a single celle. */
@@ -93,10 +93,6 @@ public class PlayerInfo {
         return selected;
     }
 
-    public static String getSelectedId() {
-        return selectedId;
-    }
-
     public static boolean isFindLoading() {
         return findActive && System.currentTimeMillis() <= findDeadline && celleIds.isEmpty();
     }
@@ -151,6 +147,8 @@ public class PlayerInfo {
                 String lo = tr.toLowerCase(Locale.ROOT);
                 if (lo.startsWith("lokation:")) {
                     selected.gang = value(tr);
+                    CellePositions.recordInfo(selected.id, selected.gang, -1L);
+                    CelleActions.checkPendingWalk(selected.id);
                     event.setCanceled(true);
                     return;
                 }

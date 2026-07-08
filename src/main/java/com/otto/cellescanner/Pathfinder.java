@@ -225,6 +225,27 @@ public final class Pathfinder {
     }
 
     /**
+     * Waypoint bookkeeping for the followers: consume every waypoint the player is
+     * standing on, looking a few ahead so slightly overshooting a corner recaptures
+     * the path instead of turning around to walk back to a waypoint behind us.
+     * Returns the first index not yet reached (may equal {@code index}).
+     */
+    public static int consumeWaypoints(List<BlockPos> path, int index, double px, double py, double pz) {
+        int next = index;
+        int limit = Math.min(path.size(), index + 4);
+        for (int j = index; j < limit; j++) {
+            BlockPos wp = path.get(j);
+            double dx = (wp.getX() + 0.5) - px;
+            double dz = (wp.getZ() + 0.5) - pz;
+            if (dx * dx + dz * dz < 0.45 && Math.abs(wp.getY() - py) < 1.3) {
+                next = j + 1;
+                limit = Math.min(path.size(), j + 4); // extend the window past a hit
+            }
+        }
+        return next;
+    }
+
+    /**
      * True if the path from index {@code i} runs straight (same horizontal direction,
      * flat) for at least {@code minSteps} - a stretch worth sprinting.
      */

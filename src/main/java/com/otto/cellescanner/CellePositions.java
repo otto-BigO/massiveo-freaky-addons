@@ -147,6 +147,7 @@ public final class CellePositions {
                 || existing.remainingSeconds != remainingSeconds || existing.valueUpdatedAt != valueUpdatedAt || existing.timerConfirmed != timerConfirmed
                 || !displayId.equals(existing == null ? null : existing.displayId);
 
+        boolean isNew = (existing == null);
         if (existing == null) {
             existing = new Entry();
             known.put(key, existing);
@@ -167,6 +168,15 @@ public final class CellePositions {
 
         if (changed) {
             save();
+            if (isNew) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+                if (mc.thePlayer != null) {
+                    mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                            net.minecraft.util.EnumChatFormatting.GREEN + "[Celle Scanner] Ny celle kortlagt: " 
+                            + displayId + " (" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")"
+                    ));
+                }
+            }
         }
     }
 
@@ -219,11 +229,15 @@ public final class CellePositions {
         if (file == null || celleId == null) {
             return;
         }
-        Entry e = known.get(normalizeKey(celleId));
+        String key = normalizeKey(celleId);
+        Entry e = known.get(key);
+        boolean isNew = (e == null);
         if (e == null) {
-            return;
+            e = new Entry();
+            e.displayId = celleId.trim();
+            known.put(key, e);
         }
-        boolean changed = false;
+        boolean changed = isNew;
         if (gang != null && !gang.isEmpty() && !gang.equals(e.gang)) {
             e.gang = gang;
             changed = true;
@@ -262,10 +276,6 @@ public final class CellePositions {
      */
     private static String normalizeKey(String celleId) {
         return celleId.trim().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    public static int knownCount() {
-        return known.size();
     }
 
     /**

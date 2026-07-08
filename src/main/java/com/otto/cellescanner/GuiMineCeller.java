@@ -1,5 +1,6 @@
 package com.otto.cellescanner;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
@@ -13,6 +14,7 @@ import java.util.List;
  * Control screen for the Mine Celler addon. Fetch your celler from the server
  * with "/ce find", toggle their gold ESP, add/clear ids, and click a celle in
  * the list to point the Finder compass at it and walk there.
+ * Displays a live 2D radar grid mapping your cell positions.
  */
 public class GuiMineCeller extends GuiScreen {
 
@@ -22,9 +24,9 @@ public class GuiMineCeller extends GuiScreen {
     private static final int ID_CLEAR = 3;
     private static final int ID_BACK = 4;
     private static final int FIND_BASE = 100;
-    private static final int MAX_ROWS = 8;
+    private static final int MAX_ROWS = 4;
 
-    private static final int FIELD_W = 200;
+    private static final int FIELD_W = 150;
     private static final int FIELD_H = 18;
     private static final int BTN_H = 20;
     private static final int ROW_GAP = 6;
@@ -45,7 +47,7 @@ public class GuiMineCeller extends GuiScreen {
         this.shownIds.clear();
 
         int centerX = this.width / 2;
-        int left = centerX - FIELD_W / 2;
+        int left = centerX - 146; // Left aligned controls
         int y = this.height / 2 - 102;
 
         this.buttonList.add(new StyledButton(ID_FETCH, left, y, FIELD_W, BTN_H, "Hent mine celler (/ce find)"));
@@ -54,10 +56,10 @@ public class GuiMineCeller extends GuiScreen {
         y += BTN_H + ROW_GAP + 4;
 
         String carry = idField != null && idField.getText() != null ? idField.getText() : "";
-        idField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 64, FIELD_H);
+        idField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 54, FIELD_H);
         idField.setMaxStringLength(64);
         idField.setText(carry);
-        this.buttonList.add(new StyledButton(ID_ADD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Tilføj"));
+        this.buttonList.add(new StyledButton(ID_ADD, left + FIELD_W - 50, y - 1, 50, FIELD_H + 2, "Tilf\u00f8j"));
         y += FIELD_H + ROW_GAP + 4;
 
         int halfW = (FIELD_W - 4) / 2;
@@ -97,7 +99,7 @@ public class GuiMineCeller extends GuiScreen {
             if (index >= 0 && index < shownIds.size()) {
                 String id = shownIds.get(index);
                 CelleActions.setFinderTarget(id);
-                statusLine = "Finder søger nu efter " + id + " - se kompas/ESP.";
+                statusLine = "Finder s\u00f8ger nu efter " + id + ".";
                 statusColor = 0x55FFFF;
             }
             return;
@@ -106,7 +108,7 @@ public class GuiMineCeller extends GuiScreen {
         switch (button.id) {
             case ID_FETCH:
                 CelleActions.fetchMyCeller();
-                statusLine = "Henter... listen opdateres om et øjeblik.";
+                statusLine = "Henter celler...";
                 statusColor = 0xAAAAAA;
                 break;
             case ID_ESP:
@@ -133,7 +135,7 @@ public class GuiMineCeller extends GuiScreen {
     private void addCurrent() {
         String id = idField.getText() == null ? "" : idField.getText().trim();
         if (id.isEmpty()) {
-            statusLine = "Indtast et celle-id først.";
+            statusLine = "Indtast et celle-id f\u00f8rst.";
             statusColor = 0xFF5555;
             return;
         }
@@ -164,7 +166,6 @@ public class GuiMineCeller extends GuiScreen {
     @Override
     public void updateScreen() {
         idField.updateCursorCounter();
-        // Rebuild when a /ce find capture adds entries while this screen is open.
         if (shownCount != CelleScannerMod.config.myCelleIds.size()) {
             this.initGui();
         }
@@ -176,27 +177,87 @@ public class GuiMineCeller extends GuiScreen {
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
-        int titleY = this.height / 2 - 102 - 24;
+        int cy = this.height / 2;
+        int titleY = cy - 126;
+
         drawCenteredString(this.fontRendererObj, "Mine Celler", cx, titleY, 0x55FF55);
-        drawCenteredString(this.fontRendererObj, "Dine egne, delte og inviterede celler (gul ESP-kasse).", cx, titleY + 12, 0xAAAAAA);
 
         idField.drawTextBox();
 
+        // 2D Radar Rendering
+        int rx = cx + 80;
+        int ry = cy;
+
+        // Draw radar box & background
+        Style.roundedRect(rx - 54, ry - 54, rx + 54, ry + 54, 0x334BE08C); // glow border
+        drawRect(rx - 53, ry - 53, rx + 53, ry + 53, 0xCC0C0C12);          // background
+
+        // Grid lines
+        drawRect(rx - 50, ry, rx + 50, ry + 1, 0x1A4BE08C);
+        drawRect(rx, ry - 50, rx + 1, ry + 50, 0x1A4BE08C);
+
+        // Range rings (50m, 100m, 150m)
+        drawCircleOutline(rx, ry, 17, 0x124BE08C);
+        drawCircleOutline(rx, ry, 34, 0x124BE08C);
+        drawCircleOutline(rx, ry, 51, 0x124BE08C);
+
+        Minecraft mc = Minecraft.getMinecraft();
+        double px = mc.thePlayer != null ? mc.thePlayer.posX : 0.0;
+        double pz = mc.thePlayer != null ? mc.thePlayer.posZ : 0.0;
+
         List<String> ids = CelleScannerMod.config.myCelleIds;
+        for (String id : ids) {
+            CellePositions.Entry entry = CellePositions.get(id);
+            if (entry != null) {
+                double dx = entry.x + 0.5 - px;
+                double dz = entry.z + 0.5 - pz;
+                
+                // Scale: 1 block = 0.34 pixels (50px = ~150 blocks)
+                int dxP = (int) (dx * 0.34);
+                int dyP = (int) (dz * 0.34);
+
+                double dist = Math.sqrt(dxP * dxP + dyP * dyP);
+                if (dist <= 52) {
+                    int color;
+                    if (id.equals(CelleFinder.getTarget())) {
+                        color = (System.currentTimeMillis() / 200) % 2 == 0 ? 0xFF00FFFF : 0xFF008888; // Blinking cyan target
+                    } else {
+                        color = 0xFFFFAA00; // Orange for other celler
+                    }
+                    drawRect(rx + dxP - 2, ry + dyP - 2, rx + dxP + 2, ry + dyP + 2, color);
+                }
+            }
+        }
+
+        // Draw player indicator in center
+        drawRect(rx - 2, ry - 2, rx + 2, ry + 2, 0xFFFFFFFF);
+
+        // Scale label & current coordinates under the radar
+        drawCenteredString(this.fontRendererObj, "1 ring = 50m", rx, ry - 66, 0x888888);
+        drawCenteredString(this.fontRendererObj, String.format("X: %d, Z: %d", (int) px, (int) pz), rx, ry + 60, 0xAAAAAA);
+
+        // Left list hints
+        int leftC = cx - 146;
+        int listLeft = leftC + FIELD_W / 2;
         if (ids.isEmpty()) {
-            drawCenteredString(this.fontRendererObj, "(ingen endnu - tryk Hent mine celler)", cx, listHintY, 0xAAAAAA);
+            drawCenteredString(this.fontRendererObj, "(ingen celler)", listLeft, listHintY, 0xAAAAAA);
         } else {
-            drawCenteredString(this.fontRendererObj, ids.size() + " celle(r) - klik en for at finde den:", cx, listHintY, 0xAAAAAA);
+            drawCenteredString(this.fontRendererObj, ids.size() + " celle(r) - klik for at s\u00f8ge:", listLeft, listHintY, 0xAAAAAA);
             if (ids.size() > MAX_ROWS) {
-                drawCenteredString(this.fontRendererObj, "+ " + (ids.size() - MAX_ROWS) + " mere (ryd og hent igen ved fejl)", cx, this.height - 22, 0x888888);
+                drawCenteredString(this.fontRendererObj, "+ " + (ids.size() - MAX_ROWS) + " mere", listLeft, this.height / 2 + 118, 0x888888);
             }
         }
 
         if (!statusLine.isEmpty()) {
-            drawCenteredString(this.fontRendererObj, statusLine, cx, this.height - 12, statusColor);
+            drawCenteredString(this.fontRendererObj, statusLine, cx, this.height / 2 + 132, statusColor);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    private void drawCircleOutline(int cx, int cy, int r, int color) {
+        // Approximate a circle using outline squares for simplicity/cleanliness in GUI
+        Style.roundedRect(cx - r, cy - r, cx + r, cy + r, color);
     }
 
     @Override

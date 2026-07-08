@@ -2,6 +2,29 @@
 
 Older releases are on the GitHub releases page.
 
+## 1.1.5
+
+- **Flip Case opening**: a CS:GO-style case-opening animation for FreakyVille's
+  "Flip!" GUI. Shows the two players' 3D models on a reel that spins and eases to a
+  stop on the winner (read from chat), with a ticking sound and win/lose sounds.
+- **Auto-Fish**: an AFK fishing bot that reels in on the splash and recasts. It
+  auto-equips a fishing rod from your hotbar and stops with a chat alert if you run
+  out of rods.
+- **Auto-Crate**: an automated crate opener that right-clicks crates while holding a
+  key token (music disc), auto-equips keys from the hotbar, pauses during the chest
+  animation, and turns off when you're out of keys.
+- **Item Log overhaul**: the item-log HUD now tracks both pickups and losses, colour
+  coded by rarity. Legendary (gold): heads, keys, Nether Stars. Rare (blue):
+  diamonds/emerald blocks, weapons, armor. Uncommon (green): iron/gold gear + ingots,
+  redstone, lapis, coal, tools. Common (grey): cobble, sandstone, wood, dirt. Losing
+  items (drop/deposit) shows a red notification with a minus prefix.
+- **Interactive Armor Skin previewer**: material (Diamond/Iron) and level (P1-P4)
+  cycle controls in the skins selector, updating the 3D preview equipment live.
+- **PortalRouting** for Walk to celle: routes through a portal entrance when the
+  target celle's gang area is gated.
+- Bug fixes: LabyForge duplicate-class startup crash, Auto Mine ladder look-away /
+  slide-down, and Celle tracker "TIL SALG!" sign parsing.
+
 ## 1.1.4
 
 - **Walk to celle**: a "Gå til celle" button in Celle Finder pathfinds to a scanned

@@ -24,11 +24,15 @@ import java.util.regex.Pattern;
  * or delay. Right-click celle signs as you walk around and the Gange screen
  * (GuiGange) fills itself in. Gated by the config.gangAutoQuery toggle so it can
  * be turned off entirely from the Gange screen.
+ *
+ * SHELVED: the Gange addon is intentionally parked. This class is not registered
+ * on the event bus (see CelleScannerMod.init) and the hub tile is commented out
+ * in AddonList. Kept for when the addon is picked up again - do not delete.
  */
 public class GangInfo {
 
     // The celle id inside an info-block header, e.g. "----={ B359 }=----".
-    private static final Pattern HEADER = Pattern.compile("\\{\\s*([A-Za-z]{1,2}[0-9]{2,5})\\s*\\}");
+    private static final Pattern HEADER = Pattern.compile("\\{\\s*([A-Za-z]{1,5}[0-9]{1,5})\\s*\\}");
     // A number + Danish unit on the "Tid:" line: "14 dage, 3 timer, 0 minutter".
     private static final Pattern TID_TOKEN = Pattern.compile("(\\d+)\\s*(dage?|timer?|minutter?|sekunder?)", Pattern.CASE_INSENSITIVE);
 

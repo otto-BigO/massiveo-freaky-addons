@@ -28,12 +28,16 @@ import java.util.regex.Pattern;
  * A gang learned exactly from a right-clicked sign (CellePositions.gang) still
  * takes priority over this - see GuiGange - since that came straight from the
  * server for that specific celle.
+ *
+ * SHELVED: the Gange addon is intentionally parked. init() is not called from
+ * CelleScannerMod.preInit and the hub tile is commented out in AddonList. Kept
+ * for when the addon is picked up again - do not delete.
  */
 public final class GangRanges {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     // Letter prefix (level) + number, e.g. "B363" or "b1723"; leading zeros ok.
-    private static final Pattern ID = Pattern.compile("([A-Za-z]{1,2})([0-9]{1,7})");
+    private static final Pattern ID = Pattern.compile("([A-Za-z]{1,5})([0-9]{1,7})");
 
     private static File file;
     private static List<Range> ranges = new ArrayList<Range>();
@@ -174,5 +178,9 @@ public final class GangRanges {
             }
         }
         return null;
+    }
+
+    public static List<Range> getRanges() {
+        return ranges;
     }
 }

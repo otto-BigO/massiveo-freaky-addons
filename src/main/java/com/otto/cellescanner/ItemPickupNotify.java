@@ -40,6 +40,7 @@ public class ItemPickupNotify {
         String name;
         int count;
         long time;
+        int color;
     }
 
     @SubscribeEvent
@@ -72,11 +73,16 @@ public class ItemPickupNotify {
         }
 
         if (primed) {
-            for (Map.Entry<String, Integer> e : cur.entrySet()) {
-                int before = prev.containsKey(e.getKey()) ? prev.get(e.getKey()) : 0;
-                int delta = e.getValue() - before;
-                if (delta > 0) {
-                    addPickup(e.getKey(), repr.get(e.getKey()), delta);
+            java.util.Set<String> allKeys = new java.util.HashSet<String>();
+            allKeys.addAll(prev.keySet());
+            allKeys.addAll(cur.keySet());
+
+            for (String k : allKeys) {
+                int before = prev.containsKey(k) ? prev.get(k) : 0;
+                int after = cur.containsKey(k) ? cur.get(k) : 0;
+                int delta = after - before;
+                if (delta != 0) {
+                    addTransaction(k, repr.get(k), delta);
                 }
             }
         }
@@ -94,10 +100,79 @@ public class ItemPickupNotify {
         return Item.getIdFromItem(s.getItem()) + ":" + meta + ":" + s.getDisplayName();
     }
 
-    private void addPickup(String key, ItemStack stack, int delta) {
+    private int getRarityColor(String displayName, ItemStack stack) {
+        if (stack != null) {
+            Item item = stack.getItem();
+            if (item == net.minecraft.init.Items.skull
+                    || item instanceof net.minecraft.item.ItemRecord) {
+                return 0xFFBB00;
+            }
+            if (item == net.minecraft.init.Items.diamond
+                    || item == net.minecraft.init.Items.emerald
+                    || item == Item.getItemFromBlock(net.minecraft.init.Blocks.diamond_block)
+                    || item == Item.getItemFromBlock(net.minecraft.init.Blocks.emerald_block)) {
+                return 0x55AAFF;
+            }
+        }
+
+        String lower = displayName.toLowerCase();
+
+        // 1. Legendary (Gold: 0xFFBB00) - Player heads, key music discs
+        if (lower.contains("hoved")
+                || lower.contains("head")
+                || lower.contains("skalle")
+                || lower.contains("polet")
+                || lower.contains("nøgle")
+                || lower.contains("key")
+                || lower.contains("crate")) {
+            return 0xFFBB00;
+        }
+
+        // 2. Rare (Blue: 0x55AAFF) - Diamonds, emeralds, and diamond items
+        if (lower.contains("diamond")
+                || lower.contains("diamant")
+                || lower.contains("emerald")
+                || lower.contains("smaragd")) {
+            return 0x55AAFF;
+        }
+
+        // 3. Uncommon (Green: 0x55FF55) - Iron, gold, coal blocks, redstone, lapis, tools/armor
+        if (lower.contains("jern")
+                || lower.contains("iron")
+                || lower.contains("guld")
+                || lower.contains("gold")
+                || lower.contains("redstone")
+                || lower.contains("lapis")
+                || lower.contains("kul")
+                || lower.contains("coal")
+                || lower.contains("sværd")
+                || lower.contains("sword")
+                || lower.contains("økse")
+                || lower.contains("axe")
+                || lower.contains("hakke")
+                || lower.contains("pickaxe")
+                || lower.contains("skovl")
+                || lower.contains("shovel")
+                || lower.contains("hjelm")
+                || lower.contains("helmet")
+                || lower.contains("brystplade")
+                || lower.contains("chestplate")
+                || lower.contains("bukser")
+                || lower.contains("leggings")
+                || lower.contains("støvler")
+                || lower.contains("boots")) {
+            return 0x55FF55;
+        }
+
+        // 4. Common (Grey: 0x888888) - Blocks (Cobble, Sandstone, etc.)
+        return 0x888888;
+    }
+
+    private void addTransaction(String key, ItemStack stack, int delta) {
         long now = System.currentTimeMillis();
         for (Entry e : entries) {
-            if (e.key.equals(key) && now - e.time < MERGE_MS) {
+            boolean sameSign = (delta > 0 && e.count > 0) || (delta < 0 && e.count < 0);
+            if (e.key.equals(key) && sameSign && now - e.time < MERGE_MS) {
                 e.count += delta;
                 e.time = now;
                 return;
@@ -105,9 +180,14 @@ public class ItemPickupNotify {
         }
         Entry e = new Entry();
         e.key = key;
-        e.name = EnumChatFormatting.getTextWithoutFormattingCodes(stack.getDisplayName());
+
+        String[] parts = key.split(":", 3);
+        String displayName = parts.length > 2 ? parts[2] : "Ukendt";
+        e.name = EnumChatFormatting.getTextWithoutFormattingCodes(displayName);
+
         e.count = delta;
         e.time = now;
+        e.color = (delta > 0) ? getRarityColor(displayName, stack) : 0xFF5555; // Red if negative, else rarity color
         entries.add(e);
         while (entries.size() > MAX_LINES) {
             entries.remove(0);
@@ -146,7 +226,8 @@ public class ItemPickupNotify {
         int lineH = fr.FONT_HEIGHT + 1;
         int maxW = 0;
         for (Entry e : entries) {
-            maxW = Math.max(maxW, fr.getStringWidth("+" + e.count + " " + e.name));
+            String sign = e.count > 0 ? "+" : "";
+            maxW = Math.max(maxW, fr.getStringWidth(sign + e.count + " " + e.name));
         }
         int boxH = entries.size() * lineH;
         int sw = sr.getScaledWidth();
@@ -164,7 +245,8 @@ public class ItemPickupNotify {
                 if (a < 8) {
                     a = 8;
                 }
-                fr.drawStringWithShadow("+" + e.count + " " + e.name, x, y, (a << 24) | 0x55FF55);
+                String sign = e.count > 0 ? "+" : "";
+                fr.drawStringWithShadow(sign + e.count + " " + e.name, x, y, (a << 24) | e.color);
             }
             y += lineH;
         }

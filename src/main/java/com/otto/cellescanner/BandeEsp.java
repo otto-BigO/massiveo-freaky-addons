@@ -11,14 +11,21 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
 /**
- * Bande ESP addon: draws a green wireframe box, visible through walls, around
- * every loaded player who is in your bande. Membership comes from the manual
- * name list in CelleConfig.bandeMembers (reliable on any server), optionally
- * plus anyone on your own scoreboard team when bandeAutoTeam is on.
+ * Bande ESP addon: draws solid/transparent Chams through walls around players.
+ *
+ * HOW THIS WORKS:
+ * Minecraft's internal RendererLivingEntity.doRender() calls GlStateManager.enableDepth()
+ * at the very start of its own rendering logic. This means if we only disable depth in
+ * RenderLivingEvent.Pre, Minecraft immediately re-enables it and our Chams state is reset.
+ *
+ * The correct approach: use RenderWorldLastEvent (fires AFTER all entities are drawn) and
+ * render each target player a SECOND TIME ourselves via RenderManager, but with depth testing
+ * disabled. This second draw call is not blocked by walls, producing the Chams effect.
+ *
+ * Green silhouette = bande members.
+ * Red silhouette   = other players (when bandeEspAll is enabled).
  */
 public class BandeEsp {
-
-    private static final double PAD = 0.06;
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -36,48 +43,64 @@ public class BandeEsp {
         }
 
         float partialTicks = event.partialTicks;
-        Entity viewer = mc.thePlayer;
-        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
-        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
-        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(-px, -py, -pz);
+        // Interpolated camera position for translating the world matrix
+        Entity viewer = mc.getRenderViewEntity();
+        double camX = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
+        double camY = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
+        double camZ = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-        GlStateManager.depthMask(false);
+        // ---- Set up Chams GL state ----
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+
+        GlStateManager.disableDepth();       // Draw through walls
+        GlStateManager.depthMask(false);     // Don't write to depth buffer
+        GlStateManager.disableLighting();    // Flat color, no light shading
+        GlStateManager.disableTexture2D();   // Solid silhouette, no skin texture
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-        GlStateManager.disableTexture2D();
-        GL11.glLineWidth(2.5f);
 
+        // ---- Re-render each target player with Chams color ----
         for (Object obj : mc.theWorld.playerEntities) {
-            if (!(obj instanceof EntityPlayer)) {
-                continue;
-            }
+            if (!(obj instanceof EntityPlayer)) continue;
             EntityPlayer p = (EntityPlayer) obj;
-            if (p == mc.thePlayer) {
-                continue;
-            }
+            if (p == mc.thePlayer) continue;
+
             boolean bande = isBande(mc, p);
-            if (!bande && !cfg.bandeEspAll) {
-                continue;
-            }
+            if (!bande && !cfg.bandeEspAll) continue;
+
+            // Interpolated entity position
+            double ex = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
+            double ey = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
+            double ez = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
+
+            // Apply Chams color (bande = green, others = red)
             if (bande) {
-                drawBox(p, partialTicks, 0.2f, 1.0f, 0.2f);   // bande = green
+                GlStateManager.color(0.2f, 1.0f, 0.2f, 0.6f);
             } else {
-                drawBox(p, partialTicks, 1.0f, 0.25f, 0.25f); // everyone else = red
+                GlStateManager.color(1.0f, 0.25f, 0.25f, 0.6f);
             }
+
+            // Re-render the player entity at their interpolated position.
+            // RenderManager handles the matrix setup + model drawing internally.
+            mc.getRenderManager().renderEntityWithPosYaw(
+                    p,
+                    ex - camX,
+                    ey - camY,
+                    ez - camZ,
+                    p.rotationYaw,
+                    partialTicks
+            );
         }
 
+        // ---- Restore full GL state ----
         GlStateManager.enableTexture2D();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         GlStateManager.enableDepth();
         GlStateManager.depthMask(true);
         GlStateManager.disableBlend();
         GlStateManager.enableLighting();
-        GlStateManager.popMatrix();
+        GL11.glPopAttrib();
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
@@ -141,49 +164,5 @@ public class BandeEsp {
         }
         b = b.trim();
         return b.isEmpty() ? null : b;
-    }
-
-    private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
-        double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
-        double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
-        double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
-
-        double w = p.width / 2.0 + PAD;
-        double minX = x - w;
-        double maxX = x + w;
-        double minY = y - PAD;
-        double maxY = y + p.height + PAD;
-        double minZ = z - w;
-        double maxZ = z + w;
-
-        // Via GlStateManager (not raw glColor4f) so its colour cache tracks this,
-        // and the color(1,1,1,1) reset after the ESP actually takes effect -
-        // otherwise the colour leaks onto the hand and inventory items.
-        GlStateManager.color(r, g, b, 0.9f);
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINES);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
     }
 }

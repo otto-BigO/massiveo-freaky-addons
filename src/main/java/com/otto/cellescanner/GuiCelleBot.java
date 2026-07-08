@@ -43,7 +43,7 @@ public class GuiCelleBot extends GuiScreen {
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
-        int y = this.height / 2 - 98;
+        int y = this.height / 2 - 68;
 
         CelleConfig cfg = CelleScannerMod.config;
 
@@ -162,14 +162,14 @@ public class GuiCelleBot extends GuiScreen {
         drawDefaultBackground();
         Style.card(this.width, this.height);
 
-        int titleY = this.height / 2 - 98 - 28;
+        int titleY = this.height / 2 - 110;
         drawCenteredString(this.fontRendererObj, "Celle Scanner - Discord Bot", this.width / 2, titleY, 0xFFFFFF);
         drawCenteredString(this.fontRendererObj, "Reports-webhook url fra din CelleScannerBot instans:", this.width / 2, titleY + 12, 0xAAAAAA);
 
         urlField.drawTextBox();
 
         if (!statusLine.isEmpty()) {
-            drawCenteredString(this.fontRendererObj, statusLine, this.width / 2, this.height / 2 + 84, statusColor);
+            drawCenteredString(this.fontRendererObj, statusLine, this.width / 2, this.height / 2 + 64, statusColor);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);

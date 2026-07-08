@@ -31,6 +31,8 @@ public final class MassiveoAddons {
         boolean isActive();
 
         void open();
+
+        void toggle();
     }
 
     private static final List<Addon> ADDONS = new ArrayList<Addon>();
@@ -40,10 +42,6 @@ public final class MassiveoAddons {
 
     public static void register(Addon addon) {
         ADDONS.add(addon);
-    }
-
-    public static List<Addon> addons() {
-        return ADDONS;
     }
 
     /** Distinct category names in the order they were first registered. */

@@ -48,13 +48,13 @@ public class GuiChestAlarm extends GuiScreen {
         int halfW = (FIELD_W - 4) / 2;
         this.buttonList.add(toastButton = new StyledButton(ID_TOAST, left, y, halfW, BTN_H, toastLabel()));
         this.buttonList.add(soundButton = new StyledButton(ID_SOUND, left + halfW + 4, y, halfW, BTN_H, soundLabel()));
-        y += BTN_H + ROW_GAP + 6;
+        y += BTN_H + ROW_GAP + 12;
 
         keywordField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 64, FIELD_H);
         keywordField.setMaxStringLength(48);
         keywordField.setText(CelleScannerMod.config.chestAlarmKeyword);
         this.buttonList.add(new StyledButton(ID_SAVE_KEYWORD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Gem ord"));
-        y += FIELD_H + ROW_GAP + 6;
+        y += FIELD_H + ROW_GAP + 10;
 
         this.buttonList.add(new StyledButton(ID_TEST, left, y, halfW, BTN_H, "Test"));
         this.buttonList.add(new StyledButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
@@ -154,7 +154,7 @@ public class GuiChestAlarm extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Notifikation + lyd når en chest bliver åbnet i chatten.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         int left = this.width / 2 - FIELD_W / 2;
-        drawString(this.fontRendererObj, "Nøgleord der udløser alarmen:", left, this.height / 2 - 80 + 2 * (BTN_H + ROW_GAP) - 4, 0xAAAAAA);
+        drawString(this.fontRendererObj, "Nøgleord der udløser alarmen:", left, this.height / 2 - 28, 0xAAAAAA);
 
         keywordField.drawTextBox();
 

@@ -179,6 +179,13 @@ public class CelleConfig {
     // Debug: dumps the contents of the "Flip!" GUI to chat (for building the flip
     // case-opening addon). Off by default.
     public Boolean debugEnabled = Boolean.FALSE;
+    // When debugEnabled is on, also mirror every debug message to massiveo_debug.log
+    // in the config directory. Off by default so the file isn't created unless wanted.
+    public Boolean debugLogEnabled = Boolean.FALSE;
+
+    // Flip Case Opening: replaces the vanilla "Flip!" chest with a CS:GO-style
+    // case-opening animation. On by default.
+    public boolean flipCaseEnabled = true;
 
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
@@ -193,6 +200,33 @@ public class CelleConfig {
     // a separate one-off alert when one becomes available/imminent. Set via
     // /celler special or the GUI screen.
     public List<String> specialCelleIds = new ArrayList<String>();
+
+    // Auto Fish Addon
+    public boolean autoFishEnabled = false;
+
+    // Auto Crate Addon
+    public boolean autoCrateEnabled = false;
+
+    // Smart Trash Filter for AutoMine bot
+    public List<String> trashItems = new ArrayList<String>(java.util.Arrays.asList("Cobblestone", "Sandstone", "Lapis Blok", "Lapis Lazuli"));
+
+    public boolean isTrash(net.minecraft.item.ItemStack s) {
+        if (s == null) return false;
+        net.minecraft.item.Item it = s.getItem();
+        if (it == net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.cobblestone)) {
+            return trashItems.contains("Cobblestone");
+        }
+        if (it == net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.sandstone)) {
+            return trashItems.contains("Sandstone");
+        }
+        if (it == net.minecraft.item.Item.getItemFromBlock(net.minecraft.init.Blocks.lapis_block)) {
+            return trashItems.contains("Lapis Blok");
+        }
+        if (it == net.minecraft.init.Items.dye && s.getMetadata() == 4) {
+            return trashItems.contains("Lapis Lazuli");
+        }
+        return false;
+    }
 
     public boolean isSpecial(String celleId) {
         if (celleId == null) {
@@ -314,6 +348,8 @@ public class CelleConfig {
                 this.autoMineEnabled = loaded.autoMineEnabled;
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
+                this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;
+                this.flipCaseEnabled = loaded.flipCaseEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;
@@ -322,6 +358,9 @@ public class CelleConfig {
                 this.armorHudY = loaded.armorHudY;
                 this.armorHudWarnPercent = loaded.armorHudWarnPercent > 0 ? loaded.armorHudWarnPercent : 10;
                 this.specialCelleIds = loaded.specialCelleIds != null ? loaded.specialCelleIds : new ArrayList<String>();
+                this.autoFishEnabled = loaded.autoFishEnabled;
+                this.autoCrateEnabled = loaded.autoCrateEnabled;
+                this.trashItems = loaded.trashItems != null ? loaded.trashItems : new ArrayList<String>(java.util.Arrays.asList("Cobblestone", "Sandstone", "Lapis Blok", "Lapis Lazuli"));
             }
         } catch (Exception e) {
             System.err.println("[CelleScanner] Kunne ikke læse config, bruger standardværdier: " + e);

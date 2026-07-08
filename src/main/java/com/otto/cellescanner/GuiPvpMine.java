@@ -21,7 +21,7 @@ public class GuiPvpMine extends GuiScreen {
     public void initGui() {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
-        int y = this.height / 2 - 24;
+        int y = this.height / 2 - 12;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += BTN_H + 6;
         this.buttonList.add(alertButton = new StyledButton(ID_ALERT, left, y, PANEL_W, BTN_H, alertLabel()));
@@ -62,7 +62,7 @@ public class GuiPvpMine extends GuiScreen {
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
-        int titleY = this.height / 2 - 60;
+        int titleY = this.height / 2 - 68;
         drawCenteredString(this.fontRendererObj, "PvP Mine", cx, titleY, 0xFFD24B);
         drawCenteredString(this.fontRendererObj, "Drop-timer (skilt) + alarm når en spiller er i minen.", cx, titleY + 12, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "HUD vises nederst til venstre.", cx, titleY + 22, 0x888888);

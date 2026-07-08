@@ -19,7 +19,7 @@ public class GuiModIcon extends GuiScreen {
     public void initGui() {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
-        int y = this.height / 2 - 6;
+        int y = this.height / 2 - 20;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
@@ -45,7 +45,7 @@ public class GuiModIcon extends GuiScreen {
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
-        int titleY = this.height / 2 - 46;
+        int titleY = this.height / 2 - 60;
         drawCenteredString(this.fontRendererObj, "Mod-brugere", cx, titleY, 0x55FF55);
         drawCenteredString(this.fontRendererObj, "Lilla cirkel foran andre mod-brugeres navn (test).", cx, titleY + 12, 0xAAAAAA);
 

@@ -43,6 +43,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openMenu();
             }
+
+            public void toggle() {
+                config.enabled = !config.enabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -64,6 +68,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openMineCeller();
+            }
+
+            public void toggle() {
+                config.mineCellerEspEnabled = !config.mineCellerEspEnabled; config.save();
             }
         });
 
@@ -99,6 +107,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openBande();
             }
+
+            public void toggle() {
+                config.bandeEspEnabled = !config.bandeEspEnabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -120,6 +132,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openChestAlarm();
+            }
+
+            public void toggle() {
+                config.chestAlarmEnabled = !config.chestAlarmEnabled; config.save();
             }
         });
 
@@ -143,6 +159,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openPlayerInfoMenu();
             }
+
+            public void toggle() {
+                config.playerInfoEnabled = !config.playerInfoEnabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -164,6 +184,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openTroll();
+            }
+
+            public void toggle() {
+                config.trollEnabled = !config.trollEnabled; config.save();
             }
         });
 
@@ -187,6 +211,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openPvpMine();
             }
+
+            public void toggle() {
+                config.pvpMineEnabled = !config.pvpMineEnabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -208,6 +236,68 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openAutoMine();
+            }
+
+            public void toggle() {
+                config.autoMineEnabled = !config.autoMineEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Auto Fish";
+            }
+
+            public String description() {
+                return "Auto-fisker i fiske-zoner (automatisering - egen risiko)";
+            }
+
+            public String category() {
+                return "World";
+            }
+
+            public boolean isActive() {
+                return config.autoFishEnabled;
+            }
+
+            public void open() {
+                config.autoFishEnabled = !config.autoFishEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("World"));
+            }
+
+            public void toggle() {
+                config.autoFishEnabled = !config.autoFishEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Auto Crate";
+            }
+
+            public String description() {
+                return "Åbner kasser automatisk (automatisering - egen risiko)";
+            }
+
+            public String category() {
+                return "World";
+            }
+
+            public boolean isActive() {
+                return config.autoCrateEnabled;
+            }
+
+            public void open() {
+                config.autoCrateEnabled = !config.autoCrateEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("World"));
+            }
+
+            public void toggle() {
+                config.autoCrateEnabled = !config.autoCrateEnabled; config.save();
             }
         });
 
@@ -231,6 +321,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openModIcon();
             }
+
+            public void toggle() {
+                config.modIconEnabled = (config.modIconEnabled == null ? true : !config.modIconEnabled); config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -252,6 +346,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openItemLog();
+            }
+
+            public void toggle() {
+                config.itemPickupEnabled = !config.itemPickupEnabled; config.save();
             }
         });
 
@@ -275,6 +373,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openAntiAfk();
             }
+
+            public void toggle() {
+                config.antiAfkEnabled = !config.antiAfkEnabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -296,6 +398,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openArmorSkins();
+            }
+
+            public void toggle() {
+                config.armorSkinsEnabled = !config.armorSkinsEnabled; config.save();
             }
         });
 
@@ -319,6 +425,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openArmorHud();
             }
+
+            public void toggle() {
+                config.armorHudEnabled = !config.armorHudEnabled; config.save();
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -340,6 +450,10 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openItemValues();
+            }
+
+            public void toggle() {
+                config.itemValueEnabled = !config.itemValueEnabled; config.save();
             }
         });
 
@@ -363,6 +477,10 @@ public final class AddonList {
             public void open() {
                 CelleActions.openPriceGuide();
             }
+
+            public void toggle() {
+                
+            }
         });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
@@ -384,6 +502,40 @@ public final class AddonList {
 
             public void open() {
                 CelleActions.openUpdate();
+            }
+
+            public void toggle() {
+                config.autoUpdateEnabled = !config.autoUpdateEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Flip Case";
+            }
+
+            public String description() {
+                return "CS:GO-stil case-åbning animation når du flipper - erstatter flip-kisten";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.flipCaseEnabled;
+            }
+
+            public void open() {
+                config.flipCaseEnabled = !config.flipCaseEnabled;
+                config.save();
+                // Re-open the hub at the same category so the [Til]/[Fra] label refreshes.
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.flipCaseEnabled = !config.flipCaseEnabled; config.save();
             }
         });
     }

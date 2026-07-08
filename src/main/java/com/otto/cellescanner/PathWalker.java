@@ -17,6 +17,12 @@ import java.util.List;
  * Walks the player to a target block using {@link Pathfinder} (routes around
  * walls, climbs ladders), and draws the route on the floor. Used by "Walk to
  * celle". One walk at a time; it stops on arrival, on timeout, or when cancelled.
+ *
+ * NOTE: AutoMine.navigate() has a very similar path-follow loop (waypoint
+ * advance, ladder climb, sprint gating). The two are duplicated on purpose:
+ * each is tuned separately (turn easing, walk-angle gates, re-plan policy at
+ * the end of a partial path) and both are known-good. If they ever need the
+ * same fix twice, hoist the shared follow logic into a helper then.
  */
 public class PathWalker {
 
@@ -24,6 +30,13 @@ public class PathWalker {
     // Celle walks can be long, so let the search work harder than the miner's short hops.
     private static final int SEARCH_BUDGET = 20000;
     private static final long SEARCH_EVERY = 1000; // ms between (re)searches while walking
+
+    // Facing gate with hysteresis: start walking once roughly lined up, but once
+    // moving keep walking through the small 45-degree jogs between diagonal
+    // waypoints instead of stuttering to a stop at each one. Only a sharp turn
+    // (roughly a right angle) still stops to swing around first.
+    private static final float WALK_START = 35f;
+    private static final float WALK_KEEP = 60f;
 
     private static BlockPos goal;
     private static List<BlockPos> path;
@@ -33,6 +46,8 @@ public class PathWalker {
     private static double bestGoalDist;   // closest we've been to the goal
     private static long bestGoalDistAt;   // when that improved (for the stuck check)
     private static boolean active;
+    private static boolean walking;       // forward key held (for the hysteresis gate)
+    private static boolean sprinting;     // sprint key held (so sprint doesn't flicker)
 
     /** Start walking to a block (in the current world). */
     public static void walkTo(BlockPos g) {
@@ -53,6 +68,8 @@ public class PathWalker {
         active = false;
         path = null;
         goal = null;
+        walking = false;
+        sprinting = false;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.gameSettings != null) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
@@ -80,8 +97,8 @@ public class PathWalker {
             stop();
             return;
         }
-        // Pause (hands off the keys) while any screen is open.
-        if (mc.currentScreen != null) {
+        // Pause (hands off the keys) while any screen is open, except inventory or chat.
+        if (mc.currentScreen != null && !(mc.currentScreen instanceof net.minecraft.client.gui.inventory.GuiInventory) && !(mc.currentScreen instanceof net.minecraft.client.gui.GuiChat)) {
             releaseKeys(mc);
             AutoEat.stop(mc);
             return;
@@ -121,13 +138,56 @@ public class PathWalker {
             return;
         }
 
+        BlockPos currentGoal = goal;
+        BlockPos portalEntrance = null;
+        String targetCelleId = CelleFinder.getTarget();
+        CellePositions.Entry targetCelle = targetCelleId != null ? CellePositions.get(targetCelleId) : null;
+        String targetGang = targetCelle != null ? targetCelle.gang : null;
+
+        if (targetGang != null) {
+            PortalRouting.Portal portal = PortalRouting.getPortalForGang(targetGang);
+            if (portal != null) {
+                String playerGang = null;
+                CellePositions.Entry closest = null;
+                double closestDist = Double.MAX_VALUE;
+                for (CellePositions.Entry pe : CellePositions.snapshot().values()) {
+                    if (pe.x == 0 && pe.y == 0 && pe.z == 0) continue;
+                    double dx = pe.x - mc.thePlayer.posX;
+                    double dy = pe.y - mc.thePlayer.posY;
+                    double dz = pe.z - mc.thePlayer.posZ;
+                    double dist = dx * dx + dy * dy + dz * dz;
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = pe;
+                    }
+                }
+                if (closest != null && closestDist < 1600.0) { // within 40 blocks
+                    playerGang = closest.gang;
+                }
+                if (playerGang == null || !playerGang.equalsIgnoreCase(targetGang)) {
+                    portalEntrance = portal.getEntrance();
+                }
+            }
+        }
+
+        if (portalEntrance == null) {
+            portalEntrance = PortalRouting.getPortalEntranceFor(
+                    mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ,
+                    goal.getX() + 0.5, goal.getY() + 0.5, goal.getZ() + 0.5
+            );
+        }
+
+        if (portalEntrance != null) {
+            currentGoal = portalEntrance;
+        }
+
         World w = mc.theWorld;
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
 
         boolean stale = path == null || now - progressAt > 3000; // no path yet, or stuck
         if (stale && now - lastSearch >= SEARCH_EVERY) {
-            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
+            path = Pathfinder.findPath(w, feet, currentGoal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             lastSearch = now;
             index = 0;
             if (path != null) {
@@ -140,21 +200,16 @@ public class PathWalker {
             return;
         }
 
-        while (index < path.size()) {
-            BlockPos wp = path.get(index);
-            double dx = (wp.getX() + 0.5) - mc.thePlayer.posX;
-            double dz = (wp.getZ() + 0.5) - mc.thePlayer.posZ;
-            if (dx * dx + dz * dz < 0.45 && Math.abs(wp.getY() - mc.thePlayer.posY) < 1.3) {
-                index++;
-                progressAt = now;
-            } else {
-                break;
-            }
+        int reached = Pathfinder.consumeWaypoints(path, index,
+                mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
+        if (reached != index) {
+            index = reached;
+            progressAt = now;
         }
         if (index >= path.size()) {
             // Reached the end of a partial path - re-plan from here now (new chunks
             // have loaded as we walked, so the next segment goes further).
-            path = Pathfinder.findPath(w, feet, goal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
+            path = Pathfinder.findPath(w, feet, currentGoal, REACH, SEARCH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
             lastSearch = now;
             index = 0;
             progressAt = now;
@@ -166,10 +221,18 @@ public class PathWalker {
         BlockPos step = path.get(index);
 
         // Climb a ladder: face into its wall and push forward every tick (no jump).
-        boolean up = step.getY() > MathHelper.floor_double(mc.thePlayer.posY);
         BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet
                 : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : (Pathfinder.isLadder(w, step) ? step : null));
-        if (up && ladderPos != null) {
+        boolean up = false;
+        if (ladderPos != null) {
+            for (int i = index; i < path.size(); i++) {
+                if (path.get(i).getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
+                    up = true;
+                    break;
+                }
+            }
+        }
+        if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
                 mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
@@ -179,7 +242,9 @@ public class PathWalker {
                 return;
             }
         }
-        boolean sprint = Pathfinder.straightRun(path, index, 4);
+        // Sprint hysteresis: start on a 4-step straight, but once sprinting keep it
+        // across short 2-step jogs so the FOV doesn't pump on and off constantly.
+        boolean sprint = Pathfinder.straightRun(path, index, sprinting ? 2 : 4);
         faceAndWalk(mc, step.getX() + 0.5, step.getZ() + 0.5, sprint);
     }
 
@@ -198,13 +263,16 @@ public class PathWalker {
         mc.thePlayer.rotationYaw += step;
 
         float adiff = Math.abs(diff);
-        if (adiff < 35f) {
+        float gate = walking ? WALK_KEEP : WALK_START;
+        if (adiff < gate) {
+            walking = true;
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
-            boolean sprinting = sprint && adiff < 12f; // only sprint when well-lined-up
+            boolean sprintNow = sprint && adiff < 12f; // only sprint when well-lined-up
             boolean autoJump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprinting);
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprintNow);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(),
-                    sprinting ? mc.thePlayer.onGround : autoJump);
+                    sprintNow ? mc.thePlayer.onGround : autoJump);
+            sprinting = sprintNow;
         } else {
             releaseKeys(mc);
         }
@@ -214,6 +282,8 @@ public class PathWalker {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+        walking = false;
+        sprinting = false;
     }
 
     private void message(Minecraft mc, String text) {

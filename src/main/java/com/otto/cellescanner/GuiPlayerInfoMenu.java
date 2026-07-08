@@ -135,7 +135,7 @@ public class GuiPlayerInfoMenu extends GuiScreen {
         nameField.drawTextBox();
 
         if (!status.isEmpty()) {
-            drawCenteredString(this.fontRendererObj, status, cx, this.height / 2 + 40, statusColor);
+            drawCenteredString(this.fontRendererObj, status, cx, this.height / 2 + 68, statusColor);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);

@@ -45,6 +45,26 @@ public class CelleScanner {
     private String lastReportSignature = "";
     private long lastReportPushMillis = 0L;
 
+    private static final Comparator<Celle> UPCOMING_COMPARATOR = new Comparator<Celle>() {
+        @Override
+        public int compare(Celle a, Celle b) {
+            return Long.compare(a.liveRemainingSeconds(), b.liveRemainingSeconds());
+        }
+    };
+
+    private static final Comparator<Celle> REPORT_COMPARATOR = new Comparator<Celle>() {
+        @Override
+        public int compare(Celle a, Celle b) {
+            if (a.celleId == null) {
+                return b.celleId == null ? 0 : -1;
+            }
+            if (b.celleId == null) {
+                return 1;
+            }
+            return a.celleId.compareTo(b.celleId);
+        }
+    };
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
@@ -92,24 +112,25 @@ public class CelleScanner {
             CelleStatus status;
             String owner = null;
             String celleId;
+            long remaining;
 
             if (LINE_SOLGT.equalsIgnoreCase(line1)) {
                 status = CelleStatus.SOLGT;
                 owner = line2;
                 celleId = line3;
+                remaining = TimerParser.parseSeconds(line4);
+                if (remaining < 0) {
+                    continue;
+                }
             } else if (LINE_TIL_SALG.equalsIgnoreCase(line1)) {
                 status = CelleStatus.TIL_SALG;
-                celleId = line3;
+                celleId = line2;
+                remaining = 0;
             } else {
                 continue;
             }
 
             if (celleId == null || celleId.isEmpty()) {
-                continue;
-            }
-
-            long remaining = TimerParser.parseSeconds(line4);
-            if (remaining < 0) {
                 continue;
             }
 
@@ -243,12 +264,7 @@ public class CelleScanner {
             result.add(c);
         }
 
-        Collections.sort(result, new Comparator<Celle>() {
-            @Override
-            public int compare(Celle a, Celle b) {
-                return Long.valueOf(a.liveRemainingSeconds()).compareTo(b.liveRemainingSeconds());
-            }
-        });
+        Collections.sort(result, UPCOMING_COMPARATOR);
 
         upcomingCache = result;
     }
@@ -303,12 +319,12 @@ public class CelleScanner {
         if (!CelleScannerMod.config.botReportEnabled) {
             return;
         }
+        if (System.currentTimeMillis() - lastReportPushMillis < REPORT_COOLDOWN_MS) {
+            return;
+        }
 
         String signature = buildReportSignature(cache.values());
         if (signature.equals(lastReportSignature)) {
-            return;
-        }
-        if (System.currentTimeMillis() - lastReportPushMillis < REPORT_COOLDOWN_MS) {
             return;
         }
 
@@ -332,21 +348,7 @@ public class CelleScanner {
      */
     private static String buildReportSignature(Collection<Celle> all) {
         List<Celle> sorted = new ArrayList<Celle>(all);
-        Collections.sort(sorted, new Comparator<Celle>() {
-            @Override
-            public int compare(Celle a, Celle b) {
-                // Nulls-first, and a valid total order either way - the old
-                // "return -1 if a is null" both NPE'd on a null b and broke
-                // the comparator contract (TimSort can throw on that).
-                if (a.celleId == null) {
-                    return b.celleId == null ? 0 : -1;
-                }
-                if (b.celleId == null) {
-                    return 1;
-                }
-                return a.celleId.compareTo(b.celleId);
-            }
-        });
+        Collections.sort(sorted, REPORT_COMPARATOR);
         StringBuilder sb = new StringBuilder();
         for (Celle c : sorted) {
             sb.append(c.celleId).append(':').append(c.status).append(':')

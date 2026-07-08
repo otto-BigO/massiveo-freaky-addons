@@ -33,7 +33,8 @@ public final class CelleActions {
     public static void reloadConfig() {
         CelleScannerMod.config.load();
         GangRanges.load();
-        message("Konfiguration genindlæst. minHours=" + CelleScannerMod.config.minHours
+        PortalRouting.load();
+        message("Konfiguration genindl\u00e6st. minHours=" + CelleScannerMod.config.minHours
                 + " maxHours=" + CelleScannerMod.config.maxHours
                 + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra")
                 + ", gang-ranges=" + GangRanges.count());
@@ -210,13 +211,6 @@ public final class CelleActions {
         }
         message("Sender test-rapport til webhook...");
         ReportWebhookClient.testConnection();
-    }
-
-    public static void adjustEspMaxDistance(double delta) {
-        double v = CelleScannerMod.config.espMaxDistance + delta;
-        CelleScannerMod.config.espMaxDistance = Math.max(8.0, v);
-        CelleScannerMod.config.save();
-        message("ESP maks-afstand: " + String.format("%.0fm", CelleScannerMod.config.espMaxDistance));
     }
 
     public static void setEspMaxDistance(double value) {
@@ -587,23 +581,6 @@ public final class CelleActions {
         message("Celle " + trimmed + " tilføjet til mine celler.");
     }
 
-    public static void removeMyCelle(String id) {
-        String trimmed = id == null ? "" : id.trim();
-        boolean removed = false;
-        Iterator<String> it = CelleScannerMod.config.myCelleIds.iterator();
-        while (it.hasNext()) {
-            String existing = it.next();
-            if (existing != null && existing.equalsIgnoreCase(trimmed)) {
-                it.remove();
-                removed = true;
-            }
-        }
-        if (removed) {
-            CelleScannerMod.config.save();
-            message("Celle " + trimmed + " fjernet fra mine celler.");
-        }
-    }
-
     public static void clearMyCeller() {
         CelleScannerMod.config.myCelleIds.clear();
         CelleScannerMod.config.save();
@@ -801,26 +778,65 @@ public final class CelleActions {
     }
 
     /** Pathfind and walk to a scanned celle by id (routes around walls, climbs ladders). */
+    public static String pendingWalkCelleId = null;
+    public static long pendingWalkCelleDeadline = 0L;
+
+    public static void checkPendingWalk(final String id) {
+        if (id == null || pendingWalkCelleId == null) {
+            return;
+        }
+        if (id.equalsIgnoreCase(pendingWalkCelleId) && System.currentTimeMillis() <= pendingWalkCelleDeadline) {
+            pendingWalkCelleId = null;
+            Minecraft.getMinecraft().addScheduledTask(new Runnable() {
+                @Override
+                public void run() {
+                    walkToCelle(id);
+                }
+            });
+        }
+    }
+
     public static void walkToCelle(String id) {
         if (id == null || id.trim().isEmpty()) {
-            message("Indtast et celle-id først.");
+            message("Indtast et celle-id f\u00f8rst.");
             return;
         }
         id = id.trim();
         CellePositions.Entry e = CellePositions.get(id);
-        if (e == null) {
-            message("\"" + id + "\" er ikke set endnu - gå rundt indtil dens skilt bliver scannet.");
+        boolean hasCoords = e != null && !(e.x == 0 && e.y == 0 && e.z == 0);
+
+        if (!hasCoords) {
+            String gang = e != null ? e.gang : null;
+            PortalRouting.Portal portal = gang != null ? PortalRouting.getPortalForGang(gang) : null;
+            if (portal != null) {
+                message("\u00a7eCelle " + id + " er ikke kortlagt endnu, men ligger i \"" + gang + "\".");
+                message("\u00a7aNavigerer til portal \"" + portal.name + "\" f\u00f8rst...");
+                CelleFinder.setTarget(id);
+                PathWalker.walkTo(portal.getEntrance());
+                Minecraft.getMinecraft().displayGuiScreen(null);
+                return;
+            }
+
+            message("\u00a7eKender ikke cellens placering. Sp\u00f8rger serveren via /ce info...");
+            pendingWalkCelleId = id;
+            pendingWalkCelleDeadline = System.currentTimeMillis() + 4000L;
+            Minecraft mc = Minecraft.getMinecraft();
+            if (mc.thePlayer != null) {
+                mc.thePlayer.sendChatMessage("/ce info " + id);
+            }
+            mc.displayGuiScreen(null);
             return;
         }
+
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld != null && mc.theWorld.provider.getDimensionId() != e.dimension) {
-            message("Cellen er i en anden dimension - kan ikke gå dertil herfra.");
+            message("Cellen er i en anden dimension - kan ikke g\u00e5 dertil herfra.");
             return;
         }
         CelleFinder.setTarget(id); // also show the finder ESP/HUD while walking
         PathWalker.walkTo(new net.minecraft.util.BlockPos(e.x, e.y, e.z));
         mc.displayGuiScreen(null); // close the menu so the walk can run
-        message("Går til celle " + id + "...");
+        message("G\u00e5r til celle " + id + "...");
     }
 
     public static void message(String text) {
@@ -828,6 +844,97 @@ public final class CelleActions {
         if (mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
                     EnumChatFormatting.AQUA + "[Celle Scanner] " + EnumChatFormatting.RESET + text));
+        }
+        DebugLog.log("CelleActions", text);
+    }
+
+    /**
+     * Sends a debug-only message to chat AND the log file (if debug logging
+     * is enabled). Unlike message(), this does nothing at all when debug mode
+     * is off, so these calls can be left in production code without bothering
+     * non-debug users.
+     */
+    public static void debugMessage(String text) {
+        if (!DebugLog.isEnabled()) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    EnumChatFormatting.DARK_GRAY + "[debug] " + EnumChatFormatting.RESET + text));
+        }
+        DebugLog.log("debug", text);
+    }
+
+    public static void auditMap() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) {
+            return;
+        }
+        // Find closest scanned cell to determine the gang we are currently in
+        CellePositions.Entry closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (CellePositions.Entry e : CellePositions.snapshot().values()) {
+            double dx = e.x - mc.thePlayer.posX;
+            double dy = e.y - mc.thePlayer.posY;
+            double dz = e.z - mc.thePlayer.posZ;
+            double dist = dx * dx + dy * dy + dz * dz;
+            if (dist < closestDist) {
+                closestDist = dist;
+                closest = e;
+            }
+        }
+
+        String currentGang = null;
+        if (closest != null && closestDist < 10000.0) { // must be within 100 blocks
+            currentGang = closest.gang;
+        }
+
+        if (currentGang == null) {
+            message("§cKunne ikke bestemme din nuværende cellegang. Gå tæt på en kendt celle først.");
+            return;
+        }
+
+        // Find the range matching this gang
+        java.util.List<GangRanges.Range> ranges = GangRanges.getRanges();
+        GangRanges.Range match = null;
+        for (GangRanges.Range r : ranges) {
+            if (currentGang.equals(r.gang)) {
+                match = r;
+                break;
+            }
+        }
+
+        if (match == null) {
+            message("§cDer er ingen defineret gang-range for \"" + currentGang + "\".");
+            return;
+        }
+
+        message("§aKortlægning for: §f" + currentGang + " (" + match.prefix + match.from + " - " + match.prefix + match.to + ")");
+
+        java.util.List<String> missing = new java.util.ArrayList<String>();
+        for (long num = match.from; num <= match.to; num++) {
+            String id = match.prefix + num;
+            if (CellePositions.get(id) == null) {
+                missing.add(id);
+            }
+        }
+
+        if (missing.isEmpty()) {
+            message("§aAlt kortlagt! Alle " + (match.to - match.from + 1) + " celler er gemt.");
+        } else {
+            message("§eMangler at scanne " + missing.size() + " celler:");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < missing.size(); i++) {
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append(missing.get(i));
+                if (sb.length() > 50 || i == missing.size() - 1) {
+                    message("§7" + sb.toString());
+                    sb = new StringBuilder();
+                }
+            }
         }
     }
 }

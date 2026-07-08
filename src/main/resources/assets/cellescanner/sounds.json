@@ -27,5 +27,13 @@
   "troll.jump": {
     "category": "master",
     "sounds": [ "cellescanner:troll/jump/slip" ]
+  },
+  "flip.win": {
+    "category": "master",
+    "sounds": [ "cellescanner:flip/win" ]
+  },
+  "flip.lose": {
+    "category": "master",
+    "sounds": [ "cellescanner:flip/lose" ]
   }
 }

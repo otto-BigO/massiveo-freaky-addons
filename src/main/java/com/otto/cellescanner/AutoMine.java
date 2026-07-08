@@ -36,6 +36,11 @@ import java.util.Set;
  * Movement and aiming are deliberately smooth and slightly varied (eased turns,
  * jitter, small pauses) rather than snappy, so it doesn't twitch like a bot.
  * v1: expect to tune the pattern in-game.
+ *
+ * NOTE: navigate() below and PathWalker.tickWalk() share the same path-follow
+ * shape (waypoint advance, ladder climb, sprint gating) on purpose - each is
+ * tuned separately and both are known-good, so the duplication is left alone.
+ * See the matching note in PathWalker.
  */
 public class AutoMine {
 
@@ -126,6 +131,8 @@ public class AutoMine {
     private BlockPos pathGoal = null;
     private long pathProgressAt = 0;
     private long pathSearchAt = 0;
+    private boolean pathWalking = false;   // forward held while following the path (hysteresis gate)
+    private boolean pathSprinting = false; // sprinting along the path (so sprint doesn't flicker)
 
     // Deposit: the bot never moves items itself (the server flags that). When full,
     // it walks to the Skraldespand, opens it and pings the player to shift-click the
@@ -147,6 +154,11 @@ public class AutoMine {
     // while still turning, we drift off toward wherever we're half-facing and
     // circle forever instead of settling on the block.
     private static final float WALK_ANGLE = 30f;
+    // Path-follow hysteresis: once moving along a planned path, keep walking
+    // through the small 45-degree jogs between diagonal waypoints instead of
+    // stuttering to a stop at each one. Only sharp turns stop to swing around.
+    // In-mine block/drop approaches keep the strict WALK_ANGLE gate above.
+    private static final float WALK_KEEP = 60f;
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
@@ -158,7 +170,7 @@ public class AutoMine {
         // Let the Auto Mine keybind toggle it on/off even while a GUI is open (e.g.
         // while the deposit chest is open). The normal keybind handler doesn't fire
         // when a screen is open, so poll the key here.
-        if (mc.currentScreen != null) {
+        if (mc.currentScreen != null && !(mc.currentScreen instanceof net.minecraft.client.gui.GuiChat)) {
             pollToggleKey();
         } else {
             toggleKeyWasDown = false;
@@ -178,7 +190,7 @@ public class AutoMine {
             return;
         }
 
-        if (mc.currentScreen != null) {
+        if (mc.currentScreen != null && !(mc.currentScreen instanceof net.minecraft.client.gui.inventory.GuiInventory) && !(mc.currentScreen instanceof net.minecraft.client.gui.GuiChat)) {
             // A screen is open (the deposit/shop, or the user's own) - stand still
             // and let the player do their thing. We never touch the inventory.
             releaseKeys(mc);
@@ -413,10 +425,13 @@ public class AutoMine {
         MovingObjectPosition mop = mc.objectMouseOver;
         BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
                 ? mop.getBlockPos() : null;
-        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && eyeDist(mc, looked) <= REACH + 0.5) {
+        double distToTarget = closestDist(mc, target);
+        double distToLooked = looked != null ? closestDist(mc, looked) : Double.MAX_VALUE;
+
+        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && distToLooked <= REACH) {
             stopWalk(mc);
             mineLookedAt(mc, looked, mop.sideHit);
-        } else if (eyeDist(mc, target) > REACH + 0.3) {
+        } else if (distToTarget > REACH) {
             // Nothing minable in reach under the crosshair - step toward the target.
             stopMining(mc);
             approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
@@ -452,6 +467,48 @@ public class AutoMine {
         } else {
             stopWalk(mc);
         }
+    }
+
+    /**
+     * As approach(), but for following a planned path: once moving, the facing gate
+     * widens to WALK_KEEP so we walk straight through the small 45-degree jogs
+     * between diagonal waypoints instead of stuttering to a stop at each one. The
+     * strict WALK_ANGLE gate still applies from a standstill, and approach() keeps
+     * it for in-mine block/drop moves where drifting matters more than flow.
+     */
+    private void approachPath(Minecraft mc, double x, double z, boolean sprint) {
+        double dx = x - mc.thePlayer.posX;
+        double dz = z - mc.thePlayer.posZ;
+        float wantYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float diff = Math.abs(MathHelper.wrapAngleTo180_float(wantYaw - mc.thePlayer.rotationYaw));
+        float gate = pathWalking ? WALK_KEEP : WALK_ANGLE;
+        if (diff < gate) {
+            pathWalking = true;
+            walkForward(mc);
+            boolean sprinting = sprint && diff < 12f; // only sprint when well-lined-up
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprinting);
+            if (sprinting) {
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), mc.thePlayer.onGround);
+            }
+            pathSprinting = sprinting;
+        } else {
+            stopWalk(mc);
+        }
+    }
+
+    /**
+     * Travel aim: yaw toward the waypoint, but pitch held near the horizon (about
+     * head height over the waypoint) instead of staring down at the floor block
+     * like aimAt() would. aimAt() stays for mining, where the crosshair has to be
+     * on the block; this is just for walking, where the floor-stare looked janky.
+     */
+    private void aimAlong(Minecraft mc, BlockPos step) {
+        double dx = (step.getX() + 0.5) - mc.thePlayer.posX;
+        double dy = (step.getY() + 1.5) - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        double dz = (step.getZ() + 0.5) - mc.thePlayer.posZ;
+        double dh = Math.sqrt(dx * dx + dz * dz);
+        tYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        tPitch = (float) (-Math.toDegrees(Math.atan2(dy, dh)));
     }
 
     /**
@@ -491,32 +548,43 @@ public class AutoMine {
             return;
         }
 
-        // Drop waypoints we've reached.
-        while (pathIndex < path.size()) {
-            BlockPos wp = path.get(pathIndex);
-            double dx = (wp.getX() + 0.5) - mc.thePlayer.posX;
-            double dz = (wp.getZ() + 0.5) - mc.thePlayer.posZ;
-            if (dx * dx + dz * dz < 0.45 && Math.abs(wp.getY() - mc.thePlayer.posY) < 1.3) {
-                pathIndex++;
-                pathProgressAt = System.currentTimeMillis();
-            } else {
-                break;
-            }
+        // Drop waypoints we've reached (looking a few ahead, so overshooting a
+        // corner recaptures the path instead of walking back to it).
+        int reached = Pathfinder.consumeWaypoints(path, pathIndex,
+                mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
+        if (reached != pathIndex) {
+            pathIndex = reached;
+            pathProgressAt = System.currentTimeMillis();
         }
         if (pathIndex >= path.size()) {
-            // Consumed a (possibly partial) path but not there yet - re-plan from here.
-            stopWalk(mc);
-            pathProgressAt = 0; // force a fresh search next allowed tick
-            return;
+            // Reached the end of a partial path but not the goal yet - re-plan from
+            // here right away (new chunks loaded as we walked), like PathWalker does,
+            // instead of standing frozen for the re-search throttle.
+            path = Pathfinder.findPath(w, feet, goal, reach, PATH_BUDGET, Pathfinder.safeFall(mc.thePlayer));
+            pathSearchAt = now;
+            pathIndex = 0;
+            if (path == null || path.isEmpty()) {
+                stopWalk(mc);
+                return; // no route from here - the throttled re-search above retries
+            }
+            pathProgressAt = now;
         }
         BlockPos step = path.get(pathIndex);
 
         // Climbing a ladder to get out: face into the ladder's wall and hold forward
         // (pushing into it is what makes you climb up), instead of trying to walk.
-        boolean up = step.getY() > MathHelper.floor_double(mc.thePlayer.posY);
         BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up()
                 : (Pathfinder.isLadder(w, step) ? step : null));
-        if (up && ladderPos != null) {
+        boolean up = false;
+        if (ladderPos != null) {
+            for (int i = pathIndex; i < path.size(); i++) {
+                if (path.get(i).getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
+                    up = true;
+                    break;
+                }
+            }
+        }
+        if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
                 // Snap to face the wall and push in EVERY tick. On a ladder, any tick
@@ -531,8 +599,11 @@ public class AutoMine {
             }
         }
 
-        aimAt(mc, step);
-        approach(mc, step.getX() + 0.5, step.getZ() + 0.5, Pathfinder.straightRun(path, pathIndex, 4));
+        aimAlong(mc, step);
+        // Sprint hysteresis: start on a 4-step straight, but once sprinting keep it
+        // across short 2-step jogs so the FOV doesn't pump on and off constantly.
+        approachPath(mc, step.getX() + 0.5, step.getZ() + 0.5,
+                Pathfinder.straightRun(path, pathIndex, pathSprinting ? 2 : 4));
     }
 
     private void clearPath() {
@@ -542,6 +613,9 @@ public class AutoMine {
     }
 
     private void mineLookedAt(Minecraft mc, BlockPos pos, EnumFacing side) {
+        if (mc.currentScreen instanceof net.minecraft.client.gui.inventory.GuiInventory || mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) {
+            return;
+        }
         if (side == null) {
             side = EnumFacing.UP;
         }
@@ -713,14 +787,7 @@ public class AutoMine {
 
     /** Cobblestone, sandstone and lapis are junk; everything else (picks, iron ore) is kept. */
     private boolean isJunk(ItemStack s) {
-        if (s == null) {
-            return false;
-        }
-        Item it = s.getItem();
-        return it == Item.getItemFromBlock(Blocks.cobblestone)
-                || it == Item.getItemFromBlock(Blocks.sandstone)
-                || it == Item.getItemFromBlock(Blocks.lapis_block)
-                || (it == Items.dye && s.getMetadata() == 4); // lapis lazuli
+        return CelleScannerMod.config.isTrash(s);
     }
 
     private boolean hasJunk(Minecraft mc) {
@@ -991,6 +1058,29 @@ public class AutoMine {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
+    private double closestDist(Minecraft mc, BlockPos pos) {
+        double eyeX = mc.thePlayer.posX;
+        double eyeY = mc.thePlayer.posY + mc.thePlayer.getEyeHeight();
+        double eyeZ = mc.thePlayer.posZ;
+
+        double minX = pos.getX();
+        double maxX = pos.getX() + 1.0;
+        double minY = pos.getY();
+        double maxY = pos.getY() + 1.0;
+        double minZ = pos.getZ();
+        double maxZ = pos.getZ() + 1.0;
+
+        double closestX = Math.max(minX, Math.min(eyeX, maxX));
+        double closestY = Math.max(minY, Math.min(eyeY, maxY));
+        double closestZ = Math.max(minZ, Math.min(eyeZ, maxZ));
+
+        double dx = closestX - eyeX;
+        double dy = closestY - eyeY;
+        double dz = closestZ - eyeZ;
+
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
     private boolean nearBox(Minecraft mc, double m) {
         double x = mc.thePlayer.posX, y = mc.thePlayer.posY, z = mc.thePlayer.posZ;
         return x >= MIN_X - m && x <= MAX_X + 1 + m && z >= MIN_Z - m && z <= MAX_Z + 1 + m
@@ -1028,6 +1118,8 @@ public class AutoMine {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+        pathWalking = false;
+        pathSprinting = false;
     }
 
     private void releaseKeys(Minecraft mc) {

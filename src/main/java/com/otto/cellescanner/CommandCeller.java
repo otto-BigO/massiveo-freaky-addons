@@ -81,6 +81,8 @@ public class CommandCeller extends CommandBase {
 
         if ("menu".equals(sub) || "gui".equals(sub)) {
             CelleActions.openMenu();
+        } else if ("map".equals(sub)) {
+            CelleActions.auditMap();
         } else if ("settings".equals(sub)) {
             CelleActions.openSettings();
         } else if ("help".equals(sub)) {

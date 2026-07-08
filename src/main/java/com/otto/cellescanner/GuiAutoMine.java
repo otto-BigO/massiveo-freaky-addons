@@ -10,6 +10,7 @@ public class GuiAutoMine extends GuiScreen {
 
     private static final int ID_TOGGLE = 0;
     private static final int ID_BACK = 1;
+    private static final int ID_TRASH = 2;
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
 
@@ -19,8 +20,10 @@ public class GuiAutoMine extends GuiScreen {
     public void initGui() {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
-        int y = this.height / 2 - 4;
+        int y = this.height / 2 - 24;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
+        y += BTN_H + 6;
+        this.buttonList.add(new StyledButton(ID_TRASH, left, y, PANEL_W, BTN_H, "Skralde Filter"));
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
@@ -34,6 +37,8 @@ public class GuiAutoMine extends GuiScreen {
         if (button.id == ID_TOGGLE) {
             CelleActions.toggleAutoMine();
             toggleButton.displayString = toggleLabel();
+        } else if (button.id == ID_TRASH) {
+            this.mc.displayGuiScreen(new GuiAutoMineTrash());
         } else if (button.id == ID_BACK) {
             CelleActions.openHub();
         }
@@ -45,11 +50,11 @@ public class GuiAutoMine extends GuiScreen {
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
-        int titleY = this.height / 2 - 64;
+        int titleY = this.height / 2 - 74;
         drawCenteredString(this.fontRendererObj, "Auto Mine", cx, titleY, 0xFFD24B);
         drawCenteredString(this.fontRendererObj, "Miner mine-området og går til depot når tasken er fuld.", cx, titleY + 12, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "Automatisering - brug kun hvor serveren tillader det.", cx, titleY + 24, 0xFF8888);
-        drawCenteredString(this.fontRendererObj, "Bind en tast til 'Auto Mine' i Controls for hurtig til/fra.", cx, this.height / 2 + 44, 0x888888);
+        drawCenteredString(this.fontRendererObj, "Bind en tast til 'Auto Mine' i Controls for hurtig til/fra.", cx, this.height / 2 + 56, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

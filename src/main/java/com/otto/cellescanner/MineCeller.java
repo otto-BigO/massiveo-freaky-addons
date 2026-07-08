@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class MineCeller {
 
-    private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,2}[0-9]{2,5}\\b");
+    private static final Pattern CELLE_ID = Pattern.compile("\\b[A-Za-z]{1,5}[0-9]{1,5}\\b");
     private static final long CAPTURE_MS = 4000L;
     private static final float LABEL_SCALE = 0.035F;
     private static final int MINE_COLOR = 0xB273FF; // violet

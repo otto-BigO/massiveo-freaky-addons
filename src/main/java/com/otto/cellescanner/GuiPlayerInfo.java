@@ -53,6 +53,12 @@ public class GuiPlayerInfo extends GuiScreen {
     private ResourceLocation skin;         // for the flat head/body fallback
     private boolean modelBroken = false;
 
+    // Model rotation state
+    private float yawRotation = 20f; // start at a slight premium angle
+    private float pitchRotation = 0f;
+    private int lastDragX = -1;
+    private int lastDragY = -1;
+
     // "Alle celler" side panel + its inline toggle button bounds.
     private boolean showCeller = false;
     private int cellerScroll = 0;
@@ -189,14 +195,35 @@ public class GuiPlayerInfo extends GuiScreen {
         int cardL = cardL();
         int cardT = cardT();
 
+        int mx0 = cardL + 8;
+        int my0 = cardT + 26;
+        int mh = CARD_H - 34;
+
+        // Handle drag to rotate 3D model
+        if (Mouse.isButtonDown(0)) {
+            boolean inPanel = mouseX >= mx0 && mouseX <= mx0 + MODEL_W
+                    && mouseY >= my0 && mouseY <= my0 + mh;
+            if (inPanel || lastDragX != -1) {
+                if (lastDragX != -1) {
+                    float dx = mouseX - lastDragX;
+                    float dy = mouseY - lastDragY;
+                    yawRotation -= dx * 1.5f;
+                    pitchRotation = Math.max(-45f, Math.min(45f, pitchRotation - dy * 1.5f));
+                }
+                lastDragX = mouseX;
+                lastDragY = mouseY;
+            }
+        } else {
+            lastDragX = -1;
+            lastDragY = -1;
+            yawRotation += 0.5f; // continuous slow idle spin
+        }
+
         Style.panel(cardL, cardT, cardL + CARD_W, cardT + CARD_H);
         drawCenteredString(this.fontRendererObj, playerName, this.width / 2, cardT + 8, 0xFFFFFF);
         drawRect(cardL + 8, cardT + 20, cardL + CARD_W - 8, cardT + 21, Style.ACCENT);
 
         // Left: 3D model in its own panel.
-        int mx0 = cardL + 8;
-        int my0 = cardT + 26;
-        int mh = CARD_H - 34;
         Style.panel(mx0, my0, mx0 + MODEL_W, my0 + mh);
         drawModel(mc, mx0, my0, MODEL_W, mh, mouseX, mouseY);
 
@@ -211,7 +238,7 @@ public class GuiPlayerInfo extends GuiScreen {
         drawString(this.fontRendererObj, EnumChatFormatting.GREEN + "Rustning", x, y, 0x55FF55);
         y += 12;
         if (offline) {
-            drawString(this.fontRendererObj, EnumChatFormatting.DARK_GRAY + "Ikke tilgængelig (offline)", x + 4, y, 0x777777);
+            drawString(this.fontRendererObj, EnumChatFormatting.DARK_GRAY + "Ikke tilg\u00e6ngelig (offline)", x + 4, y, 0x777777);
         } else {
             drawArmor(mc, x, y);
         }
@@ -349,7 +376,7 @@ public class GuiPlayerInfo extends GuiScreen {
                 // Full-bright lightmap so the model isn't dark in dim areas.
                 GlStateManager.color(1f, 1f, 1f, 1f);
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
-                GuiInventory.drawEntityOnScreen(cx, feet, scale, cx - mouseX, (my0 + mh / 3) - mouseY, ent);
+                drawCustomEntityOnScreen(cx, feet, scale, yawRotation, -pitchRotation, ent);
             } finally {
                 mc.gameSettings.hideGUI = prevHide;
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -361,6 +388,51 @@ public class GuiPlayerInfo extends GuiScreen {
             GlStateManager.color(1f, 1f, 1f, 1f);
             return false;
         }
+    }
+
+    private static void drawCustomEntityOnScreen(int posX, int posY, int scale, float yaw, float pitch, EntityLivingBase ent) {
+        GlStateManager.enableColorMaterial();
+        GlStateManager.pushMatrix();
+        GlStateManager.translate((float)posX, (float)posY, 50.0F);
+        GlStateManager.scale((float)(-scale), (float)scale, (float)scale);
+        GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+        
+        float f = ent.renderYawOffset;
+        float f1 = ent.rotationYaw;
+        float f2 = ent.rotationPitch;
+        float f3 = ent.prevRotationYawHead;
+        float f4 = ent.rotationYawHead;
+        
+        GlStateManager.rotate(135.0F, 0.0F, 1.0F, 0.0F);
+        RenderHelper.enableStandardItemLighting();
+        GlStateManager.rotate(-135.0F, 0.0F, 1.0F, 0.0F);
+        
+        GlStateManager.rotate(pitch, 1.0F, 0.0F, 0.0F);
+        
+        ent.renderYawOffset = yaw;
+        ent.rotationYaw = yaw;
+        ent.rotationPitch = pitch;
+        ent.rotationYawHead = yaw;
+        ent.prevRotationYawHead = yaw;
+        
+        net.minecraft.client.renderer.entity.RenderManager rendermanager = Minecraft.getMinecraft().getRenderManager();
+        rendermanager.setPlayerViewY(180.0F);
+        rendermanager.setRenderShadow(false);
+        rendermanager.renderEntityWithPosYaw(ent, 0.0D, 0.0D, 0.0D, 0.0F, 1.0F);
+        rendermanager.setRenderShadow(true);
+        
+        ent.renderYawOffset = f;
+        ent.rotationYaw = f1;
+        ent.rotationPitch = f2;
+        ent.prevRotationYawHead = f3;
+        ent.rotationYawHead = f4;
+        
+        GlStateManager.popMatrix();
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.disableRescaleNormal();
+        GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GlStateManager.disableTexture2D();
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
     }
 
     /** Builds the stable fake entity for the 3D model: the given skin, plus armor when supplied (online). */
@@ -389,6 +461,12 @@ public class GuiPlayerInfo extends GuiScreen {
         }
     }
 
+    static {
+        try {
+            net.minecraft.entity.EntityList.classToStringMapping.put(FakeSkinPlayer.class, "Player");
+        } catch (Throwable ignored) {}
+    }
+
     /** A minimal offline player entity that reports the fetched skin, so RenderPlayer draws it. */
     private static final class FakeSkinPlayer extends EntityOtherPlayerMP {
         private final ResourceLocation skinLoc;
@@ -398,6 +476,9 @@ public class GuiPlayerInfo extends GuiScreen {
             super(world, profile);
             this.skinLoc = skinLoc;
             this.slim = slim;
+            try {
+                this.getDataWatcher().updateObject(10, Byte.valueOf((byte) 127));
+            } catch (Throwable ignored) {}
         }
 
         @Override

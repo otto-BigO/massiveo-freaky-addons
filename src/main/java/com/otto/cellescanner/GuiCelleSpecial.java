@@ -22,7 +22,7 @@ public class GuiCelleSpecial extends GuiScreen {
     private static final int ID_BACK = 2;
     // Per-id remove buttons get ids REMOVE_BASE + index into shownIds.
     private static final int REMOVE_BASE = 100;
-    private static final int MAX_REMOVE_ROWS = 8;
+    private static final int MAX_REMOVE_ROWS = 4;
 
     private static final int FIELD_W = 200;
     private static final int FIELD_H = 18;
@@ -178,12 +178,12 @@ public class GuiCelleSpecial extends GuiScreen {
                 int extra = ids.size() - MAX_REMOVE_ROWS;
                 drawCenteredString(this.fontRendererObj,
                         "+ " + extra + " mere (fjern via /celler special remove <id>)",
-                        this.width / 2, this.height - 24, 0x888888);
+                        this.width / 2, this.height / 2 + 118, 0x888888);
             }
         }
 
         if (!statusLine.isEmpty()) {
-            drawCenteredString(this.fontRendererObj, statusLine, this.width / 2, this.height - 14, statusColor);
+            drawCenteredString(this.fontRendererObj, statusLine, this.width / 2, this.height / 2 + 132, statusColor);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);

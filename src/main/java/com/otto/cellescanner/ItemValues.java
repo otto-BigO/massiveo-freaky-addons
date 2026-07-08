@@ -207,10 +207,36 @@ public class ItemValues {
             return;
         }
 
+        // Parse chest/shop price from existing lore lines (e.g. "Pris: 10 DB")
+        double chestPrice = -1.0;
+        for (String line : event.toolTip) {
+            String clean = EnumChatFormatting.getTextWithoutFormattingCodes(line).toLowerCase().trim();
+            if ((clean.contains("pris") || clean.contains("k\u00f8b") || clean.contains("pris/stk")) && clean.contains("db")) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)").matcher(clean);
+                if (m.find()) {
+                    try {
+                        chestPrice = Double.parseDouble(m.group(1));
+                        break;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+
+        // Parse minimum and maximum market price from guide value (e.g. "25-35 DB")
+        double marketMin = -1.0;
+        double marketMax = -1.0;
+        java.util.regex.Matcher mVal = DB_PATTERN.matcher(value);
+        if (mVal.find()) {
+            try {
+                marketMin = Double.parseDouble(mVal.group(1));
+                marketMax = mVal.group(2) != null ? Double.parseDouble(mVal.group(2)) : marketMin;
+            } catch (NumberFormatException ignored) {}
+        }
+
         // Skyblocker-style block appended at the bottom: gold labels, aqua
         // right-aligned values, plus a diamond-equivalent line (1 DB = 9 dia).
         java.util.List<String[]> rows = new java.util.ArrayList<String[]>();
-        rows.add(new String[]{"Værdi:", value});
+        rows.add(new String[]{"V\u00e6rdi:", value});
         long[] dia = diamondRange(value);
         if (dia != null) {
             String diaText = dia[0] == dia[1] ? fmt(dia[0]) : fmt(dia[0]) + " - " + fmt(dia[1]);
@@ -219,6 +245,21 @@ public class ItemValues {
 
         event.toolTip.add("");
         event.toolTip.addAll(rightAlign(rows));
+
+        // Append bargain or overpricing warning lines
+        if (chestPrice != -1.0 && marketMin != -1.0) {
+            if (chestPrice < marketMin) {
+                double saving = marketMin - chestPrice;
+                String savingStr = saving == (int) saving ? String.valueOf((int) saving) : String.format(java.util.Locale.US, "%.1f", saving);
+                event.toolTip.add(EnumChatFormatting.GREEN.toString() + EnumChatFormatting.BOLD.toString() + "★ BILLIGT K\u00d8B! Sparer " + savingStr + " DB");
+            } else if (chestPrice > marketMax) {
+                double overpriced = chestPrice - marketMax;
+                String overpricedStr = overpriced == (int) overpriced ? String.valueOf((int) overpriced) : String.format(java.util.Locale.US, "%.1f", overpriced);
+                event.toolTip.add(EnumChatFormatting.RED.toString() + EnumChatFormatting.BOLD.toString() + "\u26a0 OVERPRIS! Dyrere med " + overpricedStr + " DB");
+            }
+        } else if (marketMin >= 15.0) {
+            event.toolTip.add(EnumChatFormatting.GOLD.toString() + EnumChatFormatting.BOLD.toString() + "\u2605 H\u00f8j V\u00e6rdi Vare \u2605");
+        }
     }
 
     private static final java.util.regex.Pattern DB_PATTERN =

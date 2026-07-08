@@ -144,5 +144,6 @@ public class FlipDebug {
         if (mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(new ChatComponentText(text));
         }
+        DebugLog.log("FlipDebug", text);
     }
 }

@@ -35,11 +35,6 @@ public class Celle {
         this.position = position;
     }
 
-    /** Raw value as last read off the sign - unchanged until the sign itself updates. */
-    public double remainingHours() {
-        return remainingSeconds / 3600.0;
-    }
-
     /** remainingSeconds, extrapolated down to "now" since it was last refreshed. Never negative. */
     public long liveRemainingSeconds() {
         long elapsedSeconds = (System.currentTimeMillis() - valueUpdatedAt) / 1000L;
