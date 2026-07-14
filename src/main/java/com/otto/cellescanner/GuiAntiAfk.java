@@ -18,10 +18,11 @@ public class GuiAntiAfk extends GuiScreen {
     private static final int ID_INT_DOWN = 4;
     private static final int ID_INT_UP = 5;
     private static final int ID_BACK = 6;
+    private static final int ID_STRAFE = 7;
     private static final int ID_INT_LABEL = -1000;
 
     private static final int ROW_H = 24;
-    private static final int ROW_COUNT = 6;
+    private static final int ROW_COUNT = 7;
     private static final int CONTENT_H = ROW_H * ROW_COUNT;
     private static final int BTN_H = 20;
     private static final int PANEL_W = 200;
@@ -30,6 +31,7 @@ public class GuiAntiAfk extends GuiScreen {
     private GuiButton swingButton;
     private GuiButton rotateButton;
     private GuiButton jumpButton;
+    private GuiButton strafeButton;
     private GuiButton intervalLabel;
 
     @Override
@@ -47,6 +49,8 @@ public class GuiAntiAfk extends GuiScreen {
         this.buttonList.add(rotateButton = new StyledButton(ID_ROTATE, left, y, PANEL_W, BTN_H, rotateLabel()));
         y += ROW_H;
         this.buttonList.add(jumpButton = new StyledButton(ID_JUMP, left, y, PANEL_W, BTN_H, jumpLabel()));
+        y += ROW_H;
+        this.buttonList.add(strafeButton = new StyledButton(ID_STRAFE, left, y, PANEL_W, BTN_H, strafeLabel()));
         y += ROW_H;
 
         // interval stepper: - [label] +
@@ -75,6 +79,10 @@ public class GuiAntiAfk extends GuiScreen {
         return "Hop: " + (CelleScannerMod.config.antiAfkJump ? "Til" : "Fra");
     }
 
+    private String strafeLabel() {
+        return "Skridt til siden: " + (CelleScannerMod.config.antiAfkStrafe ? "Til" : "Fra");
+    }
+
     private String intervalLabel() {
         return "Interval: " + CelleScannerMod.config.antiAfkIntervalSeconds + "s";
     }
@@ -97,6 +105,10 @@ public class GuiAntiAfk extends GuiScreen {
             case ID_JUMP:
                 CelleActions.toggleAntiAfkJump();
                 jumpButton.displayString = jumpLabel();
+                break;
+            case ID_STRAFE:
+                CelleActions.toggleAntiAfkStrafe();
+                strafeButton.displayString = strafeLabel();
                 break;
             case ID_INT_DOWN:
                 CelleActions.adjustAntiAfkInterval(-5);

@@ -1,5 +1,6 @@
 package com.otto.cellescanner;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -8,6 +9,8 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
 @Mod(modid = CelleScannerMod.MODID, name = CelleScannerMod.NAME, version = CelleScannerMod.VERSION, clientSideOnly = true)
@@ -23,6 +26,9 @@ public class CelleScannerMod {
     public static CelleScanner scanner;
     public static CelleHud hud;
     public static CelleEsp esp;
+
+    /** True once the feature addons have been put on the event bus (after licence verify). */
+    private static boolean addonsEnabled = false;
     public static KeyBinding openMenuKey;
     public static KeyBinding autoMineKey;
 
@@ -32,7 +38,9 @@ public class CelleScannerMod {
         config.load();
         CellePositions.init(event.getSuggestedConfigurationFile().getParentFile());
         ItemValues.init(event.getSuggestedConfigurationFile().getParentFile());
+        ChestOrganizerPositions.init(event.getSuggestedConfigurationFile().getParentFile());
         // Gange feature shelved - GangRanges.init(...) left out for now.
+        ArmorSkins.registerVariants();
     }
 
     @EventHandler
@@ -41,10 +49,64 @@ public class CelleScannerMod {
         hud = new CelleHud();
         esp = new CelleEsp();
 
+        // Always-on, licence-independent: the access-key key/hub, the updater (so an
+        // unlicensed client can still update the mod), and the gate that turns the
+        // feature addons on once the licence verifies. The features themselves are
+        // registered in enableAddons() - NOT here - so the mod does nothing until a
+        // valid key is entered.
+        MinecraftForge.EVENT_BUS.register(new KeyHandler());
+        // The update check is NOT started here. Doing network + class loading
+        // during startup can contend with (Laby)Mod's own startup on the shared
+        // classloader and trip its render-thread watchdog. AutoUpdater kicks the
+        // check off a few seconds into the first client ticks instead.
+        MinecraftForge.EVENT_BUS.register(new AutoUpdater());
+        MinecraftForge.EVENT_BUS.register(new AccessGate());
+
+        ClientCommandHandler.instance.registerCommand(new CommandCeller());
+        ClientCommandHandler.instance.registerCommand(new CommandClearLogouts());
+
+        // Addons are registered lazily (AddonList.ensureRegistered, called
+        // when the hub first opens) to keep startup class loading minimal.
+
+        openMenuKey = new KeyBinding("key.cellescanner.menu", Keyboard.KEY_B, "key.categories.cellescanner");
+        ClientRegistry.registerKeyBinding(openMenuKey);
+        
+        autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
+        ClientRegistry.registerKeyBinding(autoMineKey);
+
+        // Re-verify a saved licence key on startup, off the main thread so the network
+        // call never blocks launch (LabyMod's render-thread watchdog is picky). This
+        // sets AccessSystem.isVerified for a returning buyer, and fail-opens from the
+        // cached verification if the licence server is briefly unreachable.
+        if (config.accessKey != null && !config.accessKey.trim().isEmpty()) {
+            Thread t = new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        AccessSystem.verifyKey(config.accessKey);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }, "CelleScanner-License");
+            t.setDaemon(true);
+            t.start();
+        }
+    }
+
+    /**
+     * Registers all the feature addons on the event bus. Called by {@link AccessGate}
+     * once the licence is verified (on the client tick / main thread, so bus
+     * registration is safe). Idempotent - safe to call every tick.
+     */
+    public static void enableAddons() {
+        if (addonsEnabled) {
+            return;
+        }
+        addonsEnabled = true;
+
         MinecraftForge.EVENT_BUS.register(scanner);
         MinecraftForge.EVENT_BUS.register(hud);
         MinecraftForge.EVENT_BUS.register(esp);
-        MinecraftForge.EVENT_BUS.register(new KeyHandler());
+
         MinecraftForge.EVENT_BUS.register(new AntiAfk());
         MinecraftForge.EVENT_BUS.register(new BandeEsp());
         MinecraftForge.EVENT_BUS.register(new ChestAlarm());
@@ -58,25 +120,16 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new AutoMine());
         MinecraftForge.EVENT_BUS.register(new AutoFish());
         MinecraftForge.EVENT_BUS.register(new AutoCrate());
+        MinecraftForge.EVENT_BUS.register(new ChestOrganizer());
+        MinecraftForge.EVENT_BUS.register(new IronDoorSounds());
+        MinecraftForge.EVENT_BUS.register(PlayerLogger.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(new FarmBot());
+        MinecraftForge.EVENT_BUS.register(new PlayerEsp());
         MinecraftForge.EVENT_BUS.register(new PathWalker());
         MinecraftForge.EVENT_BUS.register(new FlipDebug());
-        MinecraftForge.EVENT_BUS.register(new ModUserIcon());
+        // Mod-brugere (ModUserIcon) shelved for now - see AddonList. Not
+        // registered so it does nothing until we pick it back up.
         MinecraftForge.EVENT_BUS.register(new ItemValues());
         MinecraftForge.EVENT_BUS.register(new ArmorHud());
-        // The update check is NOT started here. Doing network + class loading
-        // during startup can contend with (Laby)Mod's own startup on the shared
-        // classloader and trip its render-thread watchdog. AutoUpdater kicks the
-        // check off a few seconds into the first client ticks instead.
-        MinecraftForge.EVENT_BUS.register(new AutoUpdater());
-
-        ClientCommandHandler.instance.registerCommand(new CommandCeller());
-
-        // Addons are registered lazily (AddonList.ensureRegistered, called
-        // when the hub first opens) to keep startup class loading minimal.
-
-        openMenuKey = new KeyBinding("key.cellescanner.menu", Keyboard.KEY_B, "key.categories.cellescanner");
-        ClientRegistry.registerKeyBinding(openMenuKey);
-        autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
-        ClientRegistry.registerKeyBinding(autoMineKey);
     }
 }

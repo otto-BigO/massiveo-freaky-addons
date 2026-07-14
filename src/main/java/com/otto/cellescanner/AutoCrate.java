@@ -3,7 +3,6 @@ package com.otto.cellescanner;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.item.ItemStack;
-import net.minecraft.init.Items;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -101,7 +100,7 @@ public class AutoCrate {
                 CelleScannerMod.config.autoCrateEnabled = false;
                 CelleScannerMod.config.save();
                 mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                        net.minecraft.util.EnumChatFormatting.RED + "[Celle Scanner] Alle kasser åbnet / ingen nøgler fundet! Auto-Crate deaktiveret."
+                        net.minecraft.util.EnumChatFormatting.RED + "[Massiveo's addons] Alle kasser åbnet / ingen nøgler fundet! Auto-Crate deaktiveret."
                 ));
                 return;
             }

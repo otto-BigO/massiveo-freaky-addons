@@ -23,6 +23,8 @@ public class GuiBande extends GuiScreen {
     private static final int ID_BACK = 4;
     private static final int ID_ALL = 5;
     private static final int REMOVE_BASE = 100;
+    // How many member rows are visible at once; the rest are reachable by
+    // scrolling the mouse wheel (see handleMouseInput / scrollOffset).
     private static final int MAX_REMOVE_ROWS = 4;
 
     private static final int FIELD_W = 200;
@@ -40,6 +42,8 @@ public class GuiBande extends GuiScreen {
 
     private final List<String> shownNames = new ArrayList<String>();
     private int listHintY;
+    // Index of the first member shown in the scrollable list.
+    private int scrollOffset = 0;
 
     @Override
     public void initGui() {
@@ -77,12 +81,36 @@ public class GuiBande extends GuiScreen {
         y += this.fontRendererObj.FONT_HEIGHT + 4;
 
         List<String> members = CelleScannerMod.config.bandeMembers;
-        int shown = Math.min(members.size(), MAX_REMOVE_ROWS);
+        int maxOffset = Math.max(0, members.size() - MAX_REMOVE_ROWS);
+        if (scrollOffset > maxOffset) {
+            scrollOffset = maxOffset;
+        }
+        if (scrollOffset < 0) {
+            scrollOffset = 0;
+        }
+        int shown = Math.min(members.size() - scrollOffset, MAX_REMOVE_ROWS);
         for (int i = 0; i < shown; i++) {
-            String name = members.get(i);
+            String name = members.get(scrollOffset + i);
             shownNames.add(name);
             this.buttonList.add(new StyledButton(REMOVE_BASE + i, fieldX, y, FIELD_W, REMOVE_H, "Fjern  " + name));
             y += REMOVE_H + 2;
+        }
+    }
+
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        int wheel = org.lwjgl.input.Mouse.getEventDWheel();
+        if (wheel == 0) {
+            return;
+        }
+        int maxOffset = Math.max(0, CelleScannerMod.config.bandeMembers.size() - MAX_REMOVE_ROWS);
+        if (wheel < 0 && scrollOffset < maxOffset) {
+            scrollOffset++;
+            this.initGui();
+        } else if (wheel > 0 && scrollOffset > 0) {
+            scrollOffset--;
+            this.initGui();
         }
     }
 
@@ -202,8 +230,9 @@ public class GuiBande extends GuiScreen {
         } else {
             drawCenteredString(this.fontRendererObj, members.size() + " medlem(mer) - klik Fjern for at slette:", this.width / 2, listHintY, 0xAAAAAA);
             if (members.size() > MAX_REMOVE_ROWS) {
-                int extra = members.size() - MAX_REMOVE_ROWS;
-                drawCenteredString(this.fontRendererObj, "+ " + extra + " mere (fjern enkeltvis via listen når der er plads)",
+                int first = scrollOffset + 1;
+                int last = Math.min(members.size(), scrollOffset + MAX_REMOVE_ROWS);
+                drawCenteredString(this.fontRendererObj, "Viser " + first + "-" + last + " af " + members.size() + " - scroll for flere",
                         this.width / 2, this.height / 2 + 118, 0x888888);
             }
         }

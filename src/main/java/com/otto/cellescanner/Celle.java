@@ -14,6 +14,11 @@ public class Celle {
     public long remainingSeconds; // value as last read directly off the sign
     public long lastSeen;         // System.currentTimeMillis() of last scan that saw this sign
     public boolean notified;      // whether the "entered window" notification has fired
+    public long lastAlertSeconds = -1L; // tracks the last remaining seconds value we alerted for
+    public boolean alert120Fired;
+    public boolean alert60Fired;
+    public boolean alert30Fired;
+    public boolean alert0Fired;
 
     // Wall-clock time (millis) at which remainingSeconds was last refreshed
     // because the sign's own text actually changed. The server only

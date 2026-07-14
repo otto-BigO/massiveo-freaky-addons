@@ -172,7 +172,7 @@ public final class CellePositions {
                 net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
                 if (mc.thePlayer != null) {
                     mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                            net.minecraft.util.EnumChatFormatting.GREEN + "[Celle Scanner] Ny celle kortlagt: " 
+                            net.minecraft.util.EnumChatFormatting.GREEN + "[Massiveo's addons] Ny celle kortlagt: " 
                             + displayId + " (" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")"
                     ));
                 }

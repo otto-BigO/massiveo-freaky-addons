@@ -45,10 +45,10 @@ public class GuiCelleMenu extends GuiScreen {
     private static final int ID_SETTINGS = 13;
     private static final int ID_BOT = 14;
     private static final int ID_SPECIAL = 15;
-    private static final int ID_FINDER = 16;
+    // Celle Finder moved out to its own tile in the hub's Celler theme.
 
     private static final int ROW_H = 24;
-    private static final int ROW_COUNT = 10;
+    private static final int ROW_COUNT = 9;
     private static final int CONTENT_H = ROW_H * ROW_COUNT;
     private static final int BTN_H = 20;
     private static final int PANEL_W = 200;
@@ -115,11 +115,7 @@ public class GuiCelleMenu extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_SPECIAL, left, y, PANEL_W, BTN_H, "Special celler"));
         y += ROW_H;
 
-        // row 8: celle finder
-        this.buttonList.add(new StyledButton(ID_FINDER, left, y, PANEL_W, BTN_H, "Celle Finder"));
-        y += ROW_H;
-
-        // row 9: back to the addons hub
+        // row 8: back to the addons hub
         this.buttonList.add(new StyledButton(ID_CLOSE, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
@@ -208,9 +204,6 @@ public class GuiCelleMenu extends GuiScreen {
                 break;
             case ID_SPECIAL:
                 CelleActions.openSpecialScreen();
-                break;
-            case ID_FINDER:
-                CelleActions.openFinderScreen();
                 break;
             case ID_CLOSE:
                 CelleActions.openHub();

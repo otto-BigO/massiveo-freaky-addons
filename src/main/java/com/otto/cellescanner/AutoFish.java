@@ -1,7 +1,6 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.projectile.EntityFishHook;
 import net.minecraft.item.ItemStack;
 import net.minecraft.init.Items;
@@ -80,7 +79,7 @@ public class AutoFish {
                 CelleScannerMod.config.autoFishEnabled = false;
                 CelleScannerMod.config.save();
                 mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                        net.minecraft.util.EnumChatFormatting.RED + "[Celle Scanner] Du har ingen fiskestang i dit hotbar! Auto-Fish deaktiveret."
+                        net.minecraft.util.EnumChatFormatting.RED + "[Massiveo's addons] Du har ingen fiskestang i dit hotbar! Auto-Fish deaktiveret."
                 ));
                 hadBobberLastTick = false;
                 castDelayTicks = -1;
