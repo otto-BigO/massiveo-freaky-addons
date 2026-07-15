@@ -347,12 +347,43 @@ public class AutoUpdater {
     }
 
     private static void download(String url, File dest) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
-        conn.setInstanceFollowRedirects(true);
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(60000);
-        InputStream in = conn.getInputStream();
+        String currentUrl = url;
+        HttpURLConnection conn = null;
+        InputStream in = null;
+        int redirects = 0;
+
+        while (redirects < 5) {
+            conn = (HttpURLConnection) new URL(currentUrl).openConnection();
+            conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(60000);
+
+            int status = conn.getResponseCode();
+            if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                    || status == HttpURLConnection.HTTP_MOVED_PERM
+                    || status == HttpURLConnection.HTTP_SEE_OTHER
+                    || status == 307
+                    || status == 308) {
+                String loc = conn.getHeaderField("Location");
+                if (loc != null) {
+                    currentUrl = loc;
+                    redirects++;
+                    conn.disconnect();
+                    continue;
+                }
+            }
+            if (status < 200 || status >= 300) {
+                throw new Exception("HTTP " + status);
+            }
+            in = conn.getInputStream();
+            break;
+        }
+
+        if (in == null) {
+            throw new Exception("Too many redirects");
+        }
+
         try {
             OutputStream out = new FileOutputStream(dest);
             try {

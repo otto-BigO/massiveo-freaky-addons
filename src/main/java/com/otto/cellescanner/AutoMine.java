@@ -341,16 +341,8 @@ public class AutoMine {
         recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
         claimDrops(mc);   // claim iron that came out of our breaks
 
-        // Ladder recovery: if we've slid down a ladder and are stuck on it, pathfind
-        // back to the start corner (that climbs us out via the ladder), then resume
-        // mining where we left off - planIndex is preserved.
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
-        if (Pathfinder.isLadder(mc.theWorld, feet) || Pathfinder.isLadder(mc.theWorld, feet.up())) {
-            stopMining(mc);
-            navigate(mc, START, 2.0);
-            return;
-        }
 
         // Next block in the fixed serpentine order (computed first, so the reset
         // check below runs no matter where we're standing).
@@ -593,11 +585,8 @@ public class AutoMine {
         BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
         boolean up = false;
         if (ladderPos != null) {
-            for (int i = pathIndex; i < path.size(); i++) {
-                if (path.get(i).getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
-                    up = true;
-                    break;
-                }
+            if (step.getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
+                up = true;
             }
         }
         boolean down = false;

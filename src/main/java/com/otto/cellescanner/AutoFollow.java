@@ -198,11 +198,8 @@ public class AutoFollow {
         BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
         boolean up = false;
         if (ladderPos != null) {
-            for (int i = pathIndex; i < path.size(); i++) {
-                if (path.get(i).getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
-                    up = true;
-                    break;
-                }
+            if (step.getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
+                up = true;
             }
         }
         boolean down = false;
