@@ -73,6 +73,7 @@ public class PathWalker {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc != null && mc.gameSettings != null) {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
             AutoEat.stop(mc);
@@ -220,9 +221,8 @@ public class PathWalker {
         }
         BlockPos step = path.get(index);
 
-        // Climb a ladder: face into its wall and push forward every tick (no jump).
-        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet
-                : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : (Pathfinder.isLadder(w, step) ? step : null));
+        // Climb a ladder: face into its wall and push forward (for up) or backward (for down) every tick (no jump).
+        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
         boolean up = false;
         if (ladderPos != null) {
             for (int i = index; i < path.size(); i++) {
@@ -232,13 +232,28 @@ public class PathWalker {
                 }
             }
         }
+        boolean down = false;
+        if (ladderPos != null && !up) {
+            if (step.getY() < feet.getY()) {
+                down = true;
+            }
+        }
+
         if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
                 mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                return;
+            }
+        } else if (down) {
+            EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
+            if (into != null) {
+                mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
+                releaseKeys(mc); // release all keys to slide down safely in 1.8.9
                 return;
             }
         }
@@ -280,6 +295,7 @@ public class PathWalker {
 
     private void releaseKeys(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         walking = false;

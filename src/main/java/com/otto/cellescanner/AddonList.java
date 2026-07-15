@@ -255,7 +255,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -281,7 +281,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -292,7 +292,7 @@ public final class AddonList {
                 config.autoFishEnabled = !config.autoFishEnabled;
                 config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("World"));
+                        new GuiAddonsHub("Automation"));
             }
 
             public void toggle() {
@@ -310,7 +310,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -321,7 +321,7 @@ public final class AddonList {
                 config.autoCrateEnabled = !config.autoCrateEnabled;
                 config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("World"));
+                        new GuiAddonsHub("Automation"));
             }
 
             public void toggle() {
@@ -378,7 +378,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "Quality of life";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -725,6 +725,42 @@ public final class AddonList {
 
             public void toggle() {
                 config.playerEspEnabled = !config.playerEspEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Auto-Følg";
+            }
+
+            public String description() {
+                return "Gå og løb bag en anden spiller automatisk (Auto Follow)";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return AutoFollow.isActive();
+            }
+
+            public void open() {
+                if (AutoFollow.isActive()) {
+                    AutoFollow.stop();
+                    net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                            new GuiAddonsHub("Automation"));
+                } else {
+                    net.minecraft.client.Minecraft.getMinecraft().thePlayer.addChatMessage(
+                            new net.minecraft.util.ChatComponentText("§eBrug /følg <navn> for at starte auto-follow."));
+                    net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(null);
+                }
+            }
+
+            public void toggle() {
+                if (AutoFollow.isActive()) {
+                    AutoFollow.stop();
+                }
             }
         });
     }

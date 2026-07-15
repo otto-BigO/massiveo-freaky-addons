@@ -95,8 +95,13 @@ public final class Pathfinder {
     private static List<BlockPos> neighbors(World w, BlockPos p, int maxFall) {
         List<BlockPos> out = new ArrayList<BlockPos>(8);
         boolean headClear = passable(w, p.up().up()); // room to hop
-        if (isLadder(w, p) && passable(w, p.up())) {
-            out.add(p.up()); // climb straight up
+        if (isLadder(w, p)) {
+            if (passable(w, p.up())) {
+                out.add(p.up()); // climb straight up
+            }
+            if (canStand(w, p.down())) {
+                out.add(p.down()); // climb/slide straight down
+            }
         }
         boolean srcHeadClear = passable(w, p.up()) && headClear; // room to jump from here
         int fall = Math.max(1, maxFall);

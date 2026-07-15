@@ -587,10 +587,10 @@ public class AutoMine {
         }
         BlockPos step = path.get(pathIndex);
 
-        // Climbing a ladder to get out: face into the ladder's wall and hold forward
-        // (pushing into it is what makes you climb up), instead of trying to walk.
-        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up()
-                : (Pathfinder.isLadder(w, step) ? step : null));
+        // Climbing a ladder: face into the ladder's wall and hold forward (for up)
+        // or backward (for down). We only do this when actually standing on a ladder block,
+        // so we don't snap yaw and push away before reaching the ladder.
+        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
         boolean up = false;
         if (ladderPos != null) {
             for (int i = pathIndex; i < path.size(); i++) {
@@ -600,6 +600,13 @@ public class AutoMine {
                 }
             }
         }
+        boolean down = false;
+        if (ladderPos != null && !up) {
+            if (step.getY() < feet.getY()) {
+                down = true;
+            }
+        }
+
         if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
@@ -611,6 +618,16 @@ public class AutoMine {
                 tYaw = y;
                 tPitch = 0f;
                 climbForward(mc); // forward into the wall = climb (NO jumping)
+                return;
+            }
+        } else if (down) {
+            EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
+            if (into != null) {
+                float y = Pathfinder.yawOf(into);
+                mc.thePlayer.rotationYaw = y;
+                tYaw = y;
+                tPitch = 0f;
+                stopWalk(mc); // release all movement keys to slide down safely in 1.8.9
                 return;
             }
         }
@@ -1127,11 +1144,13 @@ public class AutoMine {
      */
     private void climbForward(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
     }
 
     private void stopWalk(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         pathWalking = false;

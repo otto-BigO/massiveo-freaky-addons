@@ -60,6 +60,7 @@ public class CelleScannerMod {
 
         ClientCommandHandler.instance.registerCommand(new CommandCeller());
         ClientCommandHandler.instance.registerCommand(new CommandClearLogouts());
+        ClientCommandHandler.instance.registerCommand(new CommandFollow());
 
         // Addons are registered lazily (AddonList.ensureRegistered, called
         // when the hub first opens) to keep startup class loading minimal.
@@ -110,6 +111,7 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new FarmBot());
         MinecraftForge.EVENT_BUS.register(new PlayerEsp());
         MinecraftForge.EVENT_BUS.register(new PathWalker());
+        MinecraftForge.EVENT_BUS.register(new AutoFollow());
         MinecraftForge.EVENT_BUS.register(new FlipDebug());
         // Mod-brugere (ModUserIcon) shelved for now - see AddonList. Not
         // registered so it does nothing until we pick it back up.
