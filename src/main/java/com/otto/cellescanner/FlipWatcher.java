@@ -34,8 +34,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
  */
 public class FlipWatcher {
 
-    private static final String FLIP_TITLE = "Flip!";
-
     // ------------------------------------------------------------------
     // State
     // ------------------------------------------------------------------

@@ -25,6 +25,9 @@ import java.util.Map;
  */
 public class ItemPickupNotify {
 
+    public static int lastWidth = 96;
+    public static int lastHeight = 44;
+
     private static final long LIFETIME_MS = 4000L;
     private static final long FADE_MS = 800L;
     private static final long MERGE_MS = 3000L;  // add to an existing line if the same item comes again soon
@@ -230,6 +233,8 @@ public class ItemPickupNotify {
             maxW = Math.max(maxW, fr.getStringWidth(sign + e.count + " " + e.name));
         }
         int boxH = entries.size() * lineH;
+        lastWidth = Math.max(96, maxW);
+        lastHeight = Math.max(20, boxH);
         int sw = sr.getScaledWidth();
         int sh = sr.getScaledHeight();
         int x = CelleScannerMod.config.itemPickupX != null ? CelleScannerMod.config.itemPickupX : sw - maxW - 4;

@@ -27,6 +27,12 @@ import java.util.Map;
  */
 public class ArmorSkins {
 
+    // NOT WIRED UP: nothing calls this yet. Without it the custom item-icon
+    // models (models/item/*_p*_*.json) are never baked, so onModelBake below
+    // finds 0 of them and the CustomArmorItemModel wrappers just pass the
+    // vanilla model through (harmless). To activate the P-level inventory
+    // icons, call this from CelleScannerMod during init (before models bake);
+    // to drop the idea, delete this, CustomArmorItemModel and the item jsons.
     public static void registerVariants() {
         try {
             register(net.minecraft.init.Items.diamond_helmet, "diamond", 1, 4, "helmet");

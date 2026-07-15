@@ -42,6 +42,16 @@ public class CelleScanner {
     // whole cache 60+ times a second.
     private List<Celle> upcomingCache = Collections.emptyList();
 
+    // Session cache: every celle we've seen this run, keyed by normalized id,
+    // together with the dimension it was seen in. Unlike the live "cache"
+    // above (which drops a celle the instant its chunk unloads), this is only
+    // ever cleared when the game closes - so a celle you scanned stays on the
+    // HUD/ESP through chunk unloads, relogs and deaths for the rest of the
+    // session, its countdown still ticking down from the last real reading.
+    // Static so it survives even if the scanner instance is ever recreated.
+    private static final Map<String, Celle> SESSION_CACHE = new HashMap<String, Celle>();
+    private static final Map<String, Integer> SESSION_DIM = new HashMap<String, Integer>();
+
     private String lastReportSignature = "";
     private long lastReportPushMillis = 0L;
 
@@ -79,6 +89,37 @@ public class CelleScanner {
             return;
         }
 
+        // Live expiry alerts checker
+        if (CelleScannerMod.config.celleExpiryAlertsEnabled) {
+            for (Celle c : cache.values()) {
+                if (c.status != CelleStatus.SOLGT) {
+                    continue;
+                }
+                // Only alert for followed/tracked celler
+                if (!CelleScannerMod.config.myCelleIds.contains(c.celleId) && !CelleScannerMod.config.specialCelleIds.contains(c.celleId)) {
+                    continue;
+                }
+                long seconds = c.liveRemainingSeconds();
+                
+                // Reset fired flags if the timer has been extended/refreshed
+                if (seconds > 120) {
+                    c.alert120Fired = false;
+                }
+                if (seconds > 60) {
+                    c.alert60Fired = false;
+                }
+                if (seconds > 30) {
+                    c.alert30Fired = false;
+                }
+                if (seconds > 0) {
+                    c.alert0Fired = false;
+                }
+
+                checkExpiryAlerts(c, seconds);
+                c.lastAlertSeconds = seconds;
+            }
+        }
+
         tickCounter++;
         if (tickCounter < SCAN_INTERVAL_TICKS) {
             return;
@@ -86,6 +127,56 @@ public class CelleScanner {
         tickCounter = 0;
 
         scan(mc.theWorld);
+    }
+
+    private void checkExpiryAlerts(Celle c, long seconds) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null) {
+            return;
+        }
+
+        // 1. One-off threshold alerts (lag-proof)
+        if (seconds <= 120 && seconds > 60 && !c.alert120Fired) {
+            c.alert120Fired = true;
+            mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
+            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                    EnumChatFormatting.YELLOW + "Ledig om 2 minutter!", 10, 40, 10);
+        } else if (seconds <= 60 && seconds > 30 && !c.alert60Fired) {
+            c.alert60Fired = true;
+            mc.thePlayer.playSound("note.pling", 1.0F, 1.2F);
+            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                    EnumChatFormatting.YELLOW + "Ledig om 1 minut!", 10, 40, 10);
+        } else if (seconds <= 30 && seconds > 10 && !c.alert30Fired) {
+            c.alert30Fired = true;
+            mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
+            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                    EnumChatFormatting.RED + "Ledig om 30 sekunder!", 10, 40, 10);
+        } else if (seconds == 0 && !c.alert0Fired) {
+            c.alert0Fired = true;
+            mc.thePlayer.playSound("random.levelup", 1.0F, 1.0F);
+            showTitle(mc, EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD + c.celleId,
+                    EnumChatFormatting.GREEN + "ER LEDIG NU!", 5, 60, 15);
+        }
+
+        // 2. Second-by-second countdown for the final 10 seconds
+        if (seconds > 0 && seconds <= 10 && seconds != c.lastAlertSeconds) {
+            mc.thePlayer.playSound("random.click", 0.5F, 1.0F);
+            showTitle(mc, EnumChatFormatting.RED + c.celleId,
+                    EnumChatFormatting.GOLD + "Ledig om " + seconds + "s...", 0, 20, 5);
+        }
+    }
+
+    /**
+     * Shows a title + subtitle overlay. Vanilla's displayTitle() applies only ONE
+     * thing per call (the title branch ignores both the subtitle argument and the
+     * fade times), so it has to be called three times, times first, exactly like
+     * the server's title packets do. A single combined call would show the title
+     * with no subtitle and whatever fade times a previous title left behind.
+     */
+    private static void showTitle(Minecraft mc, String title, String subtitle, int fadeIn, int stay, int fadeOut) {
+        mc.ingameGUI.displayTitle(null, null, fadeIn, stay, fadeOut);
+        mc.ingameGUI.displayTitle(null, subtitle, 0, 0, 0);
+        mc.ingameGUI.displayTitle(title, null, 0, 0, 0);
     }
 
     private void scan(World world) {
@@ -232,6 +323,14 @@ public class CelleScanner {
             // from to avoid the countdown appearing to reset.
             CellePositions.record(celleId, pos, dimensionId, celle.remainingSeconds, celle.valueUpdatedAt, celle.timerConfirmed);
 
+            // Remember this celle for the rest of the session (see SESSION_CACHE
+            // above). Points at the freshest live object each scan, so a
+            // currently-loaded celle stays live and an unloaded one keeps the
+            // last object (frozen timer anchor) to extrapolate from.
+            String sessionKey = celleId.trim().toLowerCase(java.util.Locale.ROOT);
+            SESSION_CACHE.put(sessionKey, celle);
+            SESSION_DIM.put(sessionKey, dimensionId);
+
             checkNotify(celle);
         }
 
@@ -278,6 +377,38 @@ public class CelleScanner {
      */
     public List<Celle> getUpcoming() {
         return upcomingCache;
+    }
+
+    /**
+     * The HUD/ESP display list, built from the SESSION cache (not just the
+     * currently-loaded live cache) so celler don't vanish when their chunk
+     * unloads or after a relog/death. Same window rule as {@link
+     * #recomputeUpcoming()}: every TIL_SALG celle plus every SOLGT celle whose
+     * live timer sits inside [minHours, maxHours], soonest first, limited to
+     * the dimension the player is currently in (a remembered position from
+     * another dimension would be meaningless here). Cheap enough to call from a
+     * render frame - it's a filter+sort over at most a few hundred entries.
+     */
+    public static List<Celle> upcomingForDimension(int dimension) {
+        List<Celle> result = new ArrayList<Celle>();
+        for (Map.Entry<String, Celle> e : SESSION_CACHE.entrySet()) {
+            Integer dim = SESSION_DIM.get(e.getKey());
+            if (dim == null || dim.intValue() != dimension) {
+                continue;
+            }
+            Celle c = e.getValue();
+            if (c.status == CelleStatus.TIL_SALG) {
+                result.add(c);
+                continue;
+            }
+            double hours = c.liveRemainingHours();
+            if (hours < CelleScannerMod.config.minHours || hours > CelleScannerMod.config.maxHours) {
+                continue;
+            }
+            result.add(c);
+        }
+        Collections.sort(result, UPCOMING_COMPARATOR);
+        return result;
     }
 
     private void checkNotify(Celle celle) {

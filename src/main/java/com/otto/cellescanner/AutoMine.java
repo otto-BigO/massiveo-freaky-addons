@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemPickaxe;
 import net.minecraft.item.ItemStack;
@@ -14,11 +13,14 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
+import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.Display;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -295,6 +297,20 @@ public class AutoMine {
         }
     }
 
+    @SubscribeEvent
+    public void onGuiOpen(GuiOpenEvent event) {
+        if (!CelleScannerMod.config.autoMineEnabled) {
+            return;
+        }
+        // If the window loses focus (becomes inactive) and Minecraft tries to open
+        // the standard pause/ingame menu, cancel the event to allow background mining.
+        if (event.gui instanceof GuiIngameMenu) {
+            if (!Display.isActive()) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
     /** The mine resets every ~10 min; the server warns in chat first. Arm a restart. */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
@@ -325,16 +341,8 @@ public class AutoMine {
         recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
         claimDrops(mc);   // claim iron that came out of our breaks
 
-        // Ladder recovery: if we've slid down a ladder and are stuck on it, pathfind
-        // back to the start corner (that climbs us out via the ladder), then resume
-        // mining where we left off - planIndex is preserved.
         BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
                 MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
-        if (Pathfinder.isLadder(mc.theWorld, feet) || Pathfinder.isLadder(mc.theWorld, feet.up())) {
-            stopMining(mc);
-            navigate(mc, START, 2.0);
-            return;
-        }
 
         // Next block in the fixed serpentine order (computed first, so the reset
         // check below runs no matter where we're standing).
@@ -571,19 +579,23 @@ public class AutoMine {
         }
         BlockPos step = path.get(pathIndex);
 
-        // Climbing a ladder to get out: face into the ladder's wall and hold forward
-        // (pushing into it is what makes you climb up), instead of trying to walk.
-        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up()
-                : (Pathfinder.isLadder(w, step) ? step : null));
+        // Climbing a ladder: face into the ladder's wall and hold forward (for up)
+        // or backward (for down). We only do this when actually standing on a ladder block,
+        // so we don't snap yaw and push away before reaching the ladder.
+        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
         boolean up = false;
         if (ladderPos != null) {
-            for (int i = pathIndex; i < path.size(); i++) {
-                if (path.get(i).getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
-                    up = true;
-                    break;
-                }
+            if (step.getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
+                up = true;
             }
         }
+        boolean down = false;
+        if (ladderPos != null && !up) {
+            if (step.getY() < feet.getY()) {
+                down = true;
+            }
+        }
+
         if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
@@ -595,6 +607,16 @@ public class AutoMine {
                 tYaw = y;
                 tPitch = 0f;
                 climbForward(mc); // forward into the wall = climb (NO jumping)
+                return;
+            }
+        } else if (down) {
+            EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
+            if (into != null) {
+                float y = Pathfinder.yawOf(into);
+                mc.thePlayer.rotationYaw = y;
+                tYaw = y;
+                tPitch = 0f;
+                stopWalk(mc); // release all movement keys to slide down safely in 1.8.9
                 return;
             }
         }
@@ -1111,11 +1133,13 @@ public class AutoMine {
      */
     private void climbForward(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
     }
 
     private void stopWalk(Minecraft mc) {
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);
+        KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
         pathWalking = false;

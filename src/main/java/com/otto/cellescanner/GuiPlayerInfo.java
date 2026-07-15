@@ -9,7 +9,6 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
@@ -36,6 +35,7 @@ import java.util.UUID;
 public class GuiPlayerInfo extends GuiScreen {
 
     private static final int ID_BACK = 0;
+    private static final int ID_FOLLOW = 1;
     private static final int CARD_W = 330;
     private static final int CARD_H = 186;
     private static final int MODEL_W = 96;
@@ -123,13 +123,30 @@ public class GuiPlayerInfo extends GuiScreen {
     @Override
     public void initGui() {
         this.buttonList.clear();
-        this.buttonList.add(new StyledButton(ID_BACK, cardL(), cardT() + CARD_H + 6, CARD_W, 20, "Luk"));
+        int btnW = CARD_W / 2 - 4;
+        this.buttonList.add(new StyledButton(ID_BACK, cardL(), cardT() + CARD_H + 6, btnW, 20, "Luk"));
+
+        String followText = "Følg";
+        if (AutoFollow.isActive() && AutoFollow.getTargetName().equalsIgnoreCase(rawName)) {
+            followText = "Stop Følg";
+        }
+        GuiButton followBtn = new StyledButton(ID_FOLLOW, cardL() + CARD_W / 2 + 4, cardT() + CARD_H + 6, btnW, 20, followText);
+        followBtn.enabled = !offline;
+        this.buttonList.add(followBtn);
+
         PlayerInfo.lookup(rawName);
     }
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == ID_BACK) {
+            this.mc.displayGuiScreen(null);
+        } else if (button.id == ID_FOLLOW) {
+            if (AutoFollow.isActive() && AutoFollow.getTargetName().equalsIgnoreCase(rawName)) {
+                AutoFollow.stop();
+            } else {
+                AutoFollow.start(rawName);
+            }
             this.mc.displayGuiScreen(null);
         }
     }

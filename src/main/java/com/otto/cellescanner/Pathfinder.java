@@ -95,8 +95,13 @@ public final class Pathfinder {
     private static List<BlockPos> neighbors(World w, BlockPos p, int maxFall) {
         List<BlockPos> out = new ArrayList<BlockPos>(8);
         boolean headClear = passable(w, p.up().up()); // room to hop
-        if (isLadder(w, p) && passable(w, p.up())) {
-            out.add(p.up()); // climb straight up
+        if (isLadder(w, p)) {
+            if (passable(w, p.up())) {
+                out.add(p.up()); // climb straight up
+            }
+            if (canStand(w, p.down())) {
+                out.add(p.down()); // climb/slide straight down
+            }
         }
         boolean srcHeadClear = passable(w, p.up()) && headClear; // room to jump from here
         int fall = Math.max(1, maxFall);
@@ -156,10 +161,16 @@ public final class Pathfinder {
                 && passable(w, fwd.up().up());   // dest head (no bonk landing)
     }
 
-    /** True if you can move through this block (no collision box). */
+    /** True if you can move through this block (no collision box or very short, like carpet). */
     public static boolean passable(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
-        return st.getBlock().getCollisionBoundingBox(w, p, st) == null;
+        AxisAlignedBB box = st.getBlock().getCollisionBoundingBox(w, p, st);
+        if (box == null) {
+            return true;
+        }
+        // Treat short collision boxes (height <= 0.15 blocks, e.g. carpets, lily pads, pressure plates)
+        // as passable spaces so we can walk through/over them.
+        return (box.maxY - p.getY()) <= 0.15;
     }
 
     /**
@@ -178,13 +189,16 @@ public final class Pathfinder {
         return maxFall;
     }
 
-    /** True if this is a full-height solid block you can actually stand on top of. */
+    /** True if this is a solid block you can actually stand on top of (includes slabs, excludes fences/walls). */
     public static boolean canWalkOn(World w, BlockPos p) {
         IBlockState st = w.getBlockState(p);
         AxisAlignedBB box = st.getBlock().getCollisionBoundingBox(w, p, st);
-        // Full-height top (maxY at the block's top), so we don't try to "stand on"
-        // slabs, fences, walls or air and think we can step onto them.
-        return box != null && (box.maxY - p.getY()) >= 0.99;
+        if (box == null) {
+            return false;
+        }
+        double height = box.maxY - p.getY();
+        // Slabs have height 0.5, full blocks 1.0, chests 0.875. Fences/walls are 1.5.
+        return height >= 0.5 && height <= 1.0;
     }
 
     public static boolean isLadder(World w, BlockPos p) {

@@ -25,13 +25,13 @@ public class GuiHudEditor extends GuiScreen {
     /** A movable HUD: its config position, a default spot, and a nominal box size. */
     private abstract class Hud {
         final String name;
-        final int w, h;
 
-        Hud(String name, int w, int h) {
+        Hud(String name) {
             this.name = name;
-            this.w = w;
-            this.h = h;
         }
+
+        abstract int w();
+        abstract int h();
 
         abstract int cfgX();       // -1 when unset
 
@@ -62,7 +62,9 @@ public class GuiHudEditor extends GuiScreen {
         huds.clear();
         final CelleConfig cfg = CelleScannerMod.config;
 
-        huds.add(new Hud("Celle HUD", 108, 66) {
+        huds.add(new Hud("Celle HUD") {
+            int w() { return CelleHud.lastBoxRight - CelleHud.lastBoxLeft; }
+            int h() { return CelleHud.lastBoxBottom - CelleHud.lastBoxTop; }
             int cfgX() { return cfg.hudX; }
             int cfgY() { return cfg.hudY; }
             void setPos(int x, int y) { cfg.hudX = x; cfg.hudY = y; }
@@ -70,7 +72,9 @@ public class GuiHudEditor extends GuiScreen {
             int defX(int sw) { return 10; }
             int defY(int sh) { return 10; }
         });
-        huds.add(new Hud("Rustnings-HUD", 70, 82) {
+        huds.add(new Hud("Rustnings-HUD") {
+            int w() { return ArmorHud.lastWidth; }
+            int h() { return ArmorHud.lastHeight; }
             int cfgX() { return cfg.armorHudX; }
             int cfgY() { return cfg.armorHudY; }
             void setPos(int x, int y) { cfg.armorHudX = x; cfg.armorHudY = y; }
@@ -78,21 +82,25 @@ public class GuiHudEditor extends GuiScreen {
             int defX(int sw) { return 5; }
             int defY(int sh) { return 140; }
         });
-        huds.add(new Hud("Item-log", 96, 44) {
+        huds.add(new Hud("Item-log") {
+            int w() { return ItemPickupNotify.lastWidth; }
+            int h() { return ItemPickupNotify.lastHeight; }
             int cfgX() { return cfg.itemPickupX != null ? cfg.itemPickupX : -1; }
             int cfgY() { return cfg.itemPickupY != null ? cfg.itemPickupY : -1; }
             void setPos(int x, int y) { cfg.itemPickupX = x; cfg.itemPickupY = y; }
             void reset() { cfg.itemPickupX = null; cfg.itemPickupY = null; }
-            int defX(int sw) { return sw - w - 4; }
-            int defY(int sh) { return sh - h - 4; }
+            int defX(int sw) { return sw - w() - 4; }
+            int defY(int sh) { return sh - h() - 4; }
         });
-        huds.add(new Hud("PvP Mine", 108, 60) {
+        huds.add(new Hud("PvP Mine") {
+            int w() { return PvpMine.lastWidth; }
+            int h() { return PvpMine.lastHeight; }
             int cfgX() { return cfg.pvpMineX != null ? cfg.pvpMineX : -1; }
             int cfgY() { return cfg.pvpMineY != null ? cfg.pvpMineY : -1; }
             void setPos(int x, int y) { cfg.pvpMineX = x; cfg.pvpMineY = y; }
             void reset() { cfg.pvpMineX = null; cfg.pvpMineY = null; }
             int defX(int sw) { return 4; }
-            int defY(int sh) { return sh - h - 4; }
+            int defY(int sh) { return sh - h() - 4; }
         });
 
         int bw = 90;
@@ -122,7 +130,7 @@ public class GuiHudEditor extends GuiScreen {
             Hud hud = huds.get(i);
             int hx = hud.x();
             int hy = hud.y();
-            if (mouseX >= hx && mouseX <= hx + hud.w && mouseY >= hy && mouseY <= hy + hud.h) {
+            if (mouseX >= hx && mouseX <= hx + hud.w() && mouseY >= hy && mouseY <= hy + hud.h()) {
                 dragging = i;
                 dragOffX = mouseX - hx;
                 dragOffY = mouseY - hy;
@@ -144,26 +152,125 @@ public class GuiHudEditor extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
+        int guideX = -1;
+        int guideY = -1;
+
         if (dragging >= 0) {
             Hud hud = huds.get(dragging);
-            int nx = clamp(mouseX - dragOffX, 0, this.width - hud.w);
-            int ny = clamp(mouseY - dragOffY, 0, this.height - hud.h);
+            int nx = mouseX - dragOffX;
+            int ny = mouseY - dragOffY;
+            int w = hud.w();
+            int h = hud.h();
+
+            boolean snappedX = false;
+            boolean snappedY = false;
+
+            // Snap to screen edges (4px padding)
+            if (Math.abs(nx - 4) <= 6) {
+                nx = 4;
+                snappedX = true;
+            } else if (Math.abs(nx - (this.width - w - 4)) <= 6) {
+                nx = this.width - w - 4;
+                snappedX = true;
+            }
+
+            if (Math.abs(ny - 4) <= 6) {
+                ny = 4;
+                snappedY = true;
+            } else if (Math.abs(ny - (this.height - h - 4)) <= 6) {
+                ny = this.height - h - 4;
+                snappedY = true;
+            }
+
+            // Snap to screen centers
+            int centerX = this.width / 2 - w / 2;
+            if (!snappedX && Math.abs(nx - centerX) <= 6) {
+                nx = centerX;
+                snappedX = true;
+                guideX = this.width / 2;
+            }
+
+            int centerY = this.height / 2 - h / 2;
+            if (!snappedY && Math.abs(ny - centerY) <= 6) {
+                ny = centerY;
+                snappedY = true;
+                guideY = this.height / 2;
+            }
+
+            // Snap to other HUDs
+            for (int j = 0; j < huds.size(); j++) {
+                if (j == dragging) continue;
+                Hud other = huds.get(j);
+                int ox = other.x();
+                int oy = other.y();
+                int ow = other.w();
+                int oh = other.h();
+
+                if (!snappedX) {
+                    if (Math.abs(nx - ox) <= 6) {
+                        nx = ox;
+                        snappedX = true;
+                        guideX = ox;
+                    } else if (Math.abs((nx + w) - (ox + ow)) <= 6) {
+                        nx = ox + ow - w;
+                        snappedX = true;
+                        guideX = ox + ow;
+                    } else if (Math.abs(nx - (ox + ow + 4)) <= 6) {
+                        nx = ox + ow + 4;
+                        snappedX = true;
+                    } else if (Math.abs((nx + w) - (ox - 4)) <= 6) {
+                        nx = ox - 4 - w;
+                        snappedX = true;
+                    }
+                }
+
+                if (!snappedY) {
+                    if (Math.abs(ny - oy) <= 6) {
+                        ny = oy;
+                        snappedY = true;
+                        guideY = oy;
+                    } else if (Math.abs((ny + h) - (oy + oh)) <= 6) {
+                        ny = oy + oh - h;
+                        snappedY = true;
+                        guideY = oy + oh;
+                    } else if (Math.abs(ny - (oy + oh + 4)) <= 6) {
+                        ny = oy + oh + 4;
+                        snappedY = true;
+                    } else if (Math.abs((ny + h) - (oy - 4)) <= 6) {
+                        ny = oy - 4 - h;
+                        snappedY = true;
+                    }
+                }
+            }
+
+            nx = clamp(nx, 0, this.width - w);
+            ny = clamp(ny, 0, this.height - h);
             hud.setPos(nx, ny);
         }
 
+        // Draw guide lines
+        if (guideX >= 0) {
+            drawRect(guideX, 0, guideX + 1, this.height, 0x554BE08C);
+        }
+        if (guideY >= 0) {
+            drawRect(0, guideY, this.width, guideY + 1, 0x554BE08C);
+        }
+
         drawCenteredString(this.fontRendererObj, "Flyt HUD'er", this.width / 2, 8, 0x55FFFF);
-        drawCenteredString(this.fontRendererObj, "Træk hver kasse hen hvor du vil have den.", this.width / 2, 20, 0xAAAAAA);
+        drawCenteredString(this.fontRendererObj, "Træk hver kasse hen hvor du vil have den. Shift for finjustering.", this.width / 2, 20, 0xAAAAAA);
 
         for (int i = 0; i < huds.size(); i++) {
             Hud hud = huds.get(i);
             int hx = hud.x();
             int hy = hud.y();
+            int hw = hud.w();
+            int hh = hud.h();
             boolean active = dragging == i
-                    || (dragging < 0 && mouseX >= hx && mouseX <= hx + hud.w && mouseY >= hy && mouseY <= hy + hud.h);
-            drawRect(hx, hy, hx + hud.w, hy + hud.h, active ? 0xC0203028 : 0x90101014);
-            Style.roundedRect(hx, hy, hx + hud.w, hy + hud.h, active ? Style.ACCENT : 0xFF3A3A44);
-            drawRect(hx + 1, hy + 1, hx + hud.w - 1, hy + hud.h - 1, active ? 0xC0202830 : 0x90101014);
-            drawCenteredString(this.fontRendererObj, hud.name, hx + hud.w / 2, hy + hud.h / 2 - 4, active ? 0xFFFFFF : 0xCCCCCC);
+                    || (dragging < 0 && mouseX >= hx && mouseX <= hx + hw && mouseY >= hy && mouseY <= hy + hh);
+            // Draw transparent background so the HUD underneath is visible
+            drawRect(hx, hy, hx + hw, hy + hh, active ? 0x204BE08C : 0x10FFFFFF);
+            Style.roundedRect(hx, hy, hx + hw, hy + hh, active ? Style.ACCENT : 0x55FFFFFF);
+            drawCenteredString(this.fontRendererObj, hud.name, hx + hw / 2, hy + hh / 2 - 4, active ? Style.ACCENT : 0xDDFFFFFF);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);

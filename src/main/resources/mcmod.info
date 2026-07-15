@@ -2,7 +2,7 @@
 {
   "modid": "cellescanner",
   "name": "Massiveo's Freaky Addons",
-  "description": "Samling af klient-side addons. Første addon er Celle Scanner: læser celle-skilte (SOLGT! / TIL SALG!) og viser en drægbar HUD med celler der bliver ledige indenfor et konfigurerbart tidsvindue. Åbn hub'en med B.",
+  "description": "Samling af klient-side addons. Læser celle-skilte (SOLGT! / TIL SALG!) og viser en drægbar HUD med celler der bliver ledige indenfor et konfigurerbart tidsvindue. Åbn hub'en med B.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

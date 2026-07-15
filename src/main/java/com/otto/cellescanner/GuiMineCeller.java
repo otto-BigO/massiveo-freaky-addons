@@ -14,7 +14,6 @@ import java.util.List;
  * Control screen for the Mine Celler addon. Fetch your celler from the server
  * with "/ce find", toggle their gold ESP, add/clear ids, and click a celle in
  * the list to point the Finder compass at it and walk there.
- * Displays a live 2D radar grid mapping your cell positions.
  */
 public class GuiMineCeller extends GuiScreen {
 
@@ -183,58 +182,10 @@ public class GuiMineCeller extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Mine Celler", cx, titleY, 0x55FF55);
 
         idField.drawTextBox();
-
-        // 2D Radar Rendering
-        int rx = cx + 80;
-        int ry = cy;
-
-        // Draw radar box & background
-        Style.roundedRect(rx - 54, ry - 54, rx + 54, ry + 54, 0x334BE08C); // glow border
-        drawRect(rx - 53, ry - 53, rx + 53, ry + 53, 0xCC0C0C12);          // background
-
-        // Grid lines
-        drawRect(rx - 50, ry, rx + 50, ry + 1, 0x1A4BE08C);
-        drawRect(rx, ry - 50, rx + 1, ry + 50, 0x1A4BE08C);
-
-        // Range rings (50m, 100m, 150m)
-        drawCircleOutline(rx, ry, 17, 0x124BE08C);
-        drawCircleOutline(rx, ry, 34, 0x124BE08C);
-        drawCircleOutline(rx, ry, 51, 0x124BE08C);
-
-        Minecraft mc = Minecraft.getMinecraft();
-        double px = mc.thePlayer != null ? mc.thePlayer.posX : 0.0;
-        double pz = mc.thePlayer != null ? mc.thePlayer.posZ : 0.0;
-
         List<String> ids = CelleScannerMod.config.myCelleIds;
-        for (String id : ids) {
-            CellePositions.Entry entry = CellePositions.get(id);
-            if (entry != null) {
-                double dx = entry.x + 0.5 - px;
-                double dz = entry.z + 0.5 - pz;
-                
-                // Scale: 1 block = 0.34 pixels (50px = ~150 blocks)
-                int dxP = (int) (dx * 0.34);
-                int dyP = (int) (dz * 0.34);
 
-                double dist = Math.sqrt(dxP * dxP + dyP * dyP);
-                if (dist <= 52) {
-                    int color;
-                    if (id.equals(CelleFinder.getTarget())) {
-                        color = (System.currentTimeMillis() / 200) % 2 == 0 ? 0xFF00FFFF : 0xFF008888; // Blinking cyan target
-                    } else {
-                        color = 0xFFFFAA00; // Orange for other celler
-                    }
-                    drawRect(rx + dxP - 2, ry + dyP - 2, rx + dxP + 2, ry + dyP + 2, color);
-                }
-            }
-        }
-
-        // Draw player indicator in center
-        drawRect(rx - 2, ry - 2, rx + 2, ry + 2, 0xFFFFFFFF);
-
-        // Scale label & current coordinates under the radar
-        drawCenteredString(this.fontRendererObj, "1 ring = 50m", rx, ry - 66, 0x888888);
-        drawCenteredString(this.fontRendererObj, String.format("X: %d, Z: %d", (int) px, (int) pz), rx, ry + 60, 0xAAAAAA);
+        // The 2D radar/minimap that used to sit here was removed - a new one
+        // may come back later. For now Mine Celler is just the list below.
 
         // Left list hints
         int leftC = cx - 146;
@@ -253,11 +204,6 @@ public class GuiMineCeller extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
-    }
-
-    private void drawCircleOutline(int cx, int cy, int r, int color) {
-        // Approximate a circle using outline squares for simplicity/cleanliness in GUI
-        Style.roundedRect(cx - r, cy - r, cx + r, cy + r, color);
     }
 
     @Override

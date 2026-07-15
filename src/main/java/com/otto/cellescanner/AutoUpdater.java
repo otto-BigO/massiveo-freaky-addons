@@ -124,7 +124,7 @@ public class AutoUpdater {
         download(assetUrl, tmp);
 
         File dest = new File(modsDir, assetName);
-
+        dest.delete(); // Delete target version if it exists from a previous failed update
         // Fast path: where the OS doesn't lock the running jar (Linux/macOS) we
         // can remove the old one and move the new one in right now.
         boolean swapped = false;
@@ -138,7 +138,7 @@ public class AutoUpdater {
             return;
         }
 
-        // Locked (Windows): the JVM still holds the jar open, so it can't be
+        // Locked (Windows/locked jar): the JVM still holds the jar open, so it can't be
         // replaced in place. Defer the swap to game-exit - a tiny detached
         // helper waits for the file lock to clear, deletes the old jar, moves
         // the staged one into place, then removes itself. The staged file stays
@@ -174,6 +174,7 @@ public class AutoUpdater {
         final File script;
         try {
             script = writeSwapScript(oldJar, pending, dest, windows);
+            script.setExecutable(true); // Ensure script can run on Unix systems
         } catch (Exception e) {
             System.err.println("[CelleScanner] Could not stage update swap: " + e);
             return false;
@@ -184,7 +185,7 @@ public class AutoUpdater {
                 try {
                     ProcessBuilder pb = windows
                             ? new ProcessBuilder("cmd.exe", "/c", "start", "/min", "", script.getAbsolutePath())
-                            : new ProcessBuilder("/bin/sh", script.getAbsolutePath());
+                            : new ProcessBuilder("/bin/sh", "-c", "nohup /bin/sh \"" + script.getAbsolutePath() + "\" >/dev/null 2>&1 &");
                     pb.directory(dest.getParentFile());
                     pb.start();
                 } catch (Exception e) {
@@ -340,19 +341,69 @@ public class AutoUpdater {
     private static File runningJar() {
         try {
             File f = new File(AutoUpdater.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            return (f.isFile() && f.getName().toLowerCase().endsWith(".jar")) ? f : null;
-        } catch (Exception e) {
-            return null;
+            if (f.isFile() && f.getName().toLowerCase().endsWith(".jar")) {
+                return f;
+            }
+        } catch (Exception ignored) {
         }
+
+        // Fallback: search the mods directory for a cellescanner jar file
+        try {
+            File modsDir = new File(Minecraft.getMinecraft().mcDataDir, "mods");
+            if (modsDir.isDirectory()) {
+                File[] files = modsDir.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        if (f.isFile() && f.getName().toLowerCase().endsWith(".jar") && f.getName().toLowerCase().contains("cellescanner")) {
+                            return f;
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
     }
 
     private static void download(String url, File dest) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
-        conn.setInstanceFollowRedirects(true);
-        conn.setConnectTimeout(10000);
-        conn.setReadTimeout(60000);
-        InputStream in = conn.getInputStream();
+        String currentUrl = url;
+        HttpURLConnection conn = null;
+        InputStream in = null;
+        int redirects = 0;
+
+        while (redirects < 5) {
+            conn = (HttpURLConnection) new URL(currentUrl).openConnection();
+            conn.setRequestProperty("User-Agent", "MassiveoFreakyAddons-Updater");
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(60000);
+
+            int status = conn.getResponseCode();
+            if (status == HttpURLConnection.HTTP_MOVED_TEMP
+                    || status == HttpURLConnection.HTTP_MOVED_PERM
+                    || status == HttpURLConnection.HTTP_SEE_OTHER
+                    || status == 307
+                    || status == 308) {
+                String loc = conn.getHeaderField("Location");
+                if (loc != null) {
+                    currentUrl = loc;
+                    redirects++;
+                    conn.disconnect();
+                    continue;
+                }
+            }
+            if (status < 200 || status >= 300) {
+                throw new Exception("HTTP " + status);
+            }
+            in = conn.getInputStream();
+            break;
+        }
+
+        if (in == null) {
+            throw new Exception("Too many redirects");
+        }
+
         try {
             OutputStream out = new FileOutputStream(dest);
             try {

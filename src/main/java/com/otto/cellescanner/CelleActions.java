@@ -21,7 +21,7 @@ public final class CelleActions {
     public static void toggleEnabled() {
         CelleScannerMod.config.enabled = !CelleScannerMod.config.enabled;
         CelleScannerMod.config.save();
-        message("Celle Scanner er nu " + (CelleScannerMod.config.enabled ? "aktiveret" : "deaktiveret") + ".");
+        message("Massiveo's addons er nu " + (CelleScannerMod.config.enabled ? "aktiveret" : "deaktiveret") + ".");
     }
 
     public static void toggleNotify() {
@@ -593,16 +593,6 @@ public final class CelleActions {
         message("Rustnings-skins er nu " + (CelleScannerMod.config.armorSkinsEnabled ? "til" : "fra") + ".");
     }
 
-    public static void cycleArmorPack() {
-        CelleScannerMod.config.armorSkinPack = "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "mesterholm" : "hypixel";
-        CelleScannerMod.config.save();
-        message("Rustnings-tekstur-pack: " + armorPackName());
-    }
-
-    public static String armorPackName() {
-        return "hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "Hypixel+" : "MesterHolm";
-    }
-
     public static void openArmorHud() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiArmorHud());
     }
@@ -734,6 +724,12 @@ public final class CelleActions {
         message("Anti-AFK hop: " + (CelleScannerMod.config.antiAfkJump ? "til" : "fra"));
     }
 
+    public static void toggleAntiAfkStrafe() {
+        CelleScannerMod.config.antiAfkStrafe = !CelleScannerMod.config.antiAfkStrafe;
+        CelleScannerMod.config.save();
+        message("Anti-AFK skridt til siden: " + (CelleScannerMod.config.antiAfkStrafe ? "til" : "fra"));
+    }
+
     public static void adjustAntiAfkInterval(int delta) {
         CelleScannerMod.config.antiAfkIntervalSeconds = Math.max(5, Math.min(300, CelleScannerMod.config.antiAfkIntervalSeconds + delta));
         CelleScannerMod.config.save();
@@ -843,7 +839,7 @@ public final class CelleActions {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {
             mc.thePlayer.addChatMessage(new ChatComponentText(
-                    EnumChatFormatting.AQUA + "[Celle Scanner] " + EnumChatFormatting.RESET + text));
+                    EnumChatFormatting.AQUA + "[Massiveo's addons] " + EnumChatFormatting.RESET + text));
         }
         DebugLog.log("CelleActions", text);
     }

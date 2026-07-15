@@ -79,6 +79,9 @@ public class CelleConfig {
     public boolean antiAfkSwing = true;
     public boolean antiAfkRotate = true;
     public boolean antiAfkJump = false;
+    // Strafes a step to the right and back to the original spot - actually
+    // moves the player, which stricter idle checks want, without drifting away.
+    public boolean antiAfkStrafe = false;
 
     // Bande ESP addon: draws a green outline through walls around players who
     // are in your bande. Membership is a manual name list (reliable on any
@@ -207,6 +210,31 @@ public class CelleConfig {
     // Auto Crate Addon
     public boolean autoCrateEnabled = false;
 
+    // Celle Expiry Alerts Addon
+    public boolean celleExpiryAlertsEnabled = true;
+
+    // Player Nameplate ESP Addon
+    public boolean playerEspEnabled = true;
+
+    // Chest Organizer Addon
+    public boolean chestOrganizerEnabled = true;
+
+    // Iron Door Sounds Addon
+    public boolean ironDoorSoundsEnabled = true;
+
+    // Player Logger Addon
+    public boolean playerLoggerEnabled = true;
+
+    // Farm Bot Addon
+    public boolean farmBotEnabled = false;
+
+    // Mod License/Access Key
+    public String accessKey = "";
+    // Last key + HWID that verified successfully, used to fail open (keep working)
+    // if the licence server is briefly unreachable later.
+    public String verifiedKey = "";
+    public String verifiedHwid = "";
+
     // Smart Trash Filter for AutoMine bot
     public List<String> trashItems = new ArrayList<String>(java.util.Arrays.asList("Cobblestone", "Sandstone", "Lapis Blok", "Lapis Lazuli"));
 
@@ -317,6 +345,7 @@ public class CelleConfig {
                 this.antiAfkSwing = loaded.antiAfkSwing;
                 this.antiAfkRotate = loaded.antiAfkRotate;
                 this.antiAfkJump = loaded.antiAfkJump;
+                this.antiAfkStrafe = loaded.antiAfkStrafe;
                 this.bandeEspEnabled = loaded.bandeEspEnabled;
                 this.bandeAutoTeam = loaded.bandeAutoTeam;
                 this.bandeEspAll = loaded.bandeEspAll;
@@ -360,6 +389,11 @@ public class CelleConfig {
                 this.specialCelleIds = loaded.specialCelleIds != null ? loaded.specialCelleIds : new ArrayList<String>();
                 this.autoFishEnabled = loaded.autoFishEnabled;
                 this.autoCrateEnabled = loaded.autoCrateEnabled;
+                this.celleExpiryAlertsEnabled = loaded.celleExpiryAlertsEnabled;
+                this.playerEspEnabled = loaded.playerEspEnabled;
+                this.accessKey = loaded.accessKey != null ? loaded.accessKey : "";
+                this.verifiedKey = loaded.verifiedKey != null ? loaded.verifiedKey : "";
+                this.verifiedHwid = loaded.verifiedHwid != null ? loaded.verifiedHwid : "";
                 this.trashItems = loaded.trashItems != null ? loaded.trashItems : new ArrayList<String>(java.util.Arrays.asList("Cobblestone", "Sandstone", "Lapis Blok", "Lapis Lazuli"));
             }
         } catch (Exception e) {

@@ -49,6 +49,34 @@ public final class AddonList {
             }
         });
 
+        // Celle Finder is its own tile in the Celler theme now (used to be a
+        // button buried inside the Celle Scanner menu) so it's quicker to reach.
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Celle Finder";
+            }
+
+            public String description() {
+                return "Søg efter en bestemt celle og få vist vej til den";
+            }
+
+            public String category() {
+                return "Celler";
+            }
+
+            public boolean isActive() {
+                return CelleFinder.hasTarget();
+            }
+
+            public void open() {
+                CelleActions.openFinderScreen();
+            }
+
+            public void toggle() {
+                CelleActions.clearFinderTarget();
+            }
+        });
+
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Mine Celler";
@@ -227,7 +255,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -253,7 +281,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -264,7 +292,7 @@ public final class AddonList {
                 config.autoFishEnabled = !config.autoFishEnabled;
                 config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("World"));
+                        new GuiAddonsHub("Automation"));
             }
 
             public void toggle() {
@@ -282,7 +310,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "World";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -293,7 +321,7 @@ public final class AddonList {
                 config.autoCrateEnabled = !config.autoCrateEnabled;
                 config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("World"));
+                        new GuiAddonsHub("Automation"));
             }
 
             public void toggle() {
@@ -301,31 +329,18 @@ public final class AddonList {
             }
         });
 
-        MassiveoAddons.register(new MassiveoAddons.Addon() {
-            public String name() {
-                return "Mod-brugere";
-            }
-
-            public String description() {
-                return "Lilla ikon foran andre mod-brugeres navn (test)";
-            }
-
-            public String category() {
-                return "Tracking";
-            }
-
-            public boolean isActive() {
-                return config.modIconEnabled != null && config.modIconEnabled;
-            }
-
-            public void open() {
-                CelleActions.openModIcon();
-            }
-
-            public void toggle() {
-                config.modIconEnabled = (config.modIconEnabled == null ? true : !config.modIconEnabled); config.save();
-            }
-        });
+        // Mod-brugere addon shelved for now - good idea, saved for later. The
+        // code (GuiModIcon, ModUserIcon) is kept; to re-enable, restore this
+        // registration and the ModUserIcon event registration in
+        // CelleScannerMod.enableAddons().
+        // MassiveoAddons.register(new MassiveoAddons.Addon() {
+        //     public String name() { return "Mod-brugere"; }
+        //     public String description() { return "Lilla ikon foran andre mod-brugeres navn (test)"; }
+        //     public String category() { return "Tracking"; }
+        //     public boolean isActive() { return config.modIconEnabled != null && config.modIconEnabled; }
+        //     public void open() { CelleActions.openModIcon(); }
+        //     public void toggle() { config.modIconEnabled = (config.modIconEnabled == null ? true : !config.modIconEnabled); config.save(); }
+        // });
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
@@ -363,7 +378,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "Quality of life";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -536,6 +551,216 @@ public final class AddonList {
 
             public void toggle() {
                 config.flipCaseEnabled = !config.flipCaseEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Celle Alarm";
+            }
+
+            public String description() {
+                return "Lyd- og skærm-alarmer når en fulgt celle udløber (2m, 1m, 30s og countdown)";
+            }
+
+            public String category() {
+                return "Celler";
+            }
+
+            public boolean isActive() {
+                return config.celleExpiryAlertsEnabled;
+            }
+
+            public void open() {
+                config.celleExpiryAlertsEnabled = !config.celleExpiryAlertsEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Celler"));
+            }
+
+            public void toggle() {
+                config.celleExpiryAlertsEnabled = !config.celleExpiryAlertsEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Kiste-organisering";
+            }
+
+            public String description() {
+                return "Venstreklik en kiste for at tilføje et flydende 3D-ikon";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.chestOrganizerEnabled;
+            }
+
+            public void open() {
+                config.chestOrganizerEnabled = !config.chestOrganizerEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.chestOrganizerEnabled = !config.chestOrganizerEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Jernlåge-lyde";
+            }
+
+            public String description() {
+                return "Afspiller dør-lyde når jernlåger åbnes og lukkes på serveren";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.ironDoorSoundsEnabled;
+            }
+
+            public void open() {
+                config.ironDoorSoundsEnabled = !config.ironDoorSoundsEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.ironDoorSoundsEnabled = !config.ironDoorSoundsEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Spiller-logger";
+            }
+
+            public String description() {
+                return "Viser hvor andre spillere loggede ud henne i 3D";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.playerLoggerEnabled;
+            }
+
+            public void open() {
+                config.playerLoggerEnabled = !config.playerLoggerEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.playerLoggerEnabled = !config.playerLoggerEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Farm-bot";
+            }
+
+            public String description() {
+                return "Høster og genplanter automatisk modne afgrøder";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return config.farmBotEnabled;
+            }
+
+            public void open() {
+                config.farmBotEnabled = !config.farmBotEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Automation"));
+            }
+
+            public void toggle() {
+                config.farmBotEnabled = !config.farmBotEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Spiller ESP";
+            }
+
+            public String description() {
+                return "Se spillere og deres navneskilte gennem vægge i 3D";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.playerEspEnabled;
+            }
+
+            public void open() {
+                config.playerEspEnabled = !config.playerEspEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.playerEspEnabled = !config.playerEspEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Auto-Følg";
+            }
+
+            public String description() {
+                return "Gå og løb bag en anden spiller automatisk (Auto Follow)";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return AutoFollow.isActive();
+            }
+
+            public void open() {
+                if (AutoFollow.isActive()) {
+                    AutoFollow.stop();
+                    net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                            new GuiAddonsHub("Automation"));
+                } else {
+                    net.minecraft.client.Minecraft.getMinecraft().thePlayer.addChatMessage(
+                            new net.minecraft.util.ChatComponentText("§eBrug /følg <navn> for at starte auto-follow."));
+                    net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(null);
+                }
+            }
+
+            public void toggle() {
+                if (AutoFollow.isActive()) {
+                    AutoFollow.stop();
+                }
             }
         });
     }

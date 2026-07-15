@@ -2,6 +2,18 @@
 
 Older releases are on the GitHub releases page.
 
+## 1.1.6
+
+- Scanned celler stay on the HUD and ESP through chunk unloads, relogs and
+  deaths. A session cache holds every celle seen this run and clears at game
+  close, so the "KOMMER SNART" list no longer empties when you walk away.
+- Bande ESP boxes hug the player instead of standing off the model.
+- The Bande member list scrolls, so every member is reachable (was capped at 4).
+- Celle Finder is its own tile in the Celler theme, out of the scanner menu.
+- Removed the Mine Celler radar.
+- Anti-AFK can step to the side and back to the same spot ("Skridt til siden").
+- Shelved the Mod-brugere addon for now.
+
 ## 1.1.5
 
 - **Flip Case opening**: a CS:GO-style case-opening animation for FreakyVille's
