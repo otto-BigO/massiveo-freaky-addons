@@ -49,18 +49,14 @@ public class CelleScannerMod {
         hud = new CelleHud();
         esp = new CelleEsp();
 
-        // Always-on, licence-independent: the access-key key/hub, the updater (so an
-        // unlicensed client can still update the mod), and the gate that turns the
-        // feature addons on once the licence verifies. The features themselves are
-        // registered in enableAddons() - NOT here - so the mod does nothing until a
-        // valid key is entered.
+        // The hub keybind and the auto-updater. The addons themselves are put on
+        // the bus by enableAddons() at the end of init().
         MinecraftForge.EVENT_BUS.register(new KeyHandler());
         // The update check is NOT started here. Doing network + class loading
         // during startup can contend with (Laby)Mod's own startup on the shared
         // classloader and trip its render-thread watchdog. AutoUpdater kicks the
         // check off a few seconds into the first client ticks instead.
         MinecraftForge.EVENT_BUS.register(new AutoUpdater());
-        MinecraftForge.EVENT_BUS.register(new AccessGate());
 
         ClientCommandHandler.instance.registerCommand(new CommandCeller());
         ClientCommandHandler.instance.registerCommand(new CommandClearLogouts());
@@ -74,28 +70,16 @@ public class CelleScannerMod {
         autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(autoMineKey);
 
-        // Re-verify a saved licence key on startup, off the main thread so the network
-        // call never blocks launch (LabyMod's render-thread watchdog is picky). This
-        // sets AccessSystem.isVerified for a returning buyer, and fail-opens from the
-        // cached verification if the licence server is briefly unreachable.
-        if (config.accessKey != null && !config.accessKey.trim().isEmpty()) {
-            Thread t = new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        AccessSystem.verifyKey(config.accessKey);
-                    } catch (Throwable ignored) {
-                    }
-                }
-            }, "CelleScanner-License");
-            t.setDaemon(true);
-            t.start();
-        }
+        // Licence gate shelved: it was only half-wired (no key-entry screen) and
+        // blocked every addon from registering, so the mod loaded but did nothing.
+        // Register all addons directly so everything just works. The gate code
+        // (AccessGate, AccessSystem, GuiAccessKey) stays in the repo for later.
+        enableAddons();
     }
 
     /**
-     * Registers all the feature addons on the event bus. Called by {@link AccessGate}
-     * once the licence is verified (on the client tick / main thread, so bus
-     * registration is safe). Idempotent - safe to call every tick.
+     * Registers all the feature addons on the event bus. Called once at the end of
+     * init(). Idempotent - the addonsEnabled guard makes repeat calls a no-op.
      */
     public static void enableAddons() {
         if (addonsEnabled) {
