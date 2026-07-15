@@ -436,14 +436,24 @@ public class AutoMine {
         double distToTarget = closestDist(mc, target);
         double distToLooked = looked != null ? closestDist(mc, looked) : Double.MAX_VALUE;
 
-        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && distToLooked <= REACH) {
+        // Pathfind if we already have an active path, or if the target is on a different vertical level
+        // (e.g. after a mine reset refilled the top layer while we are at the bottom).
+        boolean needPath = (path != null) || (target.getY() > feet.getY() + 1) || (target.getY() < feet.getY() - 3);
+
+        if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && distToLooked <= REACH && !needPath) {
             stopWalk(mc);
             mineLookedAt(mc, looked, mop.sideHit);
-        } else if (distToTarget > REACH) {
+        } else if (needPath || distToTarget > REACH) {
             // Nothing minable in reach under the crosshair - step toward the target.
             stopMining(mc);
-            approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
+            if (needPath) {
+                navigate(mc, target, REACH);
+            } else {
+                clearPath();
+                approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
+            }
         } else {
+            clearPath();
             // Target is close but the crosshair hasn't settled on a block - wait.
             stopWalk(mc);
             stopMining(mc);
