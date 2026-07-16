@@ -649,11 +649,11 @@ public class AutoMine {
         if (looked != null && inBox(looked) && !mc.theWorld.isAirBlock(looked) && distToLooked <= REACH && !needPath) {
             stopWalk(mc);
             mineLookedAt(mc, looked, mop.sideHit);
-        } else if (needPath || distToTarget > REACH) {
+        } else if (needPath || distToTarget > 2.7) {
             // Nothing minable in reach under the crosshair - step toward the target.
             stopMining(mc);
             if (needPath) {
-                navigate(mc, target, REACH);
+                navigate(mc, target, 2.0);
             } else {
                 clearPath();
                 approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
@@ -1097,7 +1097,7 @@ public class AutoMine {
         }
     }
 
-    /** The current block to mine on the current layer (closest-first), skipping ones already cleared. */
+    /** The current block to mine in plan order, skipping ones already cleared or blacklisted. */
     private BlockPos planTarget(Minecraft mc) {
         if (plan == null) {
             buildPlan();
@@ -1128,45 +1128,6 @@ public class AutoMine {
             }
         }
 
-        // We want to mine the current layer (currentLayerY).
-        // Let's find all remaining non-air blocks on the current layer, and pick the one closest to the player!
-        BlockPos closest = null;
-        double closestDist = Double.MAX_VALUE;
-        double px = mc.thePlayer.posX;
-        double py = mc.thePlayer.posY;
-        double pz = mc.thePlayer.posZ;
-
-        int index = planIndex;
-        while (index < plan.size()) {
-            BlockPos p = plan.get(index);
-            // If we've advanced past currentLayerY, stop scanning this layer
-            if (p.getY() < currentLayerY) {
-                break;
-            }
-
-            if (p.getY() == currentLayerY) {
-                if (!mc.theWorld.isAirBlock(p) && !unbreakableBlacklist.contains(p)) {
-                    double dist = p.distanceSq(px, py, pz);
-                    if (dist < closestDist) {
-                        closestDist = dist;
-                        closest = p;
-                        tempTargetIndex = index;
-                    }
-                }
-            }
-            index++;
-        }
-
-        if (closest != null) {
-            if (planIndex != tempTargetIndex) {
-                planIndex = tempTargetIndex;
-                planIndexSince = System.currentTimeMillis();
-            }
-            return closest;
-        }
-
-        // If no blocks remain on the current layer, let planIndex advance naturally
-        // to the next layer.
         while (planIndex < plan.size()) {
             BlockPos p = plan.get(planIndex);
             if (!mc.theWorld.isAirBlock(p) && !unbreakableBlacklist.contains(p)) {
