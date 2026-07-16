@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.init.Blocks;
@@ -9,6 +10,7 @@ import net.minecraft.item.ItemPickaxe;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
@@ -16,16 +18,20 @@ import net.minecraft.world.World;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
+import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -46,12 +52,25 @@ import java.util.Set;
  */
 public class AutoMine {
 
-    // The auto-mine box (Otto's two corners: 34 60 -683 and 55 42 -685). Ladders
-    // at x=33 (33 41 -683 / 33 60 -685) let the bot climb out of the mine.
-    private static final int MIN_X = 34, MAX_X = 55, MIN_Y = 42, MAX_Y = 60, MIN_Z = -685, MAX_Z = -683;
+    // The default auto-mine box (Otto's two corners: 34 60 -683 and 55 42 -685).
+    // Ladders at x=33 (33 41 -683 / 33 60 -685) let the bot climb out of the mine.
+    // Used when the player hasn't set a custom area (config.mineAreaSet == false).
+    private static final int[] DEFAULT_BOX = {34, 55, 42, 60, -685, -683}; // minX,maxX,minY,maxY,minZ,maxZ
+
+    // The live box the bot mines. Filled from DEFAULT_BOX or the player's custom
+    // area by refreshBox(), which runs before each plan build and each mine tick.
+    private int MIN_X = DEFAULT_BOX[0], MAX_X = DEFAULT_BOX[1],
+                MIN_Y = DEFAULT_BOX[2], MAX_Y = DEFAULT_BOX[3],
+                MIN_Z = DEFAULT_BOX[4], MAX_Z = DEFAULT_BOX[5];
     // Where mining begins (top corner, first block of the plan). When we're outside
     // the box (e.g. the mine just reset) we walk here before mining.
-    private static final BlockPos START = new BlockPos(MIN_X, MAX_Y, MIN_Z);
+    private BlockPos START = new BlockPos(MIN_X, MAX_Y, MIN_Z);
+
+    // "Set area" mode: after the player clicks Set Area in the GUI, the next two
+    // right-clicks on blocks become the two corners. Static so the GUI can flip it
+    // on; the registered AutoMine instance reads it in onMouseInput.
+    public static boolean setAreaMode = false;
+    private static BlockPos pendingCorner1 = null;
 
     private static final double REACH = 4.3;
     private static final double COLLECT_R = 6.0;  // walk over to drops within this
@@ -89,6 +108,14 @@ public class AutoMine {
     private int planIndex = 0;
     private long planIndexSince = 0;   // when planIndex last changed (stuck detection)
     private boolean finished = false;  // whole plan cleared - idle until the mine resets
+    private final Set<BlockPos> unbreakableBlacklist = new HashSet<BlockPos>();
+    private final Map<BlockPos, Long> unbreakableBlacklistTime = new HashMap<BlockPos, Long>();
+    private int tempTargetIndex = 0;
+    private double lastUnstuckX = 0;
+    private double lastUnstuckY = 0;
+    private double lastUnstuckZ = 0;
+    private long lastUnstuckTime = 0;
+    private long stuckTime = 0;
 
     // Layer completeness: before descending to the next layer, make sure every block
     // in the current layer is actually broken (the serpentine can skip stragglers).
@@ -288,13 +315,87 @@ public class AutoMine {
     /** Draw the bot's planned route (to the shop/deposit/start) as a line on the floor. */
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.autoMineEnabled || path == null) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.theWorld == null) {
             return;
         }
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer != null) {
+
+        // Existing: the travel path while mining.
+        if (CelleScannerMod.config.autoMineEnabled && path != null) {
             Pathfinder.renderPath(path, mc.thePlayer, event.partialTicks, 0.35f, 0.9f, 1.0f);
         }
+
+        // The mine-area box: shown while picking it, whenever a custom area is set
+        // (in its dimension), or while the bot runs on the default box - so you can
+        // always see where it will mine, like the player-box ESP.
+        CelleConfig cfg = CelleScannerMod.config;
+        boolean customHere = cfg.mineAreaSet && mc.thePlayer.dimension == cfg.mineAreaDim;
+        boolean showBox = setAreaMode || customHere || (cfg.autoMineEnabled && !cfg.mineAreaSet);
+        if (!showBox) {
+            return;
+        }
+
+        double px = mc.thePlayer.lastTickPosX + (mc.thePlayer.posX - mc.thePlayer.lastTickPosX) * event.partialTicks;
+        double py = mc.thePlayer.lastTickPosY + (mc.thePlayer.posY - mc.thePlayer.lastTickPosY) * event.partialTicks;
+        double pz = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * event.partialTicks;
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(-px, -py, -pz);
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.5f);
+
+        int[] b = boxBounds();
+        drawBox(b[0], b[2], b[4], b[1], b[3], b[5], 1.0f, 0.82f, 0.29f); // gold area box
+
+        if (setAreaMode && pendingCorner1 != null) {
+            BlockPos c = pendingCorner1;
+            drawBox(c.getX(), c.getY(), c.getZ(), c.getX(), c.getY(), c.getZ(), 0.30f, 0.90f, 1.0f); // corner 1
+            if (mc.objectMouseOver != null
+                    && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+                BlockPos m = mc.objectMouseOver.getBlockPos();
+                drawBox(Math.min(c.getX(), m.getX()), Math.min(c.getY(), m.getY()), Math.min(c.getZ(), m.getZ()),
+                        Math.max(c.getX(), m.getX()), Math.max(c.getY(), m.getY()), Math.max(c.getZ(), m.getZ()),
+                        0.30f, 0.90f, 1.0f); // live preview corner1 -> aimed block
+            }
+        }
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.disableBlend();
+        GlStateManager.enableLighting();
+        GlStateManager.popMatrix();
+    }
+
+    /** Wireframe box spanning the given inclusive block range (drawn to block+1 edges). */
+    private static void drawBox(int minBX, int minBY, int minBZ, int maxBX, int maxBY, int maxBZ,
+                                float r, float g, float b) {
+        double x0 = minBX, y0 = minBY, z0 = minBZ;
+        double x1 = maxBX + 1.0, y1 = maxBY + 1.0, z1 = maxBZ + 1.0;
+        GlStateManager.color(r, g, b, 0.9f);
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(x0, y0, z0); GL11.glVertex3d(x1, y0, z0);
+        GL11.glVertex3d(x1, y0, z1); GL11.glVertex3d(x0, y0, z1);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex3d(x0, y1, z0); GL11.glVertex3d(x1, y1, z0);
+        GL11.glVertex3d(x1, y1, z1); GL11.glVertex3d(x0, y1, z1);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINES);
+        GL11.glVertex3d(x0, y0, z0); GL11.glVertex3d(x0, y1, z0);
+        GL11.glVertex3d(x1, y0, z0); GL11.glVertex3d(x1, y1, z0);
+        GL11.glVertex3d(x1, y0, z1); GL11.glVertex3d(x1, y1, z1);
+        GL11.glVertex3d(x0, y0, z1); GL11.glVertex3d(x0, y1, z1);
+        GL11.glEnd();
     }
 
     @SubscribeEvent
@@ -325,6 +426,60 @@ public class AutoMine {
         }
     }
 
+    /** In "set area" mode, right-clicks on blocks capture the two mine-area corners. */
+    @SubscribeEvent
+    public void onMouseInput(MouseEvent event) {
+        if (!setAreaMode) {
+            return;
+        }
+        // button 1 = right-click, buttonstate true = pressed
+        if (event.button != 1 || !event.buttonstate) {
+            return;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theWorld == null || mc.thePlayer == null || !mc.inGameHasFocus) {
+            return;
+        }
+        if (mc.objectMouseOver == null
+                || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.BLOCK) {
+            return;
+        }
+        BlockPos pos = mc.objectMouseOver.getBlockPos();
+        event.setCanceled(true); // don't also use the held item / place a block
+
+        if (pendingCorner1 == null) {
+            pendingCorner1 = pos;
+            mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD
+                    + "[Auto Mine] Hjørne 1: " + posStr(pos) + ". Højreklik det 2. hjørne."));
+            return;
+        }
+
+        // Second corner - save the area and rebuild the plan against it.
+        CelleConfig cfg = CelleScannerMod.config;
+        cfg.mineAreaX1 = pendingCorner1.getX();
+        cfg.mineAreaY1 = pendingCorner1.getY();
+        cfg.mineAreaZ1 = pendingCorner1.getZ();
+        cfg.mineAreaX2 = pos.getX();
+        cfg.mineAreaY2 = pos.getY();
+        cfg.mineAreaZ2 = pos.getZ();
+        cfg.mineAreaDim = mc.thePlayer.dimension;
+        cfg.mineAreaSet = true;
+        cfg.save();
+
+        setAreaMode = false;
+        pendingCorner1 = null;
+        plan = null; // force a rebuild against the new box next mine tick
+
+        int[] b = boxBounds();
+        int vol = (b[1] - b[0] + 1) * (b[3] - b[2] + 1) * (b[5] - b[4] + 1);
+        mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN
+                + "[Auto Mine] Mine-område sat (" + vol + " blokke). Start botten for at mine her."));
+    }
+
+    private static String posStr(BlockPos p) {
+        return p.getX() + " " + p.getY() + " " + p.getZ();
+    }
+
     /** Restart the mining pattern from the top and drop any stale travel/target state. */
     private void restartPlan(Minecraft mc) {
         stopMining(mc);
@@ -338,6 +493,7 @@ public class AutoMine {
     }
 
     private void doMine(Minecraft mc) {
+        refreshBox();     // keep the live box (and START) in sync with the configured area
         recordBroken(mc); // note blocks we just finished breaking (for our-drop matching)
         claimDrops(mc);   // claim iron that came out of our breaks
 
@@ -347,6 +503,15 @@ public class AutoMine {
         // Next block in the fixed serpentine order (computed first, so the reset
         // check below runs no matter where we're standing).
         target = planTarget(mc);
+
+        // Mine Pit Avoidance: check if the current working layer is unsafe (has a pit dug under it)
+        while (target != null && currentLayerY >= MIN_Y && currentLayerY <= MAX_Y && !isLayerSafe(mc.theWorld, currentLayerY)) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    EnumChatFormatting.YELLOW + "[Auto Mine] Omgår usikker etage " + currentLayerY + " (hul detekteret)..."));
+            skipToLayer(currentLayerY - 1);
+            currentLayerY--;
+            target = planTarget(mc);
+        }
 
         // Layer safety (4A): if another player has mined a pit under us and we've
         // dropped well below our working layer, don't fight to climb back - adopt the
@@ -358,6 +523,47 @@ public class AutoMine {
                 currentLayerY = feetY;
                 target = planTarget(mc);
             }
+        }
+
+        // Stuck Detection and Recovery
+        double px = mc.thePlayer.posX;
+        double py = mc.thePlayer.posY;
+        double pz = mc.thePlayer.posZ;
+        boolean walking = (path != null) || (mc.gameSettings.keyBindForward.isKeyDown());
+        
+        if (walking) {
+            double distSq = (px - lastUnstuckX) * (px - lastUnstuckX) 
+                    + (py - lastUnstuckY) * (py - lastUnstuckY) 
+                    + (pz - lastUnstuckZ) * (pz - lastUnstuckZ);
+            if (distSq > 0.05 * 0.05) { // we are moving
+                lastUnstuckX = px;
+                lastUnstuckY = py;
+                lastUnstuckZ = pz;
+                stuckTime = System.currentTimeMillis();
+            } else { // we are not moving significantly
+                if (System.currentTimeMillis() - stuckTime > 3000) { // stuck for 3 seconds!
+                    // Trigger unstuck action!
+                    if (System.currentTimeMillis() - lastUnstuckTime > 5000) {
+                        mc.thePlayer.addChatMessage(new ChatComponentText(
+                                EnumChatFormatting.RED + "[Auto Mine] Sidder fast! Prøver at hoppe/rekalkulere..."));
+                        // 1. Try to jump
+                        KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
+                        // 2. Clear path to force pathfinder recalculation
+                        clearPath();
+                        lastUnstuckTime = System.currentTimeMillis();
+                    }
+                }
+            }
+        } else {
+            stuckTime = System.currentTimeMillis();
+            lastUnstuckX = px;
+            lastUnstuckY = py;
+            lastUnstuckZ = pz;
+        }
+
+        // Release jump after 200-400ms
+        if (lastUnstuckTime > 0 && System.currentTimeMillis() - lastUnstuckTime > 200 && System.currentTimeMillis() - lastUnstuckTime < 400) {
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
         }
 
         if (target == null) {
@@ -837,7 +1043,42 @@ public class AutoMine {
      * the "mine forward, step 1 to the side, mine back, drop a layer, repeat"
      * pattern.
      */
+    /** The active mine box as {minX,maxX,minY,maxY,minZ,maxZ} - custom area or default. */
+    private static int[] boxBounds() {
+        CelleConfig c = CelleScannerMod.config;
+        if (c.mineAreaSet) {
+            return new int[]{
+                    Math.min(c.mineAreaX1, c.mineAreaX2), Math.max(c.mineAreaX1, c.mineAreaX2),
+                    Math.min(c.mineAreaY1, c.mineAreaY2), Math.max(c.mineAreaY1, c.mineAreaY2),
+                    Math.min(c.mineAreaZ1, c.mineAreaZ2), Math.max(c.mineAreaZ1, c.mineAreaZ2)
+            };
+        }
+        return DEFAULT_BOX.clone();
+    }
+
+    /** Load the live box (MIN_X..MAX_Z + START) from the custom area or the default. */
+    private void refreshBox() {
+        int[] b = boxBounds();
+        MIN_X = b[0]; MAX_X = b[1];
+        MIN_Y = b[2]; MAX_Y = b[3];
+        MIN_Z = b[4]; MAX_Z = b[5];
+        START = new BlockPos(MIN_X, MAX_Y, MIN_Z);
+    }
+
+    /** Called from the GUI: arm "set area" mode so the next two right-clicks pick corners. */
+    public static void beginSetArea() {
+        setAreaMode = true;
+        pendingCorner1 = null;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null) {
+            mc.thePlayer.addChatMessage(new ChatComponentText(
+                    EnumChatFormatting.GOLD + "[Auto Mine] Højreklik det 1. hjørne af mine-området."));
+        }
+    }
+
     private void buildPlan() {
+        refreshBox();
+        currentLayerY = MAX_Y;
         plan = new ArrayList<BlockPos>();
         boolean back = false;
         for (int y = MAX_Y; y >= MIN_Y; y--) {
@@ -856,7 +1097,7 @@ public class AutoMine {
         }
     }
 
-    /** The current block to mine in plan order, skipping ones already cleared. */
+    /** The current block to mine on the current layer (closest-first), skipping ones already cleared. */
     private BlockPos planTarget(Minecraft mc) {
         if (plan == null) {
             buildPlan();
@@ -865,17 +1106,76 @@ public class AutoMine {
         if (finished) {
             return null;
         }
-        // If we've been stuck on one block too long (can't reach it), skip past it.
+
+        // If we've been stuck on one block too long (can't reach it), blacklist it and skip past it.
         if (System.currentTimeMillis() - planIndexSince > SKIP_STUCK) {
+            if (planIndex < plan.size()) {
+                BlockPos p = plan.get(planIndex);
+                unbreakableBlacklist.add(p);
+                unbreakableBlacklistTime.put(p, System.currentTimeMillis());
+            }
             advanceIndex();
         }
+
+        // Clean up temporary blacklist of unbreakable blocks (clear older than 2 minutes)
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<BlockPos, Long>> it = unbreakableBlacklistTime.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<BlockPos, Long> entry = it.next();
+            if (now - entry.getValue() > 120000) {
+                unbreakableBlacklist.remove(entry.getKey());
+                it.remove();
+            }
+        }
+
+        // We want to mine the current layer (currentLayerY).
+        // Let's find all remaining non-air blocks on the current layer, and pick the one closest to the player!
+        BlockPos closest = null;
+        double closestDist = Double.MAX_VALUE;
+        double px = mc.thePlayer.posX;
+        double py = mc.thePlayer.posY;
+        double pz = mc.thePlayer.posZ;
+
+        int index = planIndex;
+        while (index < plan.size()) {
+            BlockPos p = plan.get(index);
+            // If we've advanced past currentLayerY, stop scanning this layer
+            if (p.getY() < currentLayerY) {
+                break;
+            }
+
+            if (p.getY() == currentLayerY) {
+                if (!mc.theWorld.isAirBlock(p) && !unbreakableBlacklist.contains(p)) {
+                    double dist = p.distanceSq(px, py, pz);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closest = p;
+                        tempTargetIndex = index;
+                    }
+                }
+            }
+            index++;
+        }
+
+        if (closest != null) {
+            if (planIndex != tempTargetIndex) {
+                planIndex = tempTargetIndex;
+                planIndexSince = System.currentTimeMillis();
+            }
+            return closest;
+        }
+
+        // If no blocks remain on the current layer, let planIndex advance naturally
+        // to the next layer.
         while (planIndex < plan.size()) {
             BlockPos p = plan.get(planIndex);
-            if (!mc.theWorld.isAirBlock(p)) {
+            if (!mc.theWorld.isAirBlock(p) && !unbreakableBlacklist.contains(p)) {
+                currentLayerY = p.getY();
                 return p;
             }
             advanceIndex();
         }
+
         finished = true;
         return null;
     }
@@ -906,6 +1206,35 @@ public class AutoMine {
             }
         }
         return null;
+    }
+
+    /**
+     * Scans columns on layer Y. Returns false if more than 30% of the columns
+     * have no solid blocks under them within 2 blocks below (suggesting a pit).
+     */
+    private boolean isLayerSafe(World w, int y) {
+        if (y < MIN_Y || y > MAX_Y) {
+            return true;
+        }
+        int total = 0;
+        int dangerous = 0;
+        for (int x = MIN_X; x <= MAX_X; x++) {
+            for (int z = MIN_Z; z <= MAX_Z; z++) {
+                total++;
+                // Check if there is any block to stand on at y - 1 or y - 2
+                BlockPos p1 = new BlockPos(x, y - 1, z);
+                BlockPos p2 = new BlockPos(x, y - 2, z);
+                // If both are air, it's a hole!
+                if (w.isAirBlock(p1) && w.isAirBlock(p2)) {
+                    dangerous++;
+                }
+            }
+        }
+        if (total == 0) {
+            return true;
+        }
+        double ratio = (double) dangerous / total;
+        return ratio < 0.30; // Unsafe if 30% or more is air/pit
     }
 
     /** True once we've been cleaning up layer y too long (probably an unreachable straggler). */

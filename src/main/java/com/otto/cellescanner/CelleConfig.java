@@ -175,6 +175,14 @@ public class CelleConfig {
     // when the inventory is full, and resumes when the mine resets.
     public boolean autoMineEnabled = false;
 
+    // Custom Auto Mine area: two corners the player picks in-game (right-click
+    // each). When mineAreaSet is true the bot mines this box instead of the
+    // built-in default one, and the box outline is drawn in the world.
+    public boolean mineAreaSet = false;
+    public int mineAreaX1, mineAreaY1, mineAreaZ1;
+    public int mineAreaX2, mineAreaY2, mineAreaZ2;
+    public int mineAreaDim = 0;
+
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
     public Boolean modIconEnabled = Boolean.TRUE;
@@ -375,6 +383,14 @@ public class CelleConfig {
                 this.pvpMineX = loaded.pvpMineX;
                 this.pvpMineY = loaded.pvpMineY;
                 this.autoMineEnabled = loaded.autoMineEnabled;
+                this.mineAreaSet = loaded.mineAreaSet;
+                this.mineAreaX1 = loaded.mineAreaX1;
+                this.mineAreaY1 = loaded.mineAreaY1;
+                this.mineAreaZ1 = loaded.mineAreaZ1;
+                this.mineAreaX2 = loaded.mineAreaX2;
+                this.mineAreaY2 = loaded.mineAreaY2;
+                this.mineAreaZ2 = loaded.mineAreaZ2;
+                this.mineAreaDim = loaded.mineAreaDim;
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;

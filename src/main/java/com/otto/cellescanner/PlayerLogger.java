@@ -17,13 +17,15 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class PlayerLogger implements IWorldAccess {
+public class PlayerLogger {
 
     public static final PlayerLogger INSTANCE = new PlayerLogger();
 
@@ -66,9 +68,25 @@ public class PlayerLogger implements IWorldAccess {
         }
     }
 
+    public static class PlayerSnapshot {
+        public final String name;
+        public final double x, y, z;
+        public final AxisAlignedBB boundingBox;
+
+        public PlayerSnapshot(String name, double x, double y, double z, AxisAlignedBB boundingBox) {
+            this.name = name;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.boundingBox = boundingBox;
+        }
+    }
+
     private final List<LogoutMarker> markers = new ArrayList<LogoutMarker>();
     private final List<PendingCheck> pendingChecks = new ArrayList<PendingCheck>();
     private final Set<UUID> realPlayers = new HashSet<UUID>();
+    private final Set<UUID> lastPlayers = new HashSet<UUID>();
+    private final Map<UUID, PlayerSnapshot> playerSnapshots = new HashMap<UUID, PlayerSnapshot>();
 
     public static void clearLogouts() {
         synchronized (INSTANCE.markers) {
@@ -79,7 +97,6 @@ public class PlayerLogger implements IWorldAccess {
     @SubscribeEvent
     public void onWorldLoad(WorldEvent.Load event) {
         if (event.world.isRemote) {
-            event.world.addWorldAccess(this);
             synchronized (markers) {
                 markers.clear();
             }
@@ -88,6 +105,12 @@ public class PlayerLogger implements IWorldAccess {
             }
             synchronized (realPlayers) {
                 realPlayers.clear();
+            }
+            synchronized (lastPlayers) {
+                lastPlayers.clear();
+            }
+            synchronized (playerSnapshots) {
+                playerSnapshots.clear();
             }
         }
     }
@@ -104,70 +127,51 @@ public class PlayerLogger implements IWorldAccess {
             synchronized (realPlayers) {
                 realPlayers.clear();
             }
-        }
-    }
-
-    @Override
-    public void onEntityAdded(Entity entity) {
-        if (!CelleScannerMod.config.playerLoggerEnabled) {
-            return;
-        }
-        if (entity instanceof net.minecraft.client.entity.EntityOtherPlayerMP) {
-            UUID uuid = entity.getUniqueID();
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.getNetHandler() != null && mc.getNetHandler().getPlayerInfo(uuid) != null) {
-                synchronized (realPlayers) {
-                    realPlayers.add(uuid);
-                }
+            synchronized (lastPlayers) {
+                lastPlayers.clear();
             }
-
-            synchronized (markers) {
-                Iterator<LogoutMarker> it = markers.iterator();
-                while (it.hasNext()) {
-                    LogoutMarker marker = it.next();
-                    if (marker.uuid.equals(uuid)) {
-                        CelleActions.message(net.minecraft.util.EnumChatFormatting.GREEN + marker.name + " loggede ind igen!");
-                        it.remove();
-                        break;
-                    }
-                }
+            synchronized (playerSnapshots) {
+                playerSnapshots.clear();
             }
         }
     }
 
-    @Override
-    public void onEntityRemoved(Entity entity) {
-        if (!CelleScannerMod.config.playerLoggerEnabled) {
-            return;
-        }
-        if (entity instanceof net.minecraft.client.entity.EntityOtherPlayerMP) {
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.thePlayer == null || mc.thePlayer.equals(entity)) {
-                return;
-            }
-
-            UUID uuid = entity.getUniqueID();
-            
-            // Filter out NPCs / fake players not verified to be real
-            boolean isReal;
+    private void handlePlayerAdded(EntityPlayer entity) {
+        UUID uuid = entity.getUniqueID();
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.getNetHandler() != null && mc.getNetHandler().getPlayerInfo(uuid) != null) {
             synchronized (realPlayers) {
-                isReal = realPlayers.contains(uuid);
+                realPlayers.add(uuid);
             }
-            if (!isReal) {
-                return;
-            }
+        }
 
-            String name = entity.getName();
-            double x = entity.posX;
-            double y = entity.posY;
-            double z = entity.posZ;
-            AxisAlignedBB box = entity.getEntityBoundingBox();
-
-            // All player removals must go through the 500ms tab list verification queue
-            // to prevent false logging when players teleport or walk out of server render distance.
-            synchronized (pendingChecks) {
-                pendingChecks.add(new PendingCheck(name, uuid, x, y, z, box));
+        synchronized (markers) {
+            Iterator<LogoutMarker> it = markers.iterator();
+            while (it.hasNext()) {
+                LogoutMarker marker = it.next();
+                if (marker.uuid.equals(uuid)) {
+                    CelleActions.message(net.minecraft.util.EnumChatFormatting.GREEN + marker.name + " loggede ind igen!");
+                    it.remove();
+                    break;
+                }
             }
+        }
+    }
+
+    private void handlePlayerRemoved(UUID uuid, PlayerSnapshot snapshot) {
+        // Filter out NPCs / fake players not verified to be real
+        boolean isReal;
+        synchronized (realPlayers) {
+            isReal = realPlayers.contains(uuid);
+        }
+        if (!isReal) {
+            return;
+        }
+
+        // All player removals must go through the 500ms tab list verification queue
+        // to prevent false logging when players teleport or walk out of server render distance.
+        synchronized (pendingChecks) {
+            pendingChecks.add(new PendingCheck(snapshot.name, uuid, snapshot.x, snapshot.y, snapshot.z, snapshot.boundingBox));
         }
     }
 
@@ -197,7 +201,69 @@ public class PlayerLogger implements IWorldAccess {
 
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null || mc.getNetHandler() == null) {
+            synchronized (lastPlayers) {
+                lastPlayers.clear();
+            }
+            synchronized (playerSnapshots) {
+                playerSnapshots.clear();
+            }
             return;
+        }
+
+        // 1. Gather all active player UUIDs and update snapshots
+        Set<UUID> currentPlayers = new HashSet<UUID>();
+        List<EntityPlayer> addedPlayers = new ArrayList<EntityPlayer>();
+
+        for (Object obj : mc.theWorld.playerEntities) {
+            if (obj instanceof EntityPlayer) {
+                EntityPlayer p = (EntityPlayer) obj;
+                if (p == mc.thePlayer) continue;
+                UUID uuid = p.getUniqueID();
+                currentPlayers.add(uuid);
+
+                // Update snapshot
+                synchronized (playerSnapshots) {
+                    playerSnapshots.put(uuid, new PlayerSnapshot(p.getName(), p.posX, p.posY, p.posZ, p.getEntityBoundingBox()));
+                }
+
+                synchronized (lastPlayers) {
+                    if (!lastPlayers.contains(uuid)) {
+                        addedPlayers.add(p);
+                    }
+                }
+            }
+        }
+
+        // 2. Detect removed players
+        List<UUID> removedPlayerUuids = new ArrayList<UUID>();
+        synchronized (lastPlayers) {
+            for (UUID uuid : lastPlayers) {
+                if (!currentPlayers.contains(uuid)) {
+                    removedPlayerUuids.add(uuid);
+                }
+            }
+        }
+
+        // 3. Process removals (logouts / went out of render distance)
+        for (UUID uuid : removedPlayerUuids) {
+            PlayerSnapshot snapshot;
+            synchronized (playerSnapshots) {
+                snapshot = playerSnapshots.remove(uuid);
+            }
+            if (snapshot != null) {
+                handlePlayerRemoved(uuid, snapshot);
+            }
+        }
+
+        // 4. Process additions (logins / entered render distance)
+        for (EntityPlayer p : addedPlayers) {
+            handlePlayerAdded(p);
+        }
+
+        // 5. Update lastPlayers
+        synchronized (lastPlayers) {
+            lastPlayers.clear();
+            lastPlayers.addAll(currentPlayers);
         }
 
         // Periodically verify and cache active players from the tab list to ensure
@@ -344,15 +410,4 @@ public class PlayerLogger implements IWorldAccess {
         fr.drawString(text, -halfWidth, 0, textColor, true);
         GlStateManager.popMatrix();
     }
-
-    @Override public void markBlockForUpdate(BlockPos pos) {}
-    @Override public void notifyLightSet(BlockPos pos) {}
-    @Override public void markBlockRangeForRenderUpdate(int x1, int y1, int z1, int x2, int y2, int z2) {}
-    @Override public void playSound(String soundName, double x, double y, double z, float volume, float pitch) {}
-    @Override public void playSoundToNearExcept(net.minecraft.entity.player.EntityPlayer player, String soundName, double x, double y, double z, float volume, float pitch) {}
-    @Override public void spawnParticle(int particleID, boolean ignoreRange, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, int... parameters) {}
-    @Override public void playRecord(String recordName, BlockPos pos) {}
-    @Override public void playAuxSFX(net.minecraft.entity.player.EntityPlayer player, int sfxType, BlockPos blockPosIn, int p_180440_4_) {}
-    @Override public void broadcastSound(int soundID, BlockPos pos, int data) {}
-    @Override public void sendBlockBreakProgress(int breakerId, BlockPos pos, int progress) {}
 }
