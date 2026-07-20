@@ -2,6 +2,16 @@
 
 Older releases are on the GitHub releases page.
 
+## 2.0.0
+
+- Major AutoMine rewrite: state machine (DESTINATION vs MINING phases), pre-aiming target blocks, and immediate reach mining.
+- Fast Mine addon: double-speed block breaking synchronized with manual player left-clicking.
+- Smart Ghost Block Detection: automatic resync hits for client-air/server-solid desync and mining stalls.
+- Dynamic Obstacle Pathfinder: routes around standing players and skips occupied target blocks.
+- Proximity Layer Sweeps: clears closest unmined stragglers before descending.
+- Visual Target Overlay: renders a wireframe box around current target block (cyan during travel, green during mining).
+- Mine Area Outline: automatically hides when AutoMine is disabled.
+
 ## 1.1.6
 
 - Scanned celler stay on the HUD and ESP through chunk unloads, relogs and

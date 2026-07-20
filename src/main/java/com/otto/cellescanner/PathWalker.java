@@ -55,9 +55,14 @@ public class PathWalker {
             return;
         }
         goal = g;
+        progressAt = System.currentTimeMillis();
+        if (BaritoneIntegration.isAvailable()) {
+            BaritoneIntegration.walkTo(g);
+            active = true;
+            return;
+        }
         path = null;
         index = 0;
-        progressAt = System.currentTimeMillis();
         lastSearch = 0; // search on the very first tick
         bestGoalDist = Double.MAX_VALUE;
         bestGoalDistAt = progressAt;
@@ -65,6 +70,9 @@ public class PathWalker {
     }
 
     public static void stop() {
+        if (BaritoneIntegration.isAvailable()) {
+            BaritoneIntegration.cancel();
+        }
         active = false;
         path = null;
         goal = null;
@@ -98,6 +106,27 @@ public class PathWalker {
             stop();
             return;
         }
+
+        if (BaritoneIntegration.isAvailable()) {
+            double gdx = (goal.getX() + 0.5) - mc.thePlayer.posX;
+            double gdz = (goal.getZ() + 0.5) - mc.thePlayer.posZ;
+            double gdy = goal.getY() - mc.thePlayer.posY;
+            if (gdx * gdx + gdz * gdz < REACH * REACH && Math.abs(gdy) < 3.0) {
+                message(mc, "§aWalk to celle: ankommet.");
+                CelleFinder.clearTarget(); // stop showing the sign outline once we're there
+                stop();
+                return;
+            }
+            if (!BaritoneIntegration.isPathing() && !BaritoneIntegration.hasPath()) {
+                if (System.currentTimeMillis() - progressAt > 2000) {
+                    message(mc, "§cWalk to celle: Baritone stopped or failed to find path.");
+                    stop();
+                    return;
+                }
+            }
+            return;
+        }
+
         // Pause (hands off the keys) while any screen is open, except inventory or chat.
         if (mc.currentScreen != null && !(mc.currentScreen instanceof net.minecraft.client.gui.inventory.GuiInventory) && !(mc.currentScreen instanceof net.minecraft.client.gui.GuiChat)) {
             releaseKeys(mc);
@@ -201,7 +230,7 @@ public class PathWalker {
             return;
         }
 
-        int reached = Pathfinder.consumeWaypoints(path, index,
+        int reached = Pathfinder.consumeWaypoints(w, path, index,
                 mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
         if (reached != index) {
             index = reached;
@@ -219,38 +248,57 @@ public class PathWalker {
                 return;
             }
         }
-        BlockPos step = path.get(index);
+        BlockPos step = Pathfinder.getLineOfSightTarget(w, feet, path, index);
 
-        // Climb a ladder: face into its wall and push forward (for up) or backward (for down) every tick (no jump).
-        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
-        boolean up = false;
+        // Climb a ladder: the up/down DECISION is shared across the three bots
+        // (Pathfinder.climbDecision, rule 11); only the key-pressing stays local.
+        BlockPos ladderPos = Pathfinder.getClimbableLadder(w, feet, step);
+        Pathfinder.Climb climb = Pathfinder.climbDecision(w, feet, step, ladderPos, mc.thePlayer.posY);
+        boolean up = climb == Pathfinder.Climb.UP;
+        boolean down = climb == Pathfinder.Climb.DOWN;
+
         if (ladderPos != null) {
-            if (step.getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
-                up = true;
-            }
-        }
-        boolean down = false;
-        if (ladderPos != null && !up) {
-            if (step.getY() < feet.getY()) {
-                down = true;
-            }
+            Pathfinder.log("[PathWalker-Ladder] feet=" + feet + " step=" + step + " ladderPos=" + ladderPos + " posY=" + mc.thePlayer.posY + " up=" + up + " down=" + down);
         }
 
         if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
+            Pathfinder.log("[PathWalker-Ladder] UP into=" + into);
             if (into != null) {
                 mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                // Jump ONLY for the bottom mount (feet not in a ladder cell yet -
+                // 1.8.9's isOnLadder() reads the feet block, so pushing into the wall
+                // from below the lowest rung does nothing without a hop). While
+                // actually on the ladder, jumping just causes bouncing.
+                boolean needMountHop = !Pathfinder.isLadder(w, feet) && mc.thePlayer.onGround;
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), needMountHop);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
                 return;
             }
         } else if (down) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
+            Pathfinder.log("[PathWalker-Ladder] DOWN into=" + into);
             if (into != null) {
-                mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
-                releaseKeys(mc); // release all keys to slide down safely in 1.8.9
+                if (mc.thePlayer.onGround) {
+                    // Still standing on solid ground (rim beside the shaft, or a rung
+                    // edge). Releasing keys here freezes on the ledge - walk toward
+                    // the ladder cell until we drop into the column.
+                    double cx = ladderPos.getX() + 0.5;
+                    double cz = ladderPos.getZ() + 0.5;
+                    mc.thePlayer.rotationYaw = (float) (Math.toDegrees(
+                            Math.atan2(cz - mc.thePlayer.posZ, cx - mc.thePlayer.posX)) - 90.0);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                } else {
+                    // Airborne in the column - face the wall and release all keys to
+                    // slide down safely in 1.8.9.
+                    mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
+                    releaseKeys(mc);
+                }
                 return;
             }
         }
@@ -281,9 +329,14 @@ public class PathWalker {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
             boolean sprintNow = sprint && adiff < 12f; // only sprint when well-lined-up
             boolean autoJump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
+            BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
+                    MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
+            boolean ceilingClear = Pathfinder.passable(mc.theWorld, feet.up().up());
+            boolean doSprintJump = sprintNow && ceilingClear;
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprintNow);
+            // Rule 13: swimming - hold space to float up/out of water (Baritone-style).
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(),
-                    sprintNow ? mc.thePlayer.onGround : autoJump);
+                    doSprintJump || autoJump || Pathfinder.shouldSwimUp(mc.thePlayer));
             sprinting = sprintNow;
         } else {
             releaseKeys(mc);
