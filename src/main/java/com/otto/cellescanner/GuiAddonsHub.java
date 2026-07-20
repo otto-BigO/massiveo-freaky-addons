@@ -210,8 +210,8 @@ public class GuiAddonsHub extends GuiScreen {
         if ("Quality of life".equals(category)) {
             return EnumChatFormatting.AQUA.toString();
         }
-        if ("World".equals(category)) {
-            return EnumChatFormatting.GOLD.toString();
+        if ("Automation".equals(category)) {
+            return EnumChatFormatting.LIGHT_PURPLE.toString();
         }
         return EnumChatFormatting.WHITE.toString();
     }

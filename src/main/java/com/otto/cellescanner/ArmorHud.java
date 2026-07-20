@@ -18,6 +18,9 @@ public class ArmorHud {
 
     private static final int ROW_H = 20;
 
+    public static int lastWidth = 70;
+    public static int lastHeight = 80;
+
     private static boolean errorLogged = false;
 
     private static long lastWarnSoundTime = 0L;
@@ -54,6 +57,13 @@ public class ArmorHud {
         int y = cfg.armorHudY;
 
         boolean anyLowDurability = false;
+
+        int pieces = 0;
+        for (int i = 3; i >= 0; i--) {
+            if (armor[i] != null) pieces++;
+        }
+        lastHeight = Math.max(20, pieces * ROW_H);
+        lastWidth = pieces > 0 ? 70 : 20;
 
         // Pass 1: item icons + vanilla durability bar (needs GUI item lighting).
         RenderHelper.enableGUIStandardItemLighting();

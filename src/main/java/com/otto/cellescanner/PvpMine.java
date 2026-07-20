@@ -29,6 +29,9 @@ import java.util.regex.Pattern;
  */
 public class PvpMine {
 
+    public static int lastWidth = 108;
+    public static int lastHeight = 60;
+
     // Mine area box (the two corners Otto gave), inclusive of the block span.
     private static final int MIN_X = -19, MAX_X = -11;
     private static final int MIN_Y = 34, MAX_Y = 43;
@@ -173,6 +176,8 @@ public class PvpMine {
         }
         int lineH = fr.FONT_HEIGHT + 1;
         int boxH = lines.size() * lineH + 5;
+        lastWidth = Math.max(108, w);
+        lastHeight = Math.max(20, boxH);
 
         ScaledResolution sr = new ScaledResolution(mc);
         int x = CelleScannerMod.config.pvpMineX != null ? CelleScannerMod.config.pvpMineX : 4;

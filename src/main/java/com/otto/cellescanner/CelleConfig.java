@@ -175,6 +175,31 @@ public class CelleConfig {
     // when the inventory is full, and resumes when the mine resets.
     public boolean autoMineEnabled = false;
 
+    // Custom Auto Mine area: two corners the player picks in-game (right-click
+    // each). When mineAreaSet is true the bot mines this box instead of the
+    // built-in default one, and the box outline is drawn in the world.
+    public boolean mineAreaSet = false;
+    public int mineAreaX1, mineAreaY1, mineAreaZ1;
+    public int mineAreaX2, mineAreaY2, mineAreaZ2;
+    public int mineAreaDim = 0;
+
+    // Crazy mode: raw performance - instant snap aiming (no humanized easing)
+    // and no wait-until-facing walk gate. Faster, but looks robotic.
+    public boolean autoMineCrazy = false;
+
+    // Auto Mine tunables (GUI: Auto Mine -> Indstillinger -> Finjustering).
+    // How close (blocks) the bot walks to a block before it stops and mines it.
+    public double autoMineApproachDist = 2.7;
+    // Mining reach (blocks). Capped GUI-side to a legit value - do not exceed
+    // vanilla or anti-cheat flags it.
+    public double autoMineReach = 4.3;
+    // Swap/discard a pickaxe once its remaining durability is <= this (0 = use
+    // it until it breaks).
+    public int autoMinePickaxeMin = 0;
+    // Whether to detour to pick up our own dropped iron while mining. Nullable
+    // so an older config (key absent) defaults to ON, not the Gson-Unsafe false.
+    public Boolean autoMineCollectDrops = Boolean.TRUE;
+
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
     public Boolean modIconEnabled = Boolean.TRUE;
@@ -209,6 +234,9 @@ public class CelleConfig {
 
     // Auto Crate Addon
     public boolean autoCrateEnabled = false;
+
+    // Fast Mine Addon
+    public boolean fastMineEnabled = false;
 
     // Celle Expiry Alerts Addon
     public boolean celleExpiryAlertsEnabled = true;
@@ -375,6 +403,19 @@ public class CelleConfig {
                 this.pvpMineX = loaded.pvpMineX;
                 this.pvpMineY = loaded.pvpMineY;
                 this.autoMineEnabled = loaded.autoMineEnabled;
+                this.mineAreaSet = loaded.mineAreaSet;
+                this.mineAreaX1 = loaded.mineAreaX1;
+                this.mineAreaY1 = loaded.mineAreaY1;
+                this.mineAreaZ1 = loaded.mineAreaZ1;
+                this.mineAreaX2 = loaded.mineAreaX2;
+                this.mineAreaY2 = loaded.mineAreaY2;
+                this.mineAreaZ2 = loaded.mineAreaZ2;
+                this.mineAreaDim = loaded.mineAreaDim;
+                this.autoMineCrazy = loaded.autoMineCrazy;
+                this.autoMineApproachDist = loaded.autoMineApproachDist > 0 ? loaded.autoMineApproachDist : 2.7;
+                this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.3;
+                this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
+                this.autoMineCollectDrops = loaded.autoMineCollectDrops != null ? loaded.autoMineCollectDrops : Boolean.TRUE;
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;
@@ -391,6 +432,14 @@ public class CelleConfig {
                 this.autoCrateEnabled = loaded.autoCrateEnabled;
                 this.celleExpiryAlertsEnabled = loaded.celleExpiryAlertsEnabled;
                 this.playerEspEnabled = loaded.playerEspEnabled;
+                // These five were saved but never restored here, so toggling them
+                // off never stuck - the field snapped back to its default on every
+                // reload (the "module re-enables itself" bug).
+                this.chestOrganizerEnabled = loaded.chestOrganizerEnabled;
+                this.ironDoorSoundsEnabled = loaded.ironDoorSoundsEnabled;
+                this.playerLoggerEnabled = loaded.playerLoggerEnabled;
+                this.farmBotEnabled = loaded.farmBotEnabled;
+                this.fastMineEnabled = loaded.fastMineEnabled;
                 this.accessKey = loaded.accessKey != null ? loaded.accessKey : "";
                 this.verifiedKey = loaded.verifiedKey != null ? loaded.verifiedKey : "";
                 this.verifiedHwid = loaded.verifiedHwid != null ? loaded.verifiedHwid : "";

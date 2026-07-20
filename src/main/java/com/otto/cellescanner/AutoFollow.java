@@ -52,6 +52,9 @@ public class AutoFollow {
             active = false;
             targetName = null;
             path = null;
+            if (BaritoneIntegration.isAvailable()) {
+                BaritoneIntegration.cancel();
+            }
             Minecraft mc = Minecraft.getMinecraft();
             if (mc != null) {
                 releaseKeys(mc);
@@ -146,6 +149,23 @@ public class AutoFollow {
         double dy = goal.getY() - mc.thePlayer.posY;
         double distSq = dx * dx + dz * dz;
 
+        if (BaritoneIntegration.isAvailable()) {
+            if (distSq < 1.2 * 1.2 && Math.abs(dy) < 2.0) {
+                BaritoneIntegration.cancel();
+                // Smoothly look at target player
+                double tdx = target.posX - mc.thePlayer.posX;
+                double tdz = target.posZ - mc.thePlayer.posZ;
+                mc.thePlayer.rotationYaw = (float) (Math.toDegrees(Math.atan2(tdz, tdx)) - 90.0);
+            } else {
+                boolean goalMoved = lastGoal == null || lastGoal.distanceSq(goal.getX(), goal.getY(), goal.getZ()) > 1.5 * 1.5;
+                if (goalMoved) {
+                    BaritoneIntegration.walkTo(goal);
+                    lastGoal = goal;
+                }
+            }
+            return;
+        }
+
         // If close enough horizontally and vertically, release keys and face the teammate
         if (distSq < 1.2 * 1.2 && Math.abs(dy) < 2.0) {
             releaseKeys(mc);
@@ -180,7 +200,7 @@ public class AutoFollow {
             return;
         }
 
-        int reached = Pathfinder.consumeWaypoints(path, pathIndex,
+        int reached = Pathfinder.consumeWaypoints(w, path, pathIndex,
                 mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
         if (reached != pathIndex) {
             pathIndex = reached;
@@ -192,22 +212,14 @@ public class AutoFollow {
             return;
         }
 
-        BlockPos step = path.get(pathIndex);
+        BlockPos step = Pathfinder.getLineOfSightTarget(w, feet, path, pathIndex);
 
-        // Ladder mechanics (using our 1.8.9 safe movement)
-        BlockPos ladderPos = Pathfinder.isLadder(w, feet) ? feet : (Pathfinder.isLadder(w, feet.up()) ? feet.up() : null);
-        boolean up = false;
-        if (ladderPos != null) {
-            if (step.getY() > MathHelper.floor_double(mc.thePlayer.posY)) {
-                up = true;
-            }
-        }
-        boolean down = false;
-        if (ladderPos != null && !up) {
-            if (step.getY() < feet.getY()) {
-                down = true;
-            }
-        }
+        // Ladder mechanics: the up/down DECISION is shared across the three bots
+        // (Pathfinder.climbDecision, rule 11); only the key-pressing stays local.
+        BlockPos ladderPos = Pathfinder.getClimbableLadder(w, feet, step);
+        Pathfinder.Climb climb = Pathfinder.climbDecision(w, feet, step, ladderPos, mc.thePlayer.posY);
+        boolean up = climb == Pathfinder.Climb.UP;
+        boolean down = climb == Pathfinder.Climb.DOWN;
 
         if (up) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
@@ -215,15 +227,32 @@ public class AutoFollow {
                 mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
-                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                // Jump ONLY for the bottom mount (feet not in a ladder cell yet) -
+                // jumping while on the ladder causes bouncing.
+                boolean needMountHop = !Pathfinder.isLadder(w, feet) && mc.thePlayer.onGround;
+                KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), needMountHop);
                 KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
                 return;
             }
         } else if (down) {
             EnumFacing into = Pathfinder.ladderInto(w, ladderPos);
             if (into != null) {
-                mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
-                releaseKeys(mc); // release keys to slide down safely in 1.8.9
+                if (mc.thePlayer.onGround) {
+                    // Standing on solid ground beside/above the shaft - releasing
+                    // keys freezes on the ledge. Walk into the ladder cell first.
+                    double cx = ladderPos.getX() + 0.5;
+                    double cz = ladderPos.getZ() + 0.5;
+                    mc.thePlayer.rotationYaw = (float) (Math.toDegrees(
+                            Math.atan2(cz - mc.thePlayer.posZ, cx - mc.thePlayer.posX)) - 90.0);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindBack.getKeyCode(), false);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), false);
+                    KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                } else {
+                    // Airborne in the column - face the wall and slide.
+                    mc.thePlayer.rotationYaw = Pathfinder.yawOf(into);
+                    releaseKeys(mc); // release keys to slide down safely in 1.8.9
+                }
                 return;
             }
         }
@@ -251,8 +280,12 @@ public class AutoFollow {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), true);
             boolean sprintNow = Pathfinder.straightRun(path, pathIndex, pathSprinting ? 2 : 4) && adiff < 12f;
             boolean autoJump = mc.thePlayer.isCollidedHorizontally && mc.thePlayer.onGround;
+            boolean ceilingClear = Pathfinder.passable(mc.theWorld, feet.up().up());
+            boolean doSprintJump = sprintNow && ceilingClear;
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), sprintNow);
-            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), sprintNow ? mc.thePlayer.onGround : autoJump);
+            // Rule 13: swimming - hold space to float up/out of water (Baritone-style).
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(),
+                    doSprintJump || autoJump || Pathfinder.shouldSwimUp(mc.thePlayer));
             pathSprinting = sprintNow;
         } else {
             KeyBinding.setKeyBindState(mc.gameSettings.keyBindForward.getKeyCode(), false);

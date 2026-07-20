@@ -329,6 +329,36 @@ public final class AddonList {
             }
         });
 
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Fast Mine";
+            }
+
+            public String description() {
+                return "Miner i takt med musen når du graver (automatisering - egen risiko)";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return config.fastMineEnabled;
+            }
+
+            public void open() {
+                config.fastMineEnabled = !config.fastMineEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Automation"));
+            }
+
+            public void toggle() {
+                config.fastMineEnabled = !config.fastMineEnabled;
+                config.save();
+            }
+        });
+
         // Mod-brugere addon shelved for now - good idea, saved for later. The
         // code (GuiModIcon, ModUserIcon) is kept; to re-enable, restore this
         // registration and the ModUserIcon event registration in
