@@ -55,10 +55,8 @@ your own client.
 
 ### World
 
-- **Auto Mine**: mines a fixed mine area on a set pattern, pathfinds to the
-  Skraldespand and pings you to deposit when full, restocks pickaxes, climbs
-  ladders and auto-eats. It never moves items for you. Automation, off by
-  default, use at your own risk.
+- **Auto Mine**: mines a fixed mine area on a serpentine pattern, pathfinds to deposit when full, auto-eats, and climbs ladders. Features state machine navigation, immediate reach mining, smart ghost block auto-resync, and player obstacle detour pathfinding. Automation, off by default, use at your own risk.
+- **Fast Mine**: double-speed block mining synchronized with manual player left-clicking. Automation, off by default, use at your own risk.
 
 A settings gear in the hub opens a HUD editor to drag every HUD where you want
 it.
