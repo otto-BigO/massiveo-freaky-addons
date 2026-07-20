@@ -18,48 +18,44 @@ your own client.
 
 ### Celler
 
-- **Celle Scanner**: scans celle signs in loaded chunks, HUD + through-wall ESP
-  of celler that free up soon, optional report to a shared Discord dashboard.
-  Includes a Celle Finder with "Gå til celle" that pathfinds and walks you to a
-  scanned celle. Left-click a celle id anywhere to copy it, right-click to walk
-  to it.
-- **Mine Celler**: highlights the celler you own, share or are invited to, from
-  `/ce find`.
+- **Celle Scanner**: scans celle signs in loaded chunks, HUD + through-wall ESP of celler that free up soon, optional report to a shared Discord dashboard.
+- **Celle Finder**: search for a specific celle id and pathfind / walk directly to it.
+- **Mine Celler**: highlights celler you own, share, or are invited to from `/ce find`.
+- **Celle Alarm**: sound and screen countdown alerts when a followed celle expires (2m, 1m, 30s, and countdown).
 
 ### Tracking
 
-- **Bande ESP**: a box through walls on players in your bande (manual name list).
-- **Chest Alarm**: notification + sound when the chest-alarm line hits chat.
-- **Spiller Info**: shift + right-click a player for a 3D model, their armor +
-  enchants, their celler and each celle's details. Works on offline players too
-  (skin from Mojang).
-- **PvP Mine**: the drop-timer sign on a HUD, plus an alert when a player is in
-  the mine.
-- **Mod-brugere**: a small badge before other mod users' names (test).
+- **Bande ESP**: green outline boxes through walls on players in your bande (manual name list).
+- **Chest Alarm**: notification + note-block sound when the chest-alarm line hits chat.
+- **Spiller Info**: shift + right-click a player for a 3D model, armor + enchants, held items, skin preview, and celle details (works on offline players too).
+- **PvP Mine**: drop-timer sign on a HUD, plus an alert when a player enters the PvP mine.
+
+### Automation
+
+- **Auto Mine**: mines a fixed mine area on a serpentine pattern, pathfinds to deposit when full, auto-eats, and climbs ladders. Features state machine navigation, immediate reach mining, smart ghost block auto-resync, and player obstacle detour pathfinding. Automation, off by default, use at your own risk.
+- **Auto Fish**: automated fishing bot that reels in on splash and recasts in fish zones.
+- **Auto Crate**: automated crate opener that right-clicks crates holding keys.
+- **Fast Mine**: double-speed block mining synchronized with manual player left-clicking.
+- **Anti-AFK**: small periodic actions (strafes, swings, rotations) so the idle timer never trips.
+- **Farm-bot**: automatically harvests and replants mature crops.
+- **Auto-Følg**: automatically pathfinds, walks, and runs behind another player (`/følg <navn>`).
 
 ### Quality of life
 
-- **Troll Lyde**: goofy sounds on your own events (death, kill, jump, AFK), only
-  you hear them.
-- **Item-log**: a small "+N item" notification in the bottom-right when items
-  enter your inventory.
-- **Anti-AFK**: small periodic actions so the idle timer never trips. Off by
-  default.
-- **Rustnings-skins**: distinct textures for Protection 1-4 iron and diamond
-  armor so you can tell gear apart, without a full texture pack.
-- **Rustnings-HUD**: your equipped armor with durability and a low warning.
-- **Item Vaerdi**: an item's worth (DB or diamonds) in its tooltip, from the
-  FreakyVille price guide.
+- **Troll Lyde**: goofy client-side sounds on death, kill, jump, AFK (only you hear them).
+- **Item-log**: a small "+N item" notification toast in the bottom-right on item pickup.
+- **Rustnings-skins**: distinct textures for Protection 1-4 iron and diamond armor so you can tell gear apart without a full texture pack.
+- **Rustnings-HUD**: equipped armor display with durability and low-durability warning.
+- **Item Værdi**: item worth (DB or diamonds) in tooltips from the FreakyVille price guide.
 - **Prisguide**: browse FreakyVille's price guide in-game, fetched live.
-- **Opdatering**: the GitHub auto-updater, with an optional pre-release channel.
+- **Opdatering**: GitHub auto-updater with an optional pre-release test channel.
+- **Flip Case**: CS:GO-style case opening animation when flipping players (replaces flip chest GUI).
+- **Kiste-organisering**: left-click chests to add floating 3D icons for inventory organization.
+- **Jernlåge-lyde**: plays door sounds when iron doors open/close on the server.
+- **Spiller-logger**: displays 3D logout markers where other players logged off.
+- **Spiller ESP**: renders 3D player bounding boxes and nametags through walls.
 
-### World
-
-- **Auto Mine**: mines a fixed mine area on a serpentine pattern, pathfinds to deposit when full, auto-eats, and climbs ladders. Features state machine navigation, immediate reach mining, smart ghost block auto-resync, and player obstacle detour pathfinding. Automation, off by default, use at your own risk.
-- **Fast Mine**: double-speed block mining synchronized with manual player left-clicking. Automation, off by default, use at your own risk.
-
-A settings gear in the hub opens a HUD editor to drag every HUD where you want
-it.
+A settings gear in the hub opens a HUD editor to drag every HUD where you want it.
 
 </details>
 
