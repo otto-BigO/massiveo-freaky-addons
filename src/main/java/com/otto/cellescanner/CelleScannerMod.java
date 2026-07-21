@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "2.0.0";
+    public static final String VERSION = "2.2.1-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -31,6 +31,7 @@ public class CelleScannerMod {
     private static boolean addonsEnabled = false;
     public static KeyBinding openMenuKey;
     public static KeyBinding autoMineKey;
+    public static KeyBinding phoneKey;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -71,6 +72,10 @@ public class CelleScannerMod {
         autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(autoMineKey);
 
+        // phoneKey shelved for now - code stays in repo for later.
+        // phoneKey = new KeyBinding("key.cellescanner.phone", Keyboard.KEY_P, "key.categories.cellescanner");
+        // ClientRegistry.registerKeyBinding(phoneKey);
+
         // Licence gate shelved: it was only half-wired (no key-entry screen) and
         // blocked every addon from registering, so the mod loaded but did nothing.
         // Register all addons directly so everything just works. The gate code
@@ -109,6 +114,8 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new ChestOrganizer());
         MinecraftForge.EVENT_BUS.register(new IronDoorSounds());
         MinecraftForge.EVENT_BUS.register(PlayerLogger.INSTANCE);
+        // PhoneNotification (Venne Telefon) shelved for now - code stays in repo.
+        // MinecraftForge.EVENT_BUS.register(new PhoneNotification());
         MinecraftForge.EVENT_BUS.register(new FarmBot());
         MinecraftForge.EVENT_BUS.register(new PlayerEsp());
         MinecraftForge.EVENT_BUS.register(new PathWalker());

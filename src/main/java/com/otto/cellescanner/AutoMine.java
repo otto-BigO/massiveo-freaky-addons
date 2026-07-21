@@ -5,6 +5,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemPickaxe;
 import net.minecraft.item.ItemStack;
@@ -16,6 +17,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 import net.minecraft.client.gui.GuiIngameMenu;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
@@ -144,6 +146,8 @@ public class AutoMine {
     private int currentLayerY = MAX_Y;
     private int cleanupLayer = Integer.MIN_VALUE; // layer we're currently cleaning up
     private long cleanupSince = 0; // when cleanup of that layer started
+    private BlockPos currentLeftover = null;
+    private long leftoverStart = 0;
 
     // Positions of blocks we've broken recently, so we only collect our own drops.
     private final List<long[]> broken = new ArrayList<long[]>(); // {x, y, z, timeMillis}
@@ -322,14 +326,11 @@ public class AutoMine {
             doBuy(mc);
             return; // at the shop - hold off on mining
         }
-        // Keep a pickaxe in hand. Select a hotbar one if we have it. We never move
-        // items ourselves, so if the only spare is in the main inventory we ask the
-        // player to slot it; if there's none at all we go to the shop.
+        // Keep a pickaxe in hand. Select a hotbar one if available, or automatically swap a whitelisted pickaxe from main inventory.
         if (!holdingPickaxe(mc) && !selectHotbarPickaxe(mc)) {
-            if (hasPickaxe(mc)) {
+            if (swapMainInventoryPickaxe(mc)) {
                 stopMining(mc);
                 stopWalk(mc);
-                notifyPickaxe(mc);
                 return;
             }
             buying = true;
@@ -656,12 +657,18 @@ public class AutoMine {
             ghostCollisionTime = 0;
         }
 
-        // 2. Mining Ghost Block Detection (Target mining stall > 3.5 seconds)
+        // 2. Mining Ghost Block Detection (Target mining stall > 2.8 seconds)
         if (phase == Phase.MINING && target != null && !mc.theWorld.isAirBlock(target)) {
-            if (planIndexSince > 0 && now - planIndexSince > 3500) {
-                Pathfinder.log("[AutoMine-Ghost] Mining target stalled >3.5s at " + target + ", blacklisting ghost block.");
+            long startTime = (target.equals(currentLeftover) && leftoverStart > 0) ? leftoverStart : planIndexSince;
+            if (startTime > 0 && now - startTime > 2800) {
+                Pathfinder.log("[AutoMine-Ghost] Mining target stalled >2.8s at " + target + ", blacklisting ghost block.");
                 unbreakableBlacklist.add(target);
                 unbreakableBlacklistTime.put(target, now);
+                if (target.equals(currentLeftover)) {
+                    currentLeftover = null;
+                    leftoverStart = 0;
+                    cleanupSince = now;
+                }
                 target = null;
                 planIndexSince = now;
             }
@@ -771,13 +778,23 @@ public class AutoMine {
         if (ty < currentLayerY) {
             BlockPos leftover = leftoverInLayer(mc, currentLayerY);
             if (leftover != null && !cleanupTimedOut(currentLayerY)) {
+                if (!leftover.equals(currentLeftover)) {
+                    long now = System.currentTimeMillis();
+                    currentLeftover = leftover;
+                    leftoverStart = now;
+                    cleanupSince = now; // reset layer cleanup timeout per block
+                }
                 target = leftover; // mine the closest unmined straggler on current layer
             } else {
                 Pathfinder.log("[AutoMine-Layer] Layer " + currentLayerY + " clean! Descending to layer " + ty);
                 currentLayerY = ty; // layer clean (or timed out) - descend
+                currentLeftover = null;
+                leftoverStart = 0;
             }
         } else if (ty > currentLayerY) {
             currentLayerY = ty; // went up (e.g. after a reset)
+            currentLeftover = null;
+            leftoverStart = 0;
         }
 
         // Outside the mine outline (e.g. after buying a pickaxe, depositing, or a
@@ -861,37 +878,46 @@ public class AutoMine {
             stopWalk(mc);
         }
 
+        // Check for Y-axis / line-of-sight block obstructions between player eyes and target
+        BlockPos effectiveTarget = target;
+        Vec3 eyes = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
+        Vec3 tVec = new Vec3(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
+        MovingObjectPosition losHit = mc.theWorld.rayTraceBlocks(eyes, tVec, false, true, false);
+        if (losHit != null && losHit.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
+            BlockPos blocker = losHit.getBlockPos();
+            if (blocker != null && !blocker.equals(target) && inBox(blocker)
+                    && blocker.getY() >= currentLayerY && !mc.theWorld.isAirBlock(blocker)) {
+                effectiveTarget = blocker;
+            }
+        }
+
         MovingObjectPosition mop = mc.objectMouseOver;
         BlockPos looked = mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
                 ? mop.getBlockPos()
                 : null;
         double distToLooked = looked != null ? closestDist(mc, looked) : Double.MAX_VALUE;
 
-        // Smooth camera aim at target block
-        aimAt(mc, target);
+        // Smooth camera aim at effective target block (clearing any Y-axis obstruction first)
+        aimAt(mc, effectiveTarget);
 
-        // Raytrace bypass: if aimed towards target within reach but raytrace hit non-box block or missed
+        // Raytrace bypass: if aimed towards effective target within reach but raytrace hit non-box block or missed
         float yawDiff = Math.abs(MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw));
         float pitchDiff = Math.abs(tPitch - mc.thePlayer.rotationPitch);
         boolean lookingAtTarget = yawDiff < 25f && pitchDiff < 25f;
         if (lookingAtTarget && distToTarget <= reach) {
             if (looked == null || !inBox(looked)) {
-                looked = target;
-                distToLooked = distToTarget;
+                looked = effectiveTarget;
+                distToLooked = closestDist(mc, effectiveTarget);
             }
         }
 
-        // Hard layer guard: NEVER break a block below the working layer. The
-        // serpentine clears top-to-bottom, so anything under currentLayerY is the
-        // next layer - digging it makes the pit the hole-avoidance then fights.
-        // This is what makes distance changes safe: even if the crosshair grabs a
-        // lower block, we refuse it and wait for the real (current-layer) target.
+        // Hard layer guard: NEVER break a block below the working layer.
         boolean belowLayer = looked != null && looked.getY() < currentLayerY;
 
         if (looked != null && inBox(looked) && !belowLayer
                 && !mc.theWorld.isAirBlock(looked) && distToLooked <= reach) {
             if (tick % 10 == 0) {
-                Pathfinder.log("[AutoMine-Mine] target=" + target + " looked=" + looked
+                Pathfinder.log("[AutoMine-Mine] target=" + effectiveTarget + " looked=" + looked
                         + " layerY=" + currentLayerY + " feetY=" + feet.getY()
                         + " distT=" + String.format("%.2f", distToTarget)
                         + " distL=" + String.format("%.2f", distToLooked) + " reach=" + reach);
@@ -900,7 +926,7 @@ public class AutoMine {
         } else {
             if (belowLayer && tick % 10 == 0) {
                 Pathfinder.log("[AutoMine-Mine] REFUSED below-layer block looked=" + looked
-                        + " layerY=" + currentLayerY + " (target=" + target + ")");
+                        + " layerY=" + currentLayerY + " (target=" + effectiveTarget + ")");
             }
             // Stationed at destination, waiting for crosshair to settle on target
             stopMining(mc);
@@ -1244,6 +1270,14 @@ public class AutoMine {
         if (stack == null || !(stack.getItem() instanceof ItemPickaxe)) {
             return false;
         }
+        Item item = stack.getItem();
+        // Whitelist: Only use Iron Pickaxes (plain or enchanted), Diamond, and Gold. Exclude Wooden & Stone.
+        if (item == Items.wooden_pickaxe || item == Items.stone_pickaxe) {
+            return false;
+        }
+        if (item != Items.iron_pickaxe && item != Items.diamond_pickaxe && item != Items.golden_pickaxe) {
+            return false;
+        }
         if (!stack.isItemStackDamageable()) {
             return true;
         }
@@ -1251,6 +1285,32 @@ public class AutoMine {
         int curDamage = stack.getItemDamage();
         int left = maxDur - curDamage;
         return left > CelleScannerMod.config.autoMinePickaxeMin;
+    }
+
+    /**
+     * Swaps a whitelisted usable pickaxe from main inventory (slots 9-35) into the current active hotbar slot.
+     */
+    private boolean swapMainInventoryPickaxe(Minecraft mc) {
+        if (mc.thePlayer == null || mc.playerController == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastSlotClickTime < 250) {
+            return true; // Click throttled, retry next tick
+        }
+        ItemStack[] inv = mc.thePlayer.inventory.mainInventory;
+        for (int i = 9; i < 36; i++) {
+            if (isUsablePickaxe(inv[i])) {
+                int currentHotbar = mc.thePlayer.inventory.currentItem; // 0..8
+                int windowId = mc.thePlayer.openContainer != null ? mc.thePlayer.openContainer.windowId : 0;
+
+                // Hotbar Swap click (mode 2, button = currentHotbar index)
+                mc.playerController.windowClick(windowId, i, currentHotbar, 2, mc.thePlayer);
+                lastSlotClickTime = now;
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean holdingPickaxe(Minecraft mc) {
@@ -1714,7 +1774,7 @@ public class AutoMine {
             cleanupLayer = y;
             cleanupSince = now;
         }
-        return now - cleanupSince > 6000;
+        return now - cleanupSince > 10000;
     }
 
     /**

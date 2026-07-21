@@ -141,6 +141,35 @@ public final class AddonList {
             }
         });
 
+        /* Shelved for now - Venne Telefon stays in repo for later use.
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Venne Telefon";
+            }
+
+            public String description() {
+                return "iPhone-stil mobil til at styre venner, iMessage whispers og blå ESP";
+            }
+
+            public String category() {
+                return "Tracking";
+            }
+
+            public boolean isActive() {
+                return config.friendEspEnabled;
+            }
+
+            public void open() {
+                CelleActions.openPhoneGui();
+            }
+
+            public void toggle() {
+                config.friendEspEnabled = !config.friendEspEnabled;
+                config.save();
+            }
+        });
+        */
+
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Chest Alarm";

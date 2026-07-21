@@ -8,7 +8,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Simple JSON-backed config:
@@ -93,6 +95,10 @@ public class CelleConfig {
     // red - so you can see all players through walls, not just your bande.
     public boolean bandeEspAll = false;
     public List<String> bandeMembers = new ArrayList<String>();
+
+    // Venne Telefon / Friend ESP fields
+    public boolean friendEspEnabled = true;
+    public Set<String> friendsList = new HashSet<String>();
 
     // Chest Alarm addon: watches chat for a keyword (the server's chest-alarm
     // line) and, when it appears, flashes a small on-screen notification and
@@ -440,6 +446,8 @@ public class CelleConfig {
                 this.playerLoggerEnabled = loaded.playerLoggerEnabled;
                 this.farmBotEnabled = loaded.farmBotEnabled;
                 this.fastMineEnabled = loaded.fastMineEnabled;
+                this.friendEspEnabled = loaded.friendEspEnabled;
+                this.friendsList = loaded.friendsList != null ? loaded.friendsList : new HashSet<String>();
                 this.accessKey = loaded.accessKey != null ? loaded.accessKey : "";
                 this.verifiedKey = loaded.verifiedKey != null ? loaded.verifiedKey : "";
                 this.verifiedHwid = loaded.verifiedHwid != null ? loaded.verifiedHwid : "";

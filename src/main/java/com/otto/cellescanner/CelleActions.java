@@ -642,6 +642,10 @@ public final class CelleActions {
         ChestAlarm.fire("CHEST-ALARM: TestSpiller låste den hemmelige chest op i PvP Minen!");
     }
 
+    public static void openPhoneGui() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiPhone());
+    }
+
     public static void toggleBandeEsp() {
         CelleScannerMod.config.bandeEspEnabled = !CelleScannerMod.config.bandeEspEnabled;
         CelleScannerMod.config.save();

@@ -72,12 +72,15 @@ public class BandeEsp {
                 continue;
             }
 
+            boolean friend = isFriend(mc, p);
             boolean bande = isBande(mc, p);
-            if (!bande && !cfg.bandeEspAll) {
+            if (!friend && !bande && !cfg.bandeEspAll) {
                 continue;
             }
 
-            if (bande) {
+            if (friend) {
+                drawBox(p, partialTicks, 0.2f, 0.6f, 1.0f);   // friend = cyan/blue
+            } else if (bande) {
                 drawBox(p, partialTicks, 0.2f, 1.0f, 0.2f);   // bande = green
             } else {
                 drawBox(p, partialTicks, 1.0f, 0.25f, 0.25f); // everyone else = red
@@ -195,5 +198,21 @@ public class BandeEsp {
         }
         b = b.trim();
         return b.isEmpty() ? null : b;
+    }
+
+    private boolean isFriend(Minecraft mc, EntityPlayer p) {
+        if (p == null || p.getName() == null) {
+            return false;
+        }
+        CelleConfig cfg = CelleScannerMod.config;
+        if (!cfg.friendEspEnabled) {
+            return false;
+        }
+        for (String friend : cfg.friendsList) {
+            if (friend != null && friend.equalsIgnoreCase(p.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
