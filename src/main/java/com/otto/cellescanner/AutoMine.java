@@ -532,18 +532,20 @@ public class AutoMine {
                     return;
                 }
 
-                // Parse countdown seconds if present (e.g. "in 3 seconds", "om 10 sekunder")
+                // Parse countdown seconds if present (e.g. "b will be resetting in 10 seconds", "in 3 seconds", "in 1 second")
                 java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(in|om)\\s+(\\d+)\\s+(seconds?|sekunder?)");
                 java.util.regex.Matcher matcher = pattern.matcher(lower);
                 if (matcher.find()) {
                     try {
                         int seconds = Integer.parseInt(matcher.group(2));
-                        restartPlanAt = System.currentTimeMillis() + (seconds * 1000L) + 1200L;
+                        // Precision timing: trigger restart exactly when the countdown expires (+100ms)
+                        restartPlanAt = System.currentTimeMillis() + (seconds * 1000L) + 100L;
+                        Pathfinder.log("[AutoMine-Reset] Mine reset warning: " + seconds + "s countdown armed.");
                     } catch (NumberFormatException e) {
-                        restartPlanAt = System.currentTimeMillis() + 3500L;
+                        restartPlanAt = System.currentTimeMillis() + 1000L;
                     }
                 } else {
-                    restartPlanAt = System.currentTimeMillis() + 3500L;
+                    restartPlanAt = System.currentTimeMillis() + 1000L;
                 }
             }
         }
