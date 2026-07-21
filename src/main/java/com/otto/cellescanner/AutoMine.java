@@ -1539,20 +1539,25 @@ public class AutoMine {
 
     private void notifyIron(Minecraft mc) {
         if (!notifiedIron) {
-            String leaveCmd = (CelleScannerMod.config.autoMineLeaveCommand != null && !CelleScannerMod.config.autoMineLeaveCommand.isEmpty())
-                    ? CelleScannerMod.config.autoMineLeaveCommand : "/spawn";
-            mc.thePlayer.addChatMessage(new ChatComponentText(
-                    "§c[Auto Mine] Inventaret er fuldt af jern! Forlader minen med " + leaveCmd + " for at beskytte dit jern."));
-            mc.thePlayer.playSound("random.orb", 1f, 1f);
-            if (leaveCmd.startsWith("/")) {
-                mc.thePlayer.sendChatMessage(leaveCmd);
-            }
             notifiedIron = true;
             CelleScannerMod.config.autoMineEnabled = false;
             storingIron = false;
             storeIronStart = 0;
             stopMining(mc);
             stopWalk(mc);
+
+            if (mc.thePlayer != null) {
+                mc.thePlayer.addChatMessage(new ChatComponentText(
+                        "§c[Auto Mine] Inventaret er fuldt af jern! Disconnecter fra serveren for at beskytte dit jern."));
+                mc.thePlayer.playSound("random.orb", 1f, 1f);
+            }
+
+            // Disconnect from server cleanly to Main Menu
+            if (mc.theWorld != null) {
+                mc.theWorld.sendQuittingDisconnectingPacket();
+            }
+            mc.loadWorld((net.minecraft.client.multiplayer.WorldClient) null);
+            mc.displayGuiScreen(new net.minecraft.client.gui.GuiMainMenu());
         }
     }
 

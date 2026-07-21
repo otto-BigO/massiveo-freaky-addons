@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "2.2.5-test";
+    public static final String VERSION = "2.2.6-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
