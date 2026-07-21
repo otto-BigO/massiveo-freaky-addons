@@ -211,6 +211,7 @@ public class AutoMine {
     private static final BlockPos IRON_DROP = new BlockPos(20, 60, -684);
     private boolean storingIron = false;
     private boolean notifiedIron = false;
+    private long storeIronStart = 0;
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -1334,6 +1335,7 @@ public class AutoMine {
 
     /**
      * Swaps a whitelisted usable pickaxe from main inventory (slots 9-35) into the current active hotbar slot.
+     * Opens the inventory screen, sends the windowClick hotbar swap, and closes the inventory.
      */
     private boolean swapMainInventoryPickaxe(Minecraft mc) {
         if (mc.thePlayer == null || mc.playerController == null) {
@@ -1347,10 +1349,17 @@ public class AutoMine {
         for (int i = 9; i < 36; i++) {
             if (isUsablePickaxe(inv[i])) {
                 int currentHotbar = mc.thePlayer.inventory.currentItem; // 0..8
-                int windowId = mc.thePlayer.openContainer != null ? mc.thePlayer.openContainer.windowId : 0;
 
-                // Hotbar Swap click (mode 2, button = currentHotbar index)
+                // 1. Open player inventory GUI
+                mc.displayGuiScreen(new net.minecraft.client.gui.inventory.GuiInventory(mc.thePlayer));
+
+                // 2. Send the windowClick hotbar swap packet (mode 2)
+                int windowId = mc.thePlayer.openContainer != null ? mc.thePlayer.openContainer.windowId : 0;
                 mc.playerController.windowClick(windowId, i, currentHotbar, 2, mc.thePlayer);
+
+                // 3. Close player inventory GUI
+                mc.thePlayer.closeScreen();
+
                 lastSlotClickTime = now;
                 return true;
             }
@@ -1514,23 +1523,36 @@ public class AutoMine {
      */
     private void doStoreIron(Minecraft mc) {
         stopMining(mc);
+        if (storeIronStart == 0) {
+            storeIronStart = System.currentTimeMillis();
+        }
         double dx = (IRON_DROP.getX() + 0.5) - mc.thePlayer.posX;
         double dz = (IRON_DROP.getZ() + 0.5) - mc.thePlayer.posZ;
-        if (Math.sqrt(dx * dx + dz * dz) > 1.8) {
+        if (Math.sqrt(dx * dx + dz * dz) > 1.8 && System.currentTimeMillis() - storeIronStart < 5000) {
             navigate(mc, IRON_DROP, 2.0);
             return;
         }
         stopWalk(mc);
         clearPath();
-        notifyIron(mc); // then just wait until the player frees space
+        notifyIron(mc);
     }
 
     private void notifyIron(Minecraft mc) {
         if (!notifiedIron) {
+            String leaveCmd = (CelleScannerMod.config.autoMineLeaveCommand != null && !CelleScannerMod.config.autoMineLeaveCommand.isEmpty())
+                    ? CelleScannerMod.config.autoMineLeaveCommand : "/spawn";
             mc.thePlayer.addChatMessage(new ChatComponentText(
-                    "§eAuto Mine: inventory fuldt af jern - opbevar det her (20 60 -684), så fortsætter jeg."));
+                    "§c[Auto Mine] Inventaret er fuldt af jern! Forlader minen med " + leaveCmd + " for at beskytte dit jern."));
             mc.thePlayer.playSound("random.orb", 1f, 1f);
+            if (leaveCmd.startsWith("/")) {
+                mc.thePlayer.sendChatMessage(leaveCmd);
+            }
             notifiedIron = true;
+            CelleScannerMod.config.autoMineEnabled = false;
+            storingIron = false;
+            storeIronStart = 0;
+            stopMining(mc);
+            stopWalk(mc);
         }
     }
 

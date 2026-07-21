@@ -205,6 +205,8 @@ public class CelleConfig {
     // Whether to detour to pick up our own dropped iron while mining. Nullable
     // so an older config (key absent) defaults to ON, not the Gson-Unsafe false.
     public Boolean autoMineCollectDrops = Boolean.TRUE;
+    // Command sent to leave the mine when inventory is 100% full of iron ore.
+    public String autoMineLeaveCommand = "/spawn";
 
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
@@ -422,6 +424,7 @@ public class CelleConfig {
                 this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.3;
                 this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
                 this.autoMineCollectDrops = loaded.autoMineCollectDrops != null ? loaded.autoMineCollectDrops : Boolean.TRUE;
+                this.autoMineLeaveCommand = (loaded.autoMineLeaveCommand != null && !loaded.autoMineLeaveCommand.isEmpty()) ? loaded.autoMineLeaveCommand : "/spawn";
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;
