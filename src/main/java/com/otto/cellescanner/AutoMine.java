@@ -299,6 +299,8 @@ public class AutoMine {
             restartPlanAt = 0;
         }
 
+        checkMineRefill(mc);
+
         // Teleported (mine reset also yanks us out)? Restart the pattern too; the
         // "outside the box" branch in doMine then walks us back to the start corner.
         if (lastPosSet) {
@@ -515,21 +517,33 @@ public class AutoMine {
         String msg = event.message.getUnformattedText();
         if (msg != null) {
             String lower = msg.toLowerCase();
-            if (lower.contains("will be resetting")) {
-                // Try to parse the seconds countdown (e.g., "in 3 seconds", "in 1 second")
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("in\\s+(\\d+)\\s+seconds?");
+            if (lower.contains("resetting") || lower.contains("genopretter")
+                    || lower.contains("nulstilles") || lower.contains("genoprettet")
+                    || lower.contains("nulstillet") || lower.contains("mine reset")
+                    || lower.contains("minen er")) {
+
+                // Instant reset messages ("er genoprettet", "er nulstillet")
+                if (lower.contains("er genoprettet") || lower.contains("er nulstillet")
+                        || lower.contains("has reset") || lower.contains("reset complete")) {
+                    Minecraft mc = Minecraft.getMinecraft();
+                    if (mc != null && mc.thePlayer != null) {
+                        restartPlan(mc);
+                    }
+                    return;
+                }
+
+                // Parse countdown seconds if present (e.g. "in 3 seconds", "om 10 sekunder")
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(in|om)\\s+(\\d+)\\s+(seconds?|sekunder?)");
                 java.util.regex.Matcher matcher = pattern.matcher(lower);
                 if (matcher.find()) {
                     try {
-                        int seconds = Integer.parseInt(matcher.group(1));
-                        // Re-schedule the plan restart to happen shortly after the reset (1.5s buffer)
-                        restartPlanAt = System.currentTimeMillis() + (seconds * 1000L) + 1500L;
+                        int seconds = Integer.parseInt(matcher.group(2));
+                        restartPlanAt = System.currentTimeMillis() + (seconds * 1000L) + 1200L;
                     } catch (NumberFormatException e) {
-                        restartPlanAt = System.currentTimeMillis() + 4500L; // fallback
+                        restartPlanAt = System.currentTimeMillis() + 3500L;
                     }
                 } else {
-                    // Fallback to old behavior if no seconds are specified (e.g. general 10s warning)
-                    restartPlanAt = System.currentTimeMillis() + 10500L;
+                    restartPlanAt = System.currentTimeMillis() + 3500L;
                 }
             }
         }
@@ -605,7 +619,35 @@ public class AutoMine {
         cachedDrop = null;
         phase = Phase.DESTINATION;
         ghostCollisionTime = 0;
+        currentLeftover = null;
+        leftoverStart = 0;
+        cleanupLayer = Integer.MIN_VALUE;
+        unbreakableBlacklist.clear();
+        unbreakableBlacklistTime.clear();
         clearPath();
+    }
+
+    private void checkMineRefill(Minecraft mc) {
+        if (mc.theWorld == null || plan == null || plan.isEmpty()) {
+            return;
+        }
+        if (tick % 20 == 0 && currentLayerY < MAX_Y - 1) {
+            int topSolidCount = 0;
+            int topCheckCount = 0;
+            for (int x = MIN_X; x <= MAX_X; x += 2) {
+                for (int z = MIN_Z; z <= MAX_Z; z += 2) {
+                    topCheckCount++;
+                    BlockPos p = new BlockPos(x, MAX_Y, z);
+                    if (!mc.theWorld.isAirBlock(p)) {
+                        topSolidCount++;
+                    }
+                }
+            }
+            if (topCheckCount > 0 && topSolidCount >= (topCheckCount + 1) / 2) {
+                Pathfinder.log("[AutoMine-Reset] Mine refill detected at MAX_Y=" + MAX_Y + "! Restarting plan.");
+                restartPlan(mc);
+            }
+        }
     }
 
     /**
