@@ -872,28 +872,29 @@ public class AutoMine {
         boolean needPath = (path != null) || verticalOff
                 || (phase == Phase.DESTINATION && !straightWalkSafe(mc, feet, target));
 
+        // Sweep up OUR dropped items if nearby (setting-gated or aggressively in Crazy Mode)
+        boolean crazy = CelleScannerMod.config.autoMineCrazy;
+        boolean collect = crazy || (CelleScannerMod.config.autoMineCollectDrops == null || CelleScannerMod.config.autoMineCollectDrops);
+        EntityItem drop = (!collect || System.currentTimeMillis() < skipDropsUntil) ? null : currentDrop(mc);
+
+        if (drop != null && (crazy || phase == Phase.DESTINATION)) {
+            if (chaseSince == 0) chaseSince = System.currentTimeMillis();
+            if (System.currentTimeMillis() - chaseSince > (crazy ? 3000 : 5000)) {
+                skipDropsUntil = System.currentTimeMillis() + 2000;
+                chaseSince = 0;
+            } else {
+                stopMining(mc);
+                aimAtEntity(mc, drop);
+                approach(mc, drop.posX, drop.posZ, crazy); // Sprint aggressively for our iron drop in crazy mode
+                return;
+            }
+        } else {
+            chaseSince = 0;
+        }
+
         if (phase == Phase.DESTINATION) {
             // --- DESTINATION PHASE (Travel & Navigation Only) ---
             stopMining(mc); // strictly no mining mid-travel
-
-            // Sweep up OUR dropped items if nearby before traveling (setting-gated -
-            // when off, we still auto-pick items we walk over, just don't detour).
-            boolean collect = CelleScannerMod.config.autoMineCollectDrops == null
-                    || CelleScannerMod.config.autoMineCollectDrops;
-            EntityItem drop = (!collect || System.currentTimeMillis() < skipDropsUntil) ? null : currentDrop(mc);
-            if (drop != null) {
-                if (chaseSince == 0) chaseSince = System.currentTimeMillis();
-                if (System.currentTimeMillis() - chaseSince > 5000) {
-                    skipDropsUntil = System.currentTimeMillis() + 3000;
-                    chaseSince = 0;
-                } else {
-                    aimAtEntity(mc, drop);
-                    approach(mc, drop.posX, drop.posZ);
-                    return;
-                }
-            } else {
-                chaseSince = 0;
-            }
 
             if (needPath) {
                 navigate(mc, target, 2.0); // navigate aims along the path (aimAlong)
@@ -1887,14 +1888,17 @@ public class AutoMine {
     }
 
     private boolean bornFromOurBreak(EntityItem it, long now) {
+        boolean crazy = CelleScannerMod.config.autoMineCrazy;
+        long window = crazy ? 4000L : CLAIM_WINDOW;
+        double match = crazy ? 2.8 : CLAIM_MATCH;
         for (long[] b : broken) {
-            if (now - b[3] > CLAIM_WINDOW) {
+            if (now - b[3] > window) {
                 continue;
             }
             double dx = it.posX - (b[0] + 0.5);
             double dz = it.posZ - (b[2] + 0.5);
             double dy = it.posY - b[1];
-            if (dx * dx + dz * dz <= CLAIM_MATCH * CLAIM_MATCH && Math.abs(dy) <= 2.0) {
+            if (dx * dx + dz * dz <= match * match && Math.abs(dy) <= 3.0) {
                 return true;
             }
         }
@@ -1918,9 +1922,12 @@ public class AutoMine {
         if (ourIron.isEmpty()) {
             return null;
         }
+        boolean crazy = CelleScannerMod.config.autoMineCrazy;
+        double maxR = crazy ? 12.0 : COLLECT_R;
+        double ignoreNear = crazy ? 0.4 : IGNORE_NEAR;
         double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
         EntityItem best = null;
-        double bestD = COLLECT_R * COLLECT_R;
+        double bestD = maxR * maxR;
         for (Object o : mc.theWorld.loadedEntityList) {
             if (!(o instanceof EntityItem)) {
                 continue;
@@ -1931,7 +1938,7 @@ public class AutoMine {
             }
             double dx = it.posX - px, dz = it.posZ - pz;
             // Iron right next to us gets picked up automatically - don't walk for it.
-            if (dx * dx + dz * dz < IGNORE_NEAR * IGNORE_NEAR) {
+            if (dx * dx + dz * dz < ignoreNear * ignoreNear) {
                 continue;
             }
             double dy = it.posY - py;
