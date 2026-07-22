@@ -6,34 +6,55 @@
       "cellescanner:troll/death/hellskitchen",
       "cellescanner:troll/death/fart",
       "cellescanner:troll/death/spongebobfail",
-      "cellescanner:troll/death/bennlaugh"
+      "cellescanner:troll/death/bennlaugh",
+      "cellescanner:troll/death/clocktowerbell",
+      "cellescanner:troll/death/bluetoothconnected",
+      "cellescanner:troll/death/liljonwhat"
     ]
   },
   "troll.firsthit": {
     "category": "master",
-    "sounds": [ "cellescanner:troll/firsthit/ivegotthis" ]
+    "sounds": [
+      "cellescanner:troll/firsthit/ivegotthis",
+      "cellescanner:troll/firsthit/boxingbell"
+    ]
   },
   "troll.kill": {
     "category": "master",
     "sounds": [
       "cellescanner:troll/kill/byegreattime",
-      "cellescanner:troll/kill/shotgun"
+      "cellescanner:troll/kill/shotgun",
+      "cellescanner:troll/kill/asiangong",
+      "cellescanner:troll/kill/ding",
+      "cellescanner:troll/kill/planktoncorrect",
+      "cellescanner:troll/kill/rdr2lowhonour"
     ]
   },
   "troll.afk": {
     "category": "master",
-    "sounds": [ "cellescanner:troll/afk/afk" ]
+    "sounds": [
+      "cellescanner:troll/afk/afk",
+      "cellescanner:troll/afk/barkandfart"
+    ]
   },
   "troll.jump": {
     "category": "master",
-    "sounds": [ "cellescanner:troll/jump/slip" ]
+    "sounds": [
+      "cellescanner:troll/jump/slip"
+    ]
   },
   "flip.win": {
     "category": "master",
-    "sounds": [ "cellescanner:flip/win" ]
+    "sounds": [
+      "cellescanner:flip/win",
+      "cellescanner:flip/applepay"
+    ]
   },
   "flip.lose": {
     "category": "master",
-    "sounds": [ "cellescanner:flip/lose" ]
+    "sounds": [
+      "cellescanner:flip/lose",
+      "cellescanner:flip/spongebobfail"
+    ]
   }
 }
