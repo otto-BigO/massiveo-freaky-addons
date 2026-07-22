@@ -198,7 +198,7 @@ public class CelleConfig {
     public double autoMineApproachDist = 2.7;
     // Mining reach (blocks). Capped GUI-side to a legit value - do not exceed
     // vanilla or anti-cheat flags it.
-    public double autoMineReach = 4.3;
+    public double autoMineReach = 4.5;
     // Swap/discard a pickaxe once its remaining durability is <= this (0 = use
     // it until it breaks).
     public int autoMinePickaxeMin = 0;
@@ -427,7 +427,7 @@ public class CelleConfig {
                 this.mineAreaDim = loaded.mineAreaDim;
                 this.autoMineCrazy = loaded.autoMineCrazy;
                 this.autoMineApproachDist = loaded.autoMineApproachDist > 0 ? loaded.autoMineApproachDist : 2.7;
-                this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.3;
+                this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.5;
                 this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
                 this.autoMineCollectDrops = loaded.autoMineCollectDrops != null ? loaded.autoMineCollectDrops : Boolean.TRUE;
                 this.autoMineLeaveCommand = (loaded.autoMineLeaveCommand != null && !loaded.autoMineLeaveCommand.isEmpty()) ? loaded.autoMineLeaveCommand : "/spawn";

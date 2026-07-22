@@ -953,11 +953,11 @@ public class AutoMine {
         // Raytrace bypass: if aimed towards effective target within reach but raytrace hit non-box block or missed
         float yawDiff = Math.abs(MathHelper.wrapAngleTo180_float(tYaw - mc.thePlayer.rotationYaw));
         float pitchDiff = Math.abs(tPitch - mc.thePlayer.rotationPitch);
-        boolean lookingAtTarget = yawDiff < 25f && pitchDiff < 25f;
-        if (lookingAtTarget && distToTarget <= reach) {
+        boolean lookingAtTarget = yawDiff < 30f && pitchDiff < 30f;
+        if (lookingAtTarget && distToTarget <= reach + 0.3) {
             if (looked == null || !inBox(looked)) {
                 looked = effectiveTarget;
-                distToLooked = closestDist(mc, effectiveTarget);
+                distToLooked = distToTarget;
             }
         }
 
@@ -965,7 +965,7 @@ public class AutoMine {
         boolean belowLayer = looked != null && looked.getY() < currentLayerY;
 
         if (looked != null && inBox(looked) && !belowLayer
-                && !mc.theWorld.isAirBlock(looked) && distToLooked <= reach) {
+                && !mc.theWorld.isAirBlock(looked) && distToLooked <= (reach + 0.25)) {
             if (tick % 10 == 0) {
                 Pathfinder.log("[AutoMine-Mine] target=" + effectiveTarget + " looked=" + looked
                         + " layerY=" + currentLayerY + " feetY=" + feet.getY()
