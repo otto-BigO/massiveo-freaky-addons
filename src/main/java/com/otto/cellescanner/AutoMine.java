@@ -212,6 +212,8 @@ public class AutoMine {
     private boolean storingIron = false;
     private boolean notifiedIron = false;
     private long storeIronStart = 0;
+    private long nextBlockDelayUntil = 0;
+    private long lastStaffAlertTime = 0;
 
     // Only walk once we're roughly facing where we want to go. This is the single
     // most important anti-wander rule (MineBot/Baritone do the same): if we walk
@@ -318,6 +320,8 @@ public class AutoMine {
         lastPosSet = true;
 
         applyRotation(mc); // every tick, for smooth turning
+        checkStaffNearby(mc);
+        checkPitEscape(mc);
 
         if (AutoEat.tick(mc)) {
             stopMining(mc);
@@ -1282,12 +1286,18 @@ public class AutoMine {
                 || mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) {
             return;
         }
+        boolean humanDelays = !CelleScannerMod.config.autoMineCrazy
+                && (CelleScannerMod.config.autoMineHumanizedDelays == null || CelleScannerMod.config.autoMineHumanizedDelays);
+        if (humanDelays && System.currentTimeMillis() < nextBlockDelayUntil) {
+            return;
+        }
         if (side == null) {
             side = EnumFacing.UP;
         }
+        if (mining != null && !mining.equals(pos) && humanDelays) {
+            nextBlockDelayUntil = System.currentTimeMillis() + 45 + rng.nextInt(65);
+        }
         mining = pos;
-        // onPlayerDamageBlock handles both starting a new block and continuing the
-        // current one, matching vanilla's per-tick mining call.
         mc.playerController.onPlayerDamageBlock(pos, side);
         mc.thePlayer.swingItem();
     }
@@ -2041,6 +2051,15 @@ public class AutoMine {
         float dp = tPitch - mc.thePlayer.rotationPitch;
         float stepY = dy * (0.28f + rng.nextFloat() * 0.12f);
         float stepP = dp * (0.28f + rng.nextFloat() * 0.12f);
+
+        boolean jitterOn = CelleScannerMod.config.autoMineAimJitter == null || CelleScannerMod.config.autoMineAimJitter;
+        if (jitterOn && Math.abs(dy) < 3.0f && Math.abs(dp) < 3.0f) {
+            float jitterY = (float) Math.sin(tick * 0.45) * 0.35f + (rng.nextFloat() - 0.5f) * 0.15f;
+            float jitterP = (float) Math.cos(tick * 0.35) * 0.25f + (rng.nextFloat() - 0.5f) * 0.15f;
+            stepY += jitterY;
+            stepP += jitterP;
+        }
+
         float cap = 11f + rng.nextFloat() * 5f;
         stepY = clamp(stepY, -cap, cap);
         stepP = clamp(stepP, -cap, cap);
@@ -2158,6 +2177,85 @@ public class AutoMine {
         seenItems.clear();
         ourIron.clear();
         holding = false;
+    }
+
+    private void checkStaffNearby(Minecraft mc) {
+        if (mc.theWorld == null || mc.thePlayer == null) {
+            return;
+        }
+        boolean alertOn = CelleScannerMod.config.autoMineStaffAlert == null || CelleScannerMod.config.autoMineStaffAlert;
+        boolean dcOn = CelleScannerMod.config.autoMineStaffDisconnect != null && CelleScannerMod.config.autoMineStaffDisconnect;
+        if (!alertOn && !dcOn) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (EntityPlayer other : mc.theWorld.playerEntities) {
+            if (other == null || other == mc.thePlayer) {
+                continue;
+            }
+            double distSq = mc.thePlayer.getDistanceSqToEntity(other);
+            if (distSq > 64.0) { // > 8 blocks away
+                continue;
+            }
+            String name = other.getName();
+            String displayName = other.getDisplayName() != null ? other.getDisplayName().getUnformattedText() : name;
+            boolean isStaff = false;
+            if (CelleScannerMod.config.staffList != null) {
+                for (String tag : CelleScannerMod.config.staffList) {
+                    if (tag != null && !tag.isEmpty()) {
+                        if (name.equalsIgnoreCase(tag) || displayName.toLowerCase().contains(tag.toLowerCase())) {
+                            isStaff = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            // Also detect spectator or invisible player hovering right nearby (< 6 blocks)
+            if (!isStaff && (other.isInvisible() || other.isSpectator() || (other.posY > mc.thePlayer.posY + 2.0 && distSq < 16.0))) {
+                isStaff = true;
+            }
+
+            if (isStaff) {
+                if (dcOn) {
+                    if (mc.thePlayer != null) {
+                        mc.thePlayer.addChatMessage(new ChatComponentText(
+                                "§c[Staff Safeguard] Staff / spectator " + displayName + " detected nearby! Emergency disconnecting."));
+                    }
+                    notifyIron(mc); // triggers clean disconnect
+                    return;
+                } else if (now - lastStaffAlertTime > 10000) {
+                    lastStaffAlertTime = now;
+                    mc.thePlayer.addChatMessage(new ChatComponentText(
+                            "§c[Staff Alert] Staff / spectator detected nearby: " + displayName + "!"));
+                    mc.thePlayer.playSound("note.pling", 1.0f, 1.5f);
+                }
+            }
+        }
+    }
+
+    private void checkPitEscape(Minecraft mc) {
+        if (mc.thePlayer == null || mc.theWorld == null || phase != Phase.MINING) {
+            return;
+        }
+        boolean scaffold = CelleScannerMod.config.autoMineSmartScaffold == null || CelleScannerMod.config.autoMineSmartScaffold;
+        if (!scaffold) {
+            return;
+        }
+        BlockPos feet = new BlockPos(MathHelper.floor_double(mc.thePlayer.posX),
+                MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ));
+        // Trapped in a deep hole dug by another player below currentLayerY
+        if (feet.getY() < currentLayerY - 1 && mc.thePlayer.onGround) {
+            // Auto-jump to step out of pit
+            KeyBinding.setKeyBindState(mc.gameSettings.keyBindJump.getKeyCode(), true);
+            // If we have building blocks in hotbar/inventory, select to place under feet while jumping
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = mc.thePlayer.inventory.mainInventory[i];
+                if (stack != null && stack.getItem() instanceof net.minecraft.item.ItemBlock) {
+                    mc.thePlayer.inventory.currentItem = i;
+                    break;
+                }
+            }
+        }
     }
 
     private static float clamp(float v, float lo, float hi) {

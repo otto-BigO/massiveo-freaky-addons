@@ -17,7 +17,11 @@ public class GuiAutoMineTuning extends GuiScreen {
     private static final int REACH = 20;
     private static final int PICK = 30;
     private static final int ID_COLLECT = 2;
-    private static final int ID_BACK = 3;
+    private static final int ID_HUMAN = 3;
+    private static final int ID_JITTER = 4;
+    private static final int ID_STAFF = 5;
+    private static final int ID_SCAFFOLD = 6;
+    private static final int ID_BACK = 7;
 
     // Ranges / steps.
     private static final double APPROACH_MIN = 1.5, APPROACH_MAX = 4.0, APPROACH_STEP = 0.2;
@@ -25,14 +29,14 @@ public class GuiAutoMineTuning extends GuiScreen {
     private static final int PICK_MIN = 0, PICK_MAX = 500, PICK_STEP = 10;
 
     private static final int PANEL_W = 240;
-    private static final int BTN_H = 20;
-    private static final int GAP = 6;
+    private static final int BTN_H = 18;
+    private static final int GAP = 4;
     private static final int STEP_W = 22;
 
-    private static final int TITLE_Y_OFF = -96;
-    private static final int TEXT_BLOCK_H = 34;
+    private static final int TITLE_Y_OFF = -110;
+    private static final int TEXT_BLOCK_H = 26;
 
-    private GuiButton approachLabel, reachLabel, pickLabel, collectButton;
+    private GuiButton approachLabel, reachLabel, pickLabel, collectButton, humanButton, jitterButton, staffButton, scaffoldButton;
 
     @Override
     public void initGui() {
@@ -48,6 +52,14 @@ public class GuiAutoMineTuning extends GuiScreen {
         y += BTN_H + GAP;
         this.buttonList.add(collectButton = new StyledButton(ID_COLLECT, left, y, PANEL_W, BTN_H, collectLabel()));
         y += BTN_H + GAP;
+        this.buttonList.add(humanButton = new StyledButton(ID_HUMAN, left, y, PANEL_W, BTN_H, humanLabel()));
+        y += BTN_H + GAP;
+        this.buttonList.add(jitterButton = new StyledButton(ID_JITTER, left, y, PANEL_W, BTN_H, jitterLabel()));
+        y += BTN_H + GAP;
+        this.buttonList.add(staffButton = new StyledButton(ID_STAFF, left, y, PANEL_W, BTN_H, staffLabel()));
+        y += BTN_H + GAP;
+        this.buttonList.add(scaffoldButton = new StyledButton(ID_SCAFFOLD, left, y, PANEL_W, BTN_H, scaffoldLabel()));
+        y += BTN_H + GAP + 2;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
@@ -79,6 +91,27 @@ public class GuiAutoMineTuning extends GuiScreen {
         return "Saml drops (jern): " + (on ? "Til" : "Fra");
     }
 
+    private String humanLabel() {
+        boolean on = CelleScannerMod.config.autoMineHumanizedDelays == null || CelleScannerMod.config.autoMineHumanizedDelays;
+        return "Humaniserede pauses: " + (on ? "Til (40-110ms)" : "Fra");
+    }
+
+    private String jitterLabel() {
+        boolean on = CelleScannerMod.config.autoMineAimJitter == null || CelleScannerMod.config.autoMineAimJitter;
+        return "Naturlig sigte-drift (Anti-Cheat): " + (on ? "Til" : "Fra");
+    }
+
+    private String staffLabel() {
+        boolean alert = CelleScannerMod.config.autoMineStaffAlert == null || CelleScannerMod.config.autoMineStaffAlert;
+        boolean dc = CelleScannerMod.config.autoMineStaffDisconnect != null && CelleScannerMod.config.autoMineStaffDisconnect;
+        return "Staff-sikring: " + (dc ? "Auto-Disconnect" : (alert ? "Advarsel Lyd" : "Fra"));
+    }
+
+    private String scaffoldLabel() {
+        boolean on = CelleScannerMod.config.autoMineSmartScaffold == null || CelleScannerMod.config.autoMineSmartScaffold;
+        return "Smart Scaffold / Hul-Udbrud: " + (on ? "Til" : "Fra");
+    }
+
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         CelleConfig c = CelleScannerMod.config;
@@ -101,6 +134,36 @@ public class GuiAutoMineTuning extends GuiScreen {
             boolean on = c.autoMineCollectDrops == null || c.autoMineCollectDrops;
             c.autoMineCollectDrops = !on;
             collectButton.displayString = collectLabel();
+            c.save();
+        } else if (id == ID_HUMAN) {
+            boolean on = c.autoMineHumanizedDelays == null || c.autoMineHumanizedDelays;
+            c.autoMineHumanizedDelays = !on;
+            humanButton.displayString = humanLabel();
+            c.save();
+        } else if (id == ID_JITTER) {
+            boolean on = c.autoMineAimJitter == null || c.autoMineAimJitter;
+            c.autoMineAimJitter = !on;
+            jitterButton.displayString = jitterLabel();
+            c.save();
+        } else if (id == ID_STAFF) {
+            boolean alert = c.autoMineStaffAlert == null || c.autoMineStaffAlert;
+            boolean dc = c.autoMineStaffDisconnect != null && c.autoMineStaffDisconnect;
+            if (alert && !dc) {
+                c.autoMineStaffAlert = true;
+                c.autoMineStaffDisconnect = true;
+            } else if (alert && dc) {
+                c.autoMineStaffAlert = false;
+                c.autoMineStaffDisconnect = false;
+            } else {
+                c.autoMineStaffAlert = true;
+                c.autoMineStaffDisconnect = false;
+            }
+            staffButton.displayString = staffLabel();
+            c.save();
+        } else if (id == ID_SCAFFOLD) {
+            boolean on = c.autoMineSmartScaffold == null || c.autoMineSmartScaffold;
+            c.autoMineSmartScaffold = !on;
+            scaffoldButton.displayString = scaffoldLabel();
             c.save();
         } else if (id == ID_BACK) {
             this.mc.displayGuiScreen(new GuiAutoMineSettings());

@@ -207,6 +207,12 @@ public class CelleConfig {
     public Boolean autoMineCollectDrops = Boolean.TRUE;
     // Command sent to leave the mine when inventory is 100% full of iron ore.
     public String autoMineLeaveCommand = "/spawn";
+    public Boolean autoMineHumanizedDelays = Boolean.TRUE;
+    public Boolean autoMineAimJitter = Boolean.TRUE;
+    public Boolean autoMineStaffAlert = Boolean.TRUE;
+    public Boolean autoMineStaffDisconnect = Boolean.FALSE;
+    public Boolean autoMineSmartScaffold = Boolean.TRUE;
+    public List<String> staffList = new ArrayList<String>();
 
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
@@ -425,6 +431,34 @@ public class CelleConfig {
                 this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
                 this.autoMineCollectDrops = loaded.autoMineCollectDrops != null ? loaded.autoMineCollectDrops : Boolean.TRUE;
                 this.autoMineLeaveCommand = (loaded.autoMineLeaveCommand != null && !loaded.autoMineLeaveCommand.isEmpty()) ? loaded.autoMineLeaveCommand : "/spawn";
+                this.autoMineHumanizedDelays = loaded.autoMineHumanizedDelays != null ? loaded.autoMineHumanizedDelays : Boolean.TRUE;
+                this.autoMineAimJitter = loaded.autoMineAimJitter != null ? loaded.autoMineAimJitter : Boolean.TRUE;
+                this.autoMineStaffAlert = loaded.autoMineStaffAlert != null ? loaded.autoMineStaffAlert : Boolean.TRUE;
+                this.autoMineStaffDisconnect = loaded.autoMineStaffDisconnect != null ? loaded.autoMineStaffDisconnect : Boolean.FALSE;
+                this.autoMineSmartScaffold = loaded.autoMineSmartScaffold != null ? loaded.autoMineSmartScaffold : Boolean.TRUE;
+                this.staffList = loaded.staffList != null ? loaded.staffList : new ArrayList<String>();
+                if (this.staffList.isEmpty()) {
+                    String[] defaultStaff = {
+                        "Direktør", "Inspektør", "Officer", "Vagt", "Ejer", "Hoved Administrator", "Administrator", "Moderator", "Hjælper",
+                        "HiJnDK", "Lucas_AS", "Sykopingvin", "EmiiiloVich", "Gyymmr", "LegendenVoldby", "Slyqnn", "Svambz", "Sw1chhh", "V3gaaa", "Zeqnix",
+                        "__Kn0x__", "_Annemette_v3", "_Flexiii_", "_G1ey", "_PinkBee_", "0ks3n", "123dipper", "3D4L", "90GRIMLOCK90", "AdamAbe2009",
+                        "Al3xfsjensen", "Aleex3nder", "AndersTekkitv2", "Ant0n__", "AskeVII", "badensoe", "Bangebuks", "BetaBoris", "Blebman",
+                        "BlockGaarAmok", "Bongo_Bent", "Buchwaldtnr2", "C4trineSejr", "Cubra", "D1ScReeTs", "Daniel_kongen", "DISNE7", "DoecProductions",
+                        "ducks_o", "El_broero07", "ElChapo_AKAV2", "Forfatter", "FreddyForCarry", "GaardXD", "GirlBoost", "Idag_", "ItsVictorV2_",
+                        "JasonInflation", "Jeg3lskerV4fler", "Juhll", "jullekrog", "jyttahXD", "K0CAA", "Kaho0t", "Kasper_Kejser", "KattenTheo",
+                        "KevinKris", "Killerbody234", "Kio4567_", "L4uiseSejr", "LasseAaB", "LinusFrede", "luffegamerv4", "lugi0012", "Macaaaroni",
+                        "Magnus_fed", "mathiaske", "mini_pleb", "molin18", "Muni_Jr", "Neeeeed", "NotMakker", "Nuddi_Gaming", "Oliber1337",
+                        "OneGlitchs", "orkenrottendiego", "OskarFrede", "Ostepopss", "OzzyDK", "PapEske", "PizzaJarlen", "Platov1", "PokiPoscar",
+                        "Pr1nglesMan", "R1ck99", "Rallemuzen", "ROMEO_BRIX", "Sanderhaj", "ShambyGod", "Siintro", "Skayerboy", "Skyperch_",
+                        "Sparegrisenn", "Stilheden", "T1ldsen", "TechnoF1shQ", "TewrrV", "The_SnowTroll", "TheguubDX", "Tiske_TaskeV2", "Tobi_Cake",
+                        "TruckerHD", "Tyenda", "Vengeld_", "ViktorFanzyMan", "WarpV2", "wikzzzz", "xPamgo", "yelruts", "freakdk", "aNdIrEas",
+                        "OGreenC", "sumsar1812", "Asbjorn", "Yohanx", "Androte", "Bil3s", "DD_Was_Taken", "Fraxizz", "FredeJH", "FvForum",
+                        "iiNilo", "JakobFogh", "SebFyren", "xSelmaa", "Zel0DK", "Zunit"
+                    };
+                    for (String name : defaultStaff) {
+                        this.staffList.add(name);
+                    }
+                }
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;
