@@ -16,7 +16,7 @@ import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -79,43 +79,135 @@ public class MajesticaWeapons {
         if (initialized) {
             return;
         }
-        initialized = true;
         weapons.clear();
         weaponMap.clear();
 
+        File manifestFile = MajesticaDownloader.INSTANCE.getManifestFile();
+        if (!manifestFile.exists()) {
+            return;
+        }
+
+        initialized = true;
+
         try {
-            ResourceLocation loc = new ResourceLocation("cellescanner", "weapons_majestica.json");
-            IResource res = Minecraft.getMinecraft().getResourceManager().getResource(loc);
-            if (res != null) {
-                InputStreamReader reader = new InputStreamReader(res.getInputStream(), StandardCharsets.UTF_8);
-                JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
-                JsonArray list = root.getAsJsonArray("weapons");
-                if (list != null) {
-                    for (JsonElement elem : list) {
-                        JsonObject obj = elem.getAsJsonObject();
-                        String id = obj.get("id").getAsString();
-                        String model = obj.get("model").getAsString();
-                        String pattern = obj.get("namePattern").getAsString();
-                        Set<String> items = new HashSet<String>();
-                        if (obj.has("items")) {
-                            for (JsonElement it : obj.getAsJsonArray("items")) {
-                                items.add(it.getAsString());
-                            }
+            InputStreamReader reader = new InputStreamReader(new FileInputStream(manifestFile), StandardCharsets.UTF_8);
+            JsonObject root = new JsonParser().parse(reader).getAsJsonObject();
+            JsonArray list = root.getAsJsonArray("weapons");
+            if (list != null) {
+                for (JsonElement elem : list) {
+                    JsonObject obj = elem.getAsJsonObject();
+                    String id = obj.get("id").getAsString();
+                    String model = obj.get("model").getAsString();
+                    String pattern = obj.get("namePattern").getAsString();
+                    Set<String> items = new HashSet<String>();
+                    if (obj.has("items")) {
+                        for (JsonElement it : obj.getAsJsonArray("items")) {
+                            items.add(it.getAsString());
                         }
-                        Weapon w = new Weapon(id, model, pattern, items);
-                        weapons.add(w);
-                        weaponMap.put(id, w);
                     }
+                    Weapon w = new Weapon(id, model, pattern, items);
+                    weapons.add(w);
+                    weaponMap.put(id, w);
                 }
             }
+            reader.close();
         } catch (Throwable t) {
             System.err.println("[MajesticaWeapons] Failed to load weapons_majestica.json: " + t.getMessage());
         }
 
-        // Register all variant models with Forge ModelLoader so textures & models get baked
-        for (Weapon w : weapons) {
-            ModelLoader.setCustomModelResourceLocation(
-                    net.minecraft.init.Items.diamond_sword, 0, w.modelLoc);
+        injectResourcePack();
+
+        // Register all variant models with Forge ModelBakery & ModelLoader so textures & models get baked
+        try {
+            List<ResourceLocation> locs = new ArrayList<ResourceLocation>();
+            for (Weapon w : weapons) {
+                locs.add(new ResourceLocation("cellescanner", "majestica/" + w.id));
+                ModelLoader.setCustomModelResourceLocation(net.minecraft.init.Items.diamond_sword, 0, w.modelLoc);
+            }
+            if (!locs.isEmpty()) {
+                net.minecraft.client.resources.model.ModelBakery.registerItemVariants(
+                        net.minecraft.init.Items.diamond_sword, locs.toArray(new ResourceLocation[0]));
+            }
+        } catch (Throwable t) {
+            System.err.println("[MajesticaWeapons] Failed to register variants: " + t.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void injectResourcePack() {
+        try {
+            File dir = MajesticaDownloader.INSTANCE.getMajesticaDir();
+            if (!dir.exists()) {
+                return;
+            }
+            net.minecraft.client.resources.FolderResourcePack pack = new net.minecraft.client.resources.FolderResourcePack(dir);
+            
+            List<net.minecraft.client.resources.IResourcePack> defaultPacks = null;
+            for (java.lang.reflect.Field f : Minecraft.class.getDeclaredFields()) {
+                if (List.class.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    Object val = f.get(Minecraft.getMinecraft());
+                    if (val instanceof List) {
+                        List<?> l = (List<?>) val;
+                        if (!l.isEmpty() && l.get(0) instanceof net.minecraft.client.resources.IResourcePack) {
+                            defaultPacks = (List<net.minecraft.client.resources.IResourcePack>) l;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (defaultPacks != null) {
+                boolean already = false;
+                for (net.minecraft.client.resources.IResourcePack p : defaultPacks) {
+                    if (p.getPackName().equals(pack.getPackName())) {
+                        already = true;
+                        break;
+                    }
+                }
+                if (!already) {
+                    defaultPacks.add(pack);
+                }
+            }
+        } catch (Throwable t) {
+            System.err.println("[MajesticaWeapons] Resource pack injection error: " + t.getMessage());
+        }
+    }
+
+    public void hookMesher() {
+        try {
+            net.minecraft.client.renderer.entity.RenderItem ri = Minecraft.getMinecraft().getRenderItem();
+            if (ri == null || ri.getItemModelMesher() instanceof CustomItemModelMesher) {
+                return;
+            }
+            CustomItemModelMesher customMesher = new CustomItemModelMesher(ri.getItemModelMesher().getModelManager());
+            java.lang.reflect.Field field = null;
+            for (java.lang.reflect.Field f : net.minecraft.client.renderer.entity.RenderItem.class.getDeclaredFields()) {
+                if (f.getType() == net.minecraft.client.renderer.ItemModelMesher.class) {
+                    field = f;
+                    break;
+                }
+            }
+            if (field != null) {
+                field.setAccessible(true);
+                field.set(ri, customMesher);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static class CustomItemModelMesher extends net.minecraft.client.renderer.ItemModelMesher {
+        public CustomItemModelMesher(net.minecraft.client.resources.model.ModelManager modelManager) {
+            super(modelManager);
+        }
+
+        @Override
+        public IBakedModel getItemModel(ItemStack stack) {
+            IBakedModel custom = MajesticaWeapons.INSTANCE.getCustomModel(stack);
+            if (custom != null) {
+                return custom;
+            }
+            return super.getItemModel(stack);
         }
     }
 
@@ -125,6 +217,9 @@ public class MajesticaWeapons {
     }
 
     public List<Weapon> getWeapons() {
+        if (weapons.isEmpty() && !initialized) {
+            init();
+        }
         return Collections.unmodifiableList(weapons);
     }
 

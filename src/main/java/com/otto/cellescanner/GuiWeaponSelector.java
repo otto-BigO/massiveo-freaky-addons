@@ -36,6 +36,20 @@ public class GuiWeaponSelector extends GuiScreen {
 
     @Override
     public void initGui() {
+        if (!MajesticaDownloader.INSTANCE.isDownloaded()) {
+            MajesticaDownloader.INSTANCE.startDownload(new Runnable() {
+                @Override
+                public void run() {
+                    MajesticaWeapons.INSTANCE.init();
+                    MajesticaWeapons.INSTANCE.hookMesher();
+                    updateFilter();
+                }
+            });
+        } else {
+            MajesticaWeapons.INSTANCE.init();
+            MajesticaWeapons.INSTANCE.hookMesher();
+        }
+
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
 
@@ -263,22 +277,38 @@ public class GuiWeaponSelector extends GuiScreen {
 
         drawRect(pBoxLeft, pBoxTop, pBoxLeft + previewBoxW, pBoxTop + previewBoxH, 0xFF161820);
 
-        String activeEq = CelleScannerMod.config.majesticaSelectedWeaponId;
-        if (selectedWeapon != null) {
-            // Live 3D Spinning Weapon Model Render
-            WeaponModelRenderer.renderSpinningWeapon(this.mc, selectedWeapon, previewCenterX, previewCenterY + 10, 48.0F, 1.0F);
+        if (MajesticaDownloader.INSTANCE.isDownloading()) {
+            String msg = MajesticaDownloader.INSTANCE.getStatusMessage();
+            int pct = MajesticaDownloader.INSTANCE.getProgressPercent();
 
-            String title = formatName(selectedWeapon.id);
-            drawCenteredString(this.fontRendererObj, "§e" + title, previewCenterX, pBoxTop + 8, 0xFFFFFF);
-            drawCenteredString(this.fontRendererObj, "§7Mønster: " + selectedWeapon.namePattern, previewCenterX, pBoxTop + previewBoxH - 18, 0x888888);
+            drawCenteredString(this.fontRendererObj, "§e" + msg, cx, panelTop + 110, 0xFFFFFF);
+            int barW = 200;
+            int barH = 14;
+            int barX = cx - barW / 2;
+            int barY = panelTop + 130;
 
-            boolean isEquipped = selectedWeapon.id.equals(activeEq);
-            if (isEquipped) {
-                drawCenteredString(this.fontRendererObj, "§a✔ AKTIVT UDSTYRET", previewCenterX, pBoxTop + previewBoxH - 32, 0x55FF55);
-            }
+            drawRect(barX, barY, barX + barW, barY + barH, 0xFF22242D);
+            int fillW = (int) (barW * (pct / 100.0f));
+            drawRect(barX, barY, barX + fillW, barY + barH, 0xFFFFAA00);
+            drawCenteredString(this.fontRendererObj, pct + "%", cx, barY + 3, 0xFFFFFF);
         } else {
-            drawCenteredString(this.fontRendererObj, "§7Vælg et våben fra listen", previewCenterX, previewCenterY - 10, 0x777777);
-            drawCenteredString(this.fontRendererObj, "§7for 3D spinning preview", previewCenterX, previewCenterY + 5, 0x555555);
+            String activeEq = CelleScannerMod.config.majesticaSelectedWeaponId;
+            if (selectedWeapon != null) {
+                // Live 3D Spinning Weapon Model Render
+                WeaponModelRenderer.renderSpinningWeapon(this.mc, selectedWeapon, previewCenterX, previewCenterY + 10, 48.0F, 1.0F);
+
+                String title = formatName(selectedWeapon.id);
+                drawCenteredString(this.fontRendererObj, "§e" + title, previewCenterX, pBoxTop + 8, 0xFFFFFF);
+                drawCenteredString(this.fontRendererObj, "§7Mønster: " + selectedWeapon.namePattern, previewCenterX, pBoxTop + previewBoxH - 18, 0x888888);
+
+                boolean isEquipped = selectedWeapon.id.equals(activeEq);
+                if (isEquipped) {
+                    drawCenteredString(this.fontRendererObj, "§a✔ AKTIVT UDSTYRET", previewCenterX, pBoxTop + previewBoxH - 32, 0x55FF55);
+                }
+            } else {
+                drawCenteredString(this.fontRendererObj, "§7Vælg et våben fra listen", previewCenterX, previewCenterY - 10, 0x777777);
+                drawCenteredString(this.fontRendererObj, "§7for 3D spinning preview", previewCenterX, previewCenterY + 5, 0x555555);
+            }
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
