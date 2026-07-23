@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "2.3.1-test";
+    public static final String VERSION = "2.4.1-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -32,6 +32,7 @@ public class CelleScannerMod {
     public static KeyBinding openMenuKey;
     public static KeyBinding autoMineKey;
     public static KeyBinding phoneKey;
+    public static KeyBinding majesticaKey;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -42,6 +43,7 @@ public class CelleScannerMod {
         ChestOrganizerPositions.init(event.getSuggestedConfigurationFile().getParentFile());
         // Gange feature shelved - GangRanges.init(...) left out for now.
         ArmorSkins.registerVariants();
+        MajesticaWeapons.INSTANCE.init();
     }
 
     @EventHandler
@@ -71,6 +73,9 @@ public class CelleScannerMod {
         
         autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(autoMineKey);
+
+        majesticaKey = new KeyBinding("key.cellescanner.majestica", Keyboard.KEY_V, "key.categories.cellescanner");
+        ClientRegistry.registerKeyBinding(majesticaKey);
 
         // phoneKey shelved for now - code stays in repo for later.
         // phoneKey = new KeyBinding("key.cellescanner.phone", Keyboard.KEY_P, "key.categories.cellescanner");
@@ -125,5 +130,6 @@ public class CelleScannerMod {
         // registered so it does nothing until we pick it back up.
         MinecraftForge.EVENT_BUS.register(new ItemValues());
         MinecraftForge.EVENT_BUS.register(new ArmorHud());
+        MinecraftForge.EVENT_BUS.register(MajesticaWeapons.INSTANCE);
     }
 }

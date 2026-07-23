@@ -11,7 +11,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "2.3.1-test"
+version = "2.4.1-test"
 group = "com.otto.cellescanner"
 archivesBaseName = "cellescanner"
 
@@ -42,7 +42,6 @@ processResources {
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version
 
-    // So the ${version} expansion in mcmod.info doesn't mangle its Danish text.
     filteringCharset = 'UTF-8'
 
     from(sourceSets.main.resources.srcDirs) {
@@ -53,4 +52,6 @@ processResources {
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

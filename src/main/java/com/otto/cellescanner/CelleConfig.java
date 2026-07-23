@@ -213,6 +213,8 @@ public class CelleConfig {
     public Boolean autoMineStaffDisconnect = Boolean.FALSE;
     public Boolean autoMineSmartScaffold = Boolean.TRUE;
     public List<String> staffList = new ArrayList<String>();
+    public Boolean majesticaEnabled = Boolean.TRUE;
+    public String majesticaSelectedWeaponId = "";
 
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
@@ -459,6 +461,8 @@ public class CelleConfig {
                         this.staffList.add(name);
                     }
                 }
+                this.majesticaEnabled = loaded.majesticaEnabled == null ? Boolean.TRUE : loaded.majesticaEnabled;
+                this.majesticaSelectedWeaponId = loaded.majesticaSelectedWeaponId != null ? loaded.majesticaSelectedWeaponId : "";
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;

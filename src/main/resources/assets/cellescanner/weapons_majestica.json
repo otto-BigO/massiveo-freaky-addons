@@ -1,0 +1,21 @@
+{
+  "weapons": [
+    {
+      "id": "abominableblade",
+      "model": "cellescanner:majestica/abominableblade",
+      "namePattern": "*abominable blade*",
+      "items": [
+        "iron_sword",
+        "wooden_sword",
+        "stone_sword",
+        "diamond_sword",
+        "golden_sword",
+        "iron_axe",
+        "wooden_axe",
+        "stone_axe",
+        "diamond_axe",
+        "golden_axe"
+      ]
+    }
+  ]
+}
