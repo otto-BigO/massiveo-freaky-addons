@@ -24,6 +24,10 @@ public final class CelleActions {
         message("Massiveo's addons er nu " + (CelleScannerMod.config.enabled ? "aktiveret" : "deaktiveret") + ".");
     }
 
+    public static void toggleFreecam() {
+        Freecam.INSTANCE.toggle();
+    }
+
     public static void toggleNotify() {
         CelleScannerMod.config.notify = !CelleScannerMod.config.notify;
         CelleScannerMod.config.save();

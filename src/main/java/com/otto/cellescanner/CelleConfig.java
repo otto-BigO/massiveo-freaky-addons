@@ -215,6 +215,8 @@ public class CelleConfig {
     public List<String> staffList = new ArrayList<String>();
     public Boolean majesticaEnabled = Boolean.TRUE;
     public String majesticaSelectedWeaponId = "";
+    public Boolean freecamEnabled = Boolean.TRUE;
+    public double freecamSpeed = 1.5;
 
     // Mod-user badge: a small icon before the name of players who also run the
     // mod (like Lunar/LabyMod). Testing: a purple circle before every player.
@@ -463,6 +465,8 @@ public class CelleConfig {
                 }
                 this.majesticaEnabled = loaded.majesticaEnabled == null ? Boolean.TRUE : loaded.majesticaEnabled;
                 this.majesticaSelectedWeaponId = loaded.majesticaSelectedWeaponId != null ? loaded.majesticaSelectedWeaponId : "";
+                this.freecamEnabled = loaded.freecamEnabled == null ? Boolean.TRUE : loaded.freecamEnabled;
+                this.freecamSpeed = loaded.freecamSpeed > 0 ? loaded.freecamSpeed : 1.5;
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;

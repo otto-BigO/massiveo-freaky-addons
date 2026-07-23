@@ -29,5 +29,8 @@ public class KeyHandler {
         if (CelleScannerMod.majesticaKey != null && CelleScannerMod.majesticaKey.isPressed()) {
             mc.displayGuiScreen(new GuiWeaponSelector());
         }
+        if (CelleScannerMod.freecamKey != null && CelleScannerMod.freecamKey.isPressed()) {
+            Freecam.INSTANCE.toggle();
+        }
     }
 }
