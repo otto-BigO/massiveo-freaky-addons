@@ -403,7 +403,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Item-log";
+                return "Item Log";
             }
 
             public String description() {
@@ -429,7 +429,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Anti-AFK";
+                return "Anti AFK";
             }
 
             public String description() {
@@ -455,7 +455,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Armour-skins";
+                return "Armour Skins";
             }
 
             public String description() {
@@ -481,7 +481,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Armour-HUD";
+                return "Armour HUD";
             }
 
             public String description() {
@@ -646,7 +646,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Kiste-organisering";
+                return "Kiste Organisering";
             }
 
             public String description() {
@@ -675,7 +675,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Jernlåge-lyde";
+                return "Jernlåge Lyde";
             }
 
             public String description() {
@@ -704,7 +704,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Spiller-logger";
+                return "Spiller Logger";
             }
 
             public String description() {
@@ -733,7 +733,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Farm-bot";
+                return "Farm Bot";
             }
 
             public String description() {
@@ -793,7 +793,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Auto-Følg";
+                return "Auto Følg";
             }
 
             public String description() {

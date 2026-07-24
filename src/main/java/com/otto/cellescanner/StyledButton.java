@@ -80,6 +80,8 @@ public class StyledButton extends GuiButton {
         Style.roundedRect(x1, y1, x2, y2, border);
         Style.roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
 
-        drawCenteredString(fr, this.displayString, x1 + this.width / 2, y1 + (this.height - 8) / 2, text);
+        int textX = x1 + (this.width - fr.getStringWidth(this.displayString)) / 2;
+        int textY = y1 + (this.height - 8) / 2;
+        fr.drawString(this.displayString, textX, textY, text, false);
     }
 }

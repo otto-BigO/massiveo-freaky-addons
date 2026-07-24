@@ -277,9 +277,16 @@ public class GuiAddonsHub extends GuiScreen {
         float hue = (float) ((time % 3500) / 3500.0);
         int titleColor = java.awt.Color.HSBtoRGB(hue, 0.7f, 1.0f);
 
-        // Render glowing drop-shadow title
-        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx + 1, titleY + 1, 0x55000000);
-        drawCenteredString(this.fontRendererObj, MassiveoAddons.BRAND, cx, titleY, titleColor);
+        // Render larger scaled title (1.4x scale)
+        GL11.glPushMatrix();
+        float titleScale = 1.4f;
+        GL11.glScalef(titleScale, titleScale, 1.0f);
+        int scaledTitleY = (int) (titleY / titleScale);
+        int scaledCx = (int) (cx / titleScale);
+
+        int titleW = this.fontRendererObj.getStringWidth(MassiveoAddons.BRAND);
+        this.fontRendererObj.drawString(MassiveoAddons.BRAND, scaledCx - titleW / 2, scaledTitleY, titleColor, true);
+        GL11.glPopMatrix();
 
         String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
         boolean isSearching = !query.isEmpty();
