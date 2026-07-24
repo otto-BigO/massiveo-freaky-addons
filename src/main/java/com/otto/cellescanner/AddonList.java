@@ -455,7 +455,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Rustnings-skins";
+                return "Armour-skins";
             }
 
             public String description() {
@@ -481,7 +481,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Rustnings-HUD";
+                return "Armour-HUD";
             }
 
             public String description() {
@@ -505,6 +505,7 @@ public final class AddonList {
             }
         });
 
+        /* Shelved for now - Item Værdi stays in repo for later use.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Item Værdi";
@@ -530,6 +531,7 @@ public final class AddonList {
                 config.itemValueEnabled = !config.itemValueEnabled; config.save();
             }
         });
+        */
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
@@ -710,7 +712,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "Quality of life";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -721,7 +723,7 @@ public final class AddonList {
                 config.playerLoggerEnabled = !config.playerLoggerEnabled;
                 config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("Quality of life"));
+                        new GuiAddonsHub("Tracking"));
             }
 
             public void toggle() {
@@ -758,6 +760,7 @@ public final class AddonList {
             }
         });
 
+        /* Shelved for now - Spiller ESP is replaced by Bande ESP.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Spiller ESP";
@@ -786,6 +789,7 @@ public final class AddonList {
                 config.playerEspEnabled = !config.playerEspEnabled; config.save();
             }
         });
+        */
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {

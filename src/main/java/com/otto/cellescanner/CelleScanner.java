@@ -205,7 +205,11 @@ public class CelleScanner {
             String celleId;
             long remaining;
 
-            if (LINE_SOLGT.equalsIgnoreCase(line1)) {
+            String u1 = line1.toUpperCase(java.util.Locale.ROOT);
+            String u2 = line2.toUpperCase(java.util.Locale.ROOT);
+            String u3 = line3.toUpperCase(java.util.Locale.ROOT);
+
+            if (u1.contains("SOLGT")) {
                 status = CelleStatus.SOLGT;
                 owner = line2;
                 celleId = line3;
@@ -213,10 +217,19 @@ public class CelleScanner {
                 if (remaining < 0) {
                     continue;
                 }
-            } else if (LINE_TIL_SALG.equalsIgnoreCase(line1)) {
+            } else if (u1.contains("TIL SALG") || u1.contains("LEDIG") || u1.contains("SALG") || u1.contains("LEJE")
+                    || u2.contains("TIL SALG") || u2.contains("LEDIG")) {
                 status = CelleStatus.TIL_SALG;
-                celleId = line2;
+                owner = null;
                 remaining = 0;
+                // Extract cell ID from whichever line holds it (e.g. "A-12", "Celle B-05")
+                if (!line2.isEmpty() && !u2.contains("TIL SALG") && !u2.contains("LEDIG") && !u2.contains("KR")) {
+                    celleId = line2;
+                } else if (!line3.isEmpty() && !u3.contains("TIL SALG") && !u3.contains("LEDIG") && !u3.contains("KR")) {
+                    celleId = line3;
+                } else {
+                    celleId = line1;
+                }
             } else {
                 continue;
             }

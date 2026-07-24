@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "2.6.1-test";
+    public static final String VERSION = "2.7.0-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -75,11 +75,11 @@ public class CelleScannerMod {
         autoMineKey = new KeyBinding("key.cellescanner.automine", Keyboard.KEY_NONE, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(autoMineKey);
 
-        majesticaKey = new KeyBinding("key.cellescanner.majestica", Keyboard.KEY_V, "key.categories.cellescanner");
-        ClientRegistry.registerKeyBinding(majesticaKey);
+        // majesticaKey = new KeyBinding("key.cellescanner.majestica", Keyboard.KEY_V, "key.categories.cellescanner");
+        // ClientRegistry.registerKeyBinding(majesticaKey);
 
-        freecamKey = new KeyBinding("key.cellescanner.freecam", Keyboard.KEY_U, "key.categories.cellescanner");
-        ClientRegistry.registerKeyBinding(freecamKey);
+        // freecamKey = new KeyBinding("key.cellescanner.freecam", Keyboard.KEY_U, "key.categories.cellescanner");
+        // ClientRegistry.registerKeyBinding(freecamKey);
 
         // phoneKey shelved for now - code stays in repo for later.
         // phoneKey = new KeyBinding("key.cellescanner.phone", Keyboard.KEY_P, "key.categories.cellescanner");
@@ -126,15 +126,15 @@ public class CelleScannerMod {
         // PhoneNotification (Venne Telefon) shelved for now - code stays in repo.
         // MinecraftForge.EVENT_BUS.register(new PhoneNotification());
         MinecraftForge.EVENT_BUS.register(new FarmBot());
-        MinecraftForge.EVENT_BUS.register(new PlayerEsp());
+        // MinecraftForge.EVENT_BUS.register(new PlayerEsp()); // Shelved: replaced by BandeEsp
         MinecraftForge.EVENT_BUS.register(new PathWalker());
         MinecraftForge.EVENT_BUS.register(new AutoFollow());
         MinecraftForge.EVENT_BUS.register(new FlipDebug());
         // Mod-brugere (ModUserIcon) shelved for now - see AddonList. Not
         // registered so it does nothing until we pick it back up.
-        MinecraftForge.EVENT_BUS.register(new ItemValues());
+        // MinecraftForge.EVENT_BUS.register(new ItemValues()); // Shelved for now
         MinecraftForge.EVENT_BUS.register(new ArmorHud());
-        MinecraftForge.EVENT_BUS.register(MajesticaWeapons.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(Freecam.INSTANCE);
+        // MinecraftForge.EVENT_BUS.register(MajesticaWeapons.INSTANCE); // Shelved
+        // MinecraftForge.EVENT_BUS.register(Freecam.INSTANCE); // Shelved
     }
 }

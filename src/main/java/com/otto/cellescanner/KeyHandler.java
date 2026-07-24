@@ -26,11 +26,11 @@ public class KeyHandler {
         if (CelleScannerMod.phoneKey != null && CelleScannerMod.phoneKey.isPressed()) {
             CelleActions.openPhoneGui();
         }
-        if (CelleScannerMod.majesticaKey != null && CelleScannerMod.majesticaKey.isPressed()) {
-            mc.displayGuiScreen(new GuiWeaponSelector());
-        }
-        if (CelleScannerMod.freecamKey != null && CelleScannerMod.freecamKey.isPressed()) {
-            Freecam.INSTANCE.toggle();
-        }
+        // if (CelleScannerMod.majesticaKey != null && CelleScannerMod.majesticaKey.isPressed()) {
+        //     mc.displayGuiScreen(new GuiWeaponSelector());
+        // }
+        // if (CelleScannerMod.freecamKey != null && CelleScannerMod.freecamKey.isPressed()) {
+        //     Freecam.INSTANCE.toggle();
+        // }
     }
 }

@@ -36,20 +36,33 @@ public final class Style {
         Gui.drawRect(x1 + 1, y2 - 1, x2 - 1, y2, color);
     }
 
+    public static final int COLOR_CELLER = 0xFF00FF88;      // Neon Emerald
+    public static final int COLOR_TRACKING = 0xFFFF3366;    // Electric Crimson
+    public static final int COLOR_QOL = 0xFF00E5FF;         // Cyber Cyan
+    public static final int COLOR_AUTO = 0xFFFF25D2;        // Vivid Magenta
+
+    public static int getCategoryColor(String category) {
+        if ("Celler".equalsIgnoreCase(category)) return COLOR_CELLER;
+        if ("Tracking".equalsIgnoreCase(category)) return COLOR_TRACKING;
+        if ("Quality of life".equalsIgnoreCase(category)) return COLOR_QOL;
+        if ("Automation".equalsIgnoreCase(category)) return COLOR_AUTO;
+        return 0xFFFFFFFF;
+    }
+
     /** A panel: a dark rounded body with a gradient background and glowing borders. */
     public static void panel(int x1, int y1, int x2, int y2) {
         // Outer border
-        roundedRect(x1, y1, x2, y2, 0xFF18181F);
+        roundedRect(x1, y1, x2, y2, 0xFF14151E);
         // Inner glowing border
-        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0x334BE08C); // 20% alpha accent glow
+        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0x444BE08C); // alpha accent glow
         
         // Gradient fill
         for (int y = y1 + 2; y < y2 - 2; y++) {
             float ratio = (float)(y - y1) / (y2 - y1);
-            int r = (int)(0x1C * (1 - ratio) + 0x0E * ratio);
-            int g = (int)(0x1C * (1 - ratio) + 0x0E * ratio);
-            int b = (int)(0x24 * (1 - ratio) + 0x12 * ratio);
-            int color = 0xE6000000 | (r << 16) | (g << 8) | b;
+            int r = (int)(0x18 * (1 - ratio) + 0x0A * ratio);
+            int g = (int)(0x18 * (1 - ratio) + 0x0A * ratio);
+            int b = (int)(0x22 * (1 - ratio) + 0x0F * ratio);
+            int color = 0xF0000000 | (r << 16) | (g << 8) | b;
             Gui.drawRect(x1 + 2, y, x2 - 2, y + 1, color);
         }
     }
