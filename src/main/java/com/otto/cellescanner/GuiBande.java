@@ -22,6 +22,7 @@ public class GuiBande extends GuiScreen {
     private static final int ID_AUTO = 3;
     private static final int ID_BACK = 4;
     private static final int ID_ALL = 5;
+    private static final int ID_MODE = 6;
     private static final int REMOVE_BASE = 100;
     // How many member rows are visible at once; the rest are reachable by
     // scrolling the mouse wheel (see handleMouseInput / scrollOffset).
@@ -37,6 +38,7 @@ public class GuiBande extends GuiScreen {
     private GuiButton espButton;
     private GuiButton autoButton;
     private GuiButton allButton;
+    private GuiButton modeButton;
     private String statusLine = "";
     private int statusColor = 0xAAAAAA;
 
@@ -71,7 +73,8 @@ public class GuiBande extends GuiScreen {
         this.buttonList.add(autoButton = new StyledButton(ID_AUTO, fieldX + halfW + 4, y, halfW, BTN_H, autoLabel()));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(allButton = new StyledButton(ID_ALL, fieldX, y, FIELD_W, BTN_H, allLabel()));
+        this.buttonList.add(modeButton = new StyledButton(ID_MODE, fieldX, y, halfW, BTN_H, modeLabel()));
+        this.buttonList.add(allButton = new StyledButton(ID_ALL, fieldX + halfW + 4, y, halfW, BTN_H, allLabel()));
         y += BTN_H + ROW_GAP;
 
         this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
@@ -128,7 +131,12 @@ public class GuiBande extends GuiScreen {
     }
 
     private String allLabel() {
-        return "ESP på alle (rød): " + (CelleScannerMod.config.bandeEspAll ? "Til" : "Fra");
+        return "ESP på alle: " + (CelleScannerMod.config.bandeEspAll ? "Til" : "Fra");
+    }
+
+    private String modeLabel() {
+        String m = CelleScannerMod.config.bandeEspMode != null ? CelleScannerMod.config.bandeEspMode : "2D";
+        return "Tilstand: " + m;
     }
 
     @Override
@@ -166,6 +174,20 @@ public class GuiBande extends GuiScreen {
             case ID_ALL:
                 CelleActions.toggleBandeEspAll();
                 allButton.displayString = allLabel();
+                break;
+            case ID_MODE:
+                String curr = CelleScannerMod.config.bandeEspMode != null ? CelleScannerMod.config.bandeEspMode : "2D";
+                if (curr.equalsIgnoreCase("2D")) {
+                    CelleScannerMod.config.bandeEspMode = "Corners";
+                } else if (curr.equalsIgnoreCase("Corners")) {
+                    CelleScannerMod.config.bandeEspMode = "3D";
+                } else if (curr.equalsIgnoreCase("3D")) {
+                    CelleScannerMod.config.bandeEspMode = "Outline";
+                } else {
+                    CelleScannerMod.config.bandeEspMode = "2D";
+                }
+                CelleScannerMod.config.save();
+                modeButton.displayString = modeLabel();
                 break;
             case ID_BACK:
                 CelleActions.openHub();

@@ -11,7 +11,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "2.8.2-test"
+version = "2.9.0-test"
 group = "com.otto.cellescanner"
 archivesBaseName = "cellescanner"
 

@@ -1,43 +1,47 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector4f;
+
+import java.nio.FloatBuffer;
 
 /**
- * Bande ESP addon: draws solid/transparent Chams through walls around players.
+ * Meteor-Style Player ESP addon.
  *
- * HOW THIS WORKS:
- * Minecraft's internal RendererLivingEntity.doRender() calls GlStateManager.enableDepth()
- * at the very start of its own rendering logic. This means if we only disable depth in
- * RenderLivingEvent.Pre, Minecraft immediately re-enables it and our Chams state is reset.
+ * Supports 4 Modes:
+ * 1. 2D Box (Clean 2D screen overlay box projected from entity bounds)
+ * 2. Corners (Meteor-style bracket corners ┌ ┐ └ ┘)
+ * 3. 3D Box (3D wireframe bounding box through walls)
+ * 4. Outline (3D entity contour line outline)
  *
- * The correct approach: use RenderWorldLastEvent (fires AFTER all entities are drawn) and
- * render each target player a SECOND TIME ourselves via RenderManager, but with depth testing
- * disabled. This second draw call is not blocked by walls, producing the Chams effect.
- *
- * Green silhouette = bande members.
- * Red silhouette   = other players (when bandeEspAll is enabled).
+ * Color Scheme:
+ * - BLUE  : Bande Members & Friends
+ * - GREEN : Vagter (Prison Guards)
+ * - RED   : Other Players
  */
 public class BandeEsp {
 
-    // Box hugs the player's hitbox tightly (was 0.06, which drew a noticeably
-    // baggy box standing off the model). 0.0 = flush with the hitbox edges.
-    private static final double PAD = 0.0;
+    private static final FloatBuffer MODEL_MATRIX = BufferUtils.createFloatBuffer(16);
+    private static final FloatBuffer PROJ_MATRIX = BufferUtils.createFloatBuffer(16);
+    private static final int[] VIEWPORT = new int[4];
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
         CelleConfig cfg = CelleScannerMod.config;
         if (!cfg.bandeEspEnabled) {
-            return;
-        }
-        if (cfg.bandeMembers.isEmpty() && !cfg.bandeAutoTeam && !cfg.bandeEspAll) {
             return;
         }
 
@@ -52,16 +56,25 @@ public class BandeEsp {
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
         double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
+        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+
         GlStateManager.pushMatrix();
         GlStateManager.translate(-px, -py, -pz);
-
         GlStateManager.disableLighting();
         GlStateManager.disableDepth();
         GlStateManager.depthMask(false);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-        GlStateManager.disableTexture2D();
-        GL11.glLineWidth(2.5f);
+
+        if (mode.equalsIgnoreCase("2D") || mode.equalsIgnoreCase("Corners")) {
+            GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, MODEL_MATRIX);
+            GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, PROJ_MATRIX);
+            GL11.glGetInteger(GL11.GL_VIEWPORT, GLAllocation.createDirectIntBuffer(16));
+            VIEWPORT[0] = 0;
+            VIEWPORT[1] = 0;
+            VIEWPORT[2] = mc.displayWidth;
+            VIEWPORT[3] = mc.displayHeight;
+        }
 
         for (Object obj : mc.theWorld.playerEntities) {
             if (!(obj instanceof EntityPlayer)) {
@@ -74,16 +87,29 @@ public class BandeEsp {
 
             boolean friend = isFriend(mc, p);
             boolean bande = isBande(mc, p);
-            if (!friend && !bande && !cfg.bandeEspAll) {
+            boolean vagt = isVagt(mc, p);
+
+            if (!friend && !bande && !vagt && !cfg.bandeEspAll) {
                 continue;
             }
 
-            if (friend) {
-                drawBox(p, partialTicks, 0.2f, 0.6f, 1.0f);   // friend = cyan/blue
-            } else if (bande) {
-                drawBox(p, partialTicks, 0.2f, 1.0f, 0.2f);   // bande = green
+            // Colors: Blue = Bande & Friends, Green = Vagter, Red = Others
+            float r, g, b;
+            if (friend || bande) {
+                r = 0.0f; g = 0.65f; b = 1.0f; // Blue
+            } else if (vagt) {
+                r = 0.0f; g = 1.0f; b = 0.4f;  // Green
             } else {
-                drawBox(p, partialTicks, 1.0f, 0.25f, 0.25f); // everyone else = red
+                r = 1.0f; g = 0.25f; b = 0.25f; // Red
+            }
+
+            if (mode.equalsIgnoreCase("3D") || mode.equalsIgnoreCase("Outline")) {
+                draw3DBox(p, partialTicks, r, g, b);
+            } else if (mode.equalsIgnoreCase("Corners")) {
+                draw2DBrackets(mc, p, partialTicks, r, g, b);
+            } else {
+                // Default: 2D Box
+                draw2DBox(mc, p, partialTicks, r, g, b);
             }
         }
 
@@ -96,19 +122,21 @@ public class BandeEsp {
         GlStateManager.popMatrix();
     }
 
-    private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
+    private void draw3DBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
         double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
         double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
         double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
 
-        double w = p.width / 2.0 + PAD;
+        double w = p.width / 2.0;
         double minX = x - w;
         double maxX = x + w;
-        double minY = y - PAD;
-        double maxY = y + p.height + PAD;
+        double minY = y;
+        double maxY = y + p.height;
         double minZ = z - w;
         double maxZ = z + w;
 
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.5f);
         GlStateManager.color(r, g, b, 0.9f);
 
         GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -137,41 +165,160 @@ public class BandeEsp {
         GL11.glEnd();
     }
 
+    private void draw2DBox(Minecraft mc, EntityPlayer p, float partialTicks, float r, float g, float b) {
+        float[] screen = getScreenBounds(mc, p, partialTicks);
+        if (screen == null) return;
+
+        float minX = screen[0];
+        float minY = screen[1];
+        float maxX = screen[2];
+        float maxY = screen[3];
+
+        GlStateManager.pushMatrix();
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.0f);
+        GlStateManager.color(r, g, b, 0.95f);
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex2f(minX, minY);
+        GL11.glVertex2f(maxX, minY);
+        GL11.glVertex2f(maxX, maxY);
+        GL11.glVertex2f(minX, maxY);
+        GL11.glEnd();
+
+        GlStateManager.popMatrix();
+    }
+
+    private void draw2DBrackets(Minecraft mc, EntityPlayer p, float partialTicks, float r, float g, float b) {
+        float[] screen = getScreenBounds(mc, p, partialTicks);
+        if (screen == null) return;
+
+        float minX = screen[0];
+        float minY = screen[1];
+        float maxX = screen[2];
+        float maxY = screen[3];
+
+        float w = (maxX - minX) * 0.25f;
+        float h = (maxY - minY) * 0.25f;
+
+        GlStateManager.pushMatrix();
+        GlStateManager.disableTexture2D();
+        GL11.glLineWidth(2.5f);
+        GlStateManager.color(r, g, b, 1.0f);
+
+        GL11.glBegin(GL11.GL_LINES);
+        // Top Left ┌
+        GL11.glVertex2f(minX, minY); GL11.glVertex2f(minX + w, minY);
+        GL11.glVertex2f(minX, minY); GL11.glVertex2f(minX, minY + h);
+
+        // Top Right ┐
+        GL11.glVertex2f(maxX, minY); GL11.glVertex2f(maxX - w, minY);
+        GL11.glVertex2f(maxX, minY); GL11.glVertex2f(maxX, minY + h);
+
+        // Bottom Left └
+        GL11.glVertex2f(minX, maxY); GL11.glVertex2f(minX + w, maxY);
+        GL11.glVertex2f(minX, maxY); GL11.glVertex2f(minX, maxY - h);
+
+        // Bottom Right ┘
+        GL11.glVertex2f(maxX, maxY); GL11.glVertex2f(maxX - w, maxY);
+        GL11.glVertex2f(maxX, maxY); GL11.glVertex2f(maxX, maxY - h);
+        GL11.glEnd();
+
+        GlStateManager.popMatrix();
+    }
+
+    private float[] getScreenBounds(Minecraft mc, EntityPlayer p, float partialTicks) {
+        double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
+        double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
+        double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
+        double w = p.width / 2.0;
+
+        AxisAlignedBB bb = new AxisAlignedBB(x - w, y, z - w, x + w, y + p.height, z + w);
+
+        double[][] corners = new double[][]{
+                {bb.minX, bb.minY, bb.minZ}, {bb.maxX, bb.minY, bb.minZ},
+                {bb.maxX, bb.minY, bb.maxZ}, {bb.minX, bb.minY, bb.maxZ},
+                {bb.minX, bb.maxY, bb.minZ}, {bb.maxX, bb.maxY, bb.minZ},
+                {bb.maxX, bb.maxY, bb.maxZ}, {bb.minX, bb.maxY, bb.maxZ}
+        };
+
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int factor = sr.getScaleFactor();
+
+        for (double[] c : corners) {
+            float[] screenPos = project(c[0], c[1], c[2]);
+            if (screenPos != null) {
+                float sx = screenPos[0] / factor;
+                float sy = (mc.displayHeight - screenPos[1]) / factor;
+
+                if (sx < minX) minX = sx;
+                if (sy < minY) minY = sy;
+                if (sx > maxX) maxX = sx;
+                if (sy > maxY) maxY = sy;
+            }
+        }
+
+        if (minX == Float.MAX_VALUE) return null;
+        return new float[]{minX, minY, maxX, maxY};
+    }
+
+    private float[] project(double x, double y, double z) {
+        Matrix4f model = new Matrix4f(); model.load(MODEL_MATRIX);
+        Matrix4f proj = new Matrix4f(); proj.load(PROJ_MATRIX);
+
+        Vector4f in = new Vector4f((float) x, (float) y, (float) z, 1.0f);
+        Vector4f out = Matrix4f.transform(model, in, null);
+        out = Matrix4f.transform(proj, out, null);
+
+        if (out.w == 0.0f) return null;
+
+        out.x /= out.w;
+        out.y /= out.w;
+        out.z /= out.w;
+
+        float windowX = VIEWPORT[0] + VIEWPORT[2] * (out.x + 1.0f) / 2.0f;
+        float windowY = VIEWPORT[1] + VIEWPORT[3] * (out.y + 1.0f) / 2.0f;
+
+        return new float[]{windowX, windowY, out.z};
+    }
+
+    private boolean isVagt(Minecraft mc, EntityPlayer p) {
+        if (p == null) return false;
+        String name = p.getName() != null ? p.getName().toLowerCase() : "";
+        if (name.contains("vagt")) return true;
+
+        String displayName = p.getDisplayName() != null ? p.getDisplayName().getUnformattedText().toLowerCase() : "";
+        if (displayName.contains("vagt") || displayName.contains("guard") || displayName.contains("officer")) return true;
+
+        String tag = bandeTag(p);
+        if (tag != null && tag.toLowerCase().contains("vagt")) return true;
+
+        return false;
+    }
+
     private boolean isBande(Minecraft mc, EntityPlayer p) {
-        // Auto bande detection is shelved (the hologram read below is unreliable);
-        // only the manual member list decides bande membership for now. The
-        // bandeTag/bandeName helpers are kept for when we remake the detection.
         return CelleScannerMod.config.isBandeMember(p.getName());
     }
 
-    /**
-     * The full bande tag on the hologram line under a player's name (e.g.
-     * "Quintero - [24]"), or null. On this server that line is an invisible
-     * armor stand with a custom name at the player's position, so we read the
-     * closest such armor stand.
-     */
     public static String bandeTag(EntityPlayer target) {
         try {
             net.minecraft.world.World w = target.worldObj;
-            if (w == null) {
-                return null;
-            }
+            if (w == null) return null;
             String best = null;
             double bestH = 1.3 * 1.3;
             for (Object o : w.loadedEntityList) {
-                if (!(o instanceof EntityArmorStand)) {
-                    continue;
-                }
+                if (!(o instanceof EntityArmorStand)) continue;
                 Entity e = (Entity) o;
-                if (!e.hasCustomName()) {
-                    continue;
-                }
+                if (!e.hasCustomName()) continue;
                 double dx = e.posX - target.posX;
                 double dz = e.posZ - target.posZ;
                 double h = dx * dx + dz * dz;
-                if (h > bestH || Math.abs(e.posY - target.posY) > 3.0) {
-                    continue;
-                }
+                if (h > bestH || Math.abs(e.posY - target.posY) > 3.0) continue;
                 String raw = EnumChatFormatting.getTextWithoutFormattingCodes(e.getCustomNameTag()).trim();
                 if (!raw.isEmpty()) {
                     bestH = h;
@@ -184,7 +331,6 @@ public class BandeEsp {
         }
     }
 
-    /** Just the bande name from the tag (before " - " or "["), for matching members. */
     public static String bandeName(EntityPlayer target) {
         String tag = bandeTag(target);
         if (tag == null) {
@@ -201,13 +347,9 @@ public class BandeEsp {
     }
 
     private boolean isFriend(Minecraft mc, EntityPlayer p) {
-        if (p == null || p.getName() == null) {
-            return false;
-        }
+        if (p == null || p.getName() == null) return false;
         CelleConfig cfg = CelleScannerMod.config;
-        if (!cfg.friendEspEnabled) {
-            return false;
-        }
+        if (!cfg.friendEspEnabled) return false;
         for (String friend : cfg.friendsList) {
             if (friend != null && friend.equalsIgnoreCase(p.getName())) {
                 return true;

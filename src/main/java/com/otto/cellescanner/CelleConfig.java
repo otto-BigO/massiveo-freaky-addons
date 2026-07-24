@@ -94,6 +94,7 @@ public class CelleConfig {
     // When on, the ESP boxes EVERY player - bande members green, everyone else
     // red - so you can see all players through walls, not just your bande.
     public boolean bandeEspAll = false;
+    public String bandeEspMode = "2D"; // "2D", "Corners", "3D", "Outline"
     public List<String> bandeMembers = new ArrayList<String>();
 
     // Venne Telefon / Friend ESP fields
