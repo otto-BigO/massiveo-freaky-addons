@@ -233,6 +233,16 @@ public class CelleConfig {
     // case-opening animation. On by default.
     public boolean flipCaseEnabled = true;
 
+    // Granular HUD and Timer Alert Settings
+    public float hudFontScale = 1.0f;
+    public float hudBgAlpha = 0.6f;
+    public boolean alert10mEnabled = true;
+    public boolean alert5mEnabled = true;
+    public boolean alert2mEnabled = true;
+    public boolean alert1mEnabled = true;
+    public boolean alert30sEnabled = true;
+    public boolean alert10sEnabled = true;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;

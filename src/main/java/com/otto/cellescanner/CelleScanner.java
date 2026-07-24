@@ -131,26 +131,32 @@ public class CelleScanner {
 
     private void checkExpiryAlerts(Celle c, long seconds) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null) {
+        if (mc.thePlayer == null || CelleScannerMod.config == null) {
             return;
         }
 
         // 1. One-off threshold alerts (lag-proof)
         if (seconds <= 120 && seconds > 60 && !c.alert120Fired) {
             c.alert120Fired = true;
-            mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
-            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
-                    EnumChatFormatting.YELLOW + "Ledig om 2 minutter!", 10, 40, 10);
+            if (CelleScannerMod.config.alert2mEnabled) {
+                mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
+                showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                        EnumChatFormatting.YELLOW + "Ledig om 2 minutter!", 10, 40, 10);
+            }
         } else if (seconds <= 60 && seconds > 30 && !c.alert60Fired) {
             c.alert60Fired = true;
-            mc.thePlayer.playSound("note.pling", 1.0F, 1.2F);
-            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
-                    EnumChatFormatting.YELLOW + "Ledig om 1 minut!", 10, 40, 10);
+            if (CelleScannerMod.config.alert1mEnabled) {
+                mc.thePlayer.playSound("note.pling", 1.0F, 1.2F);
+                showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                        EnumChatFormatting.YELLOW + "Ledig om 1 minut!", 10, 40, 10);
+            }
         } else if (seconds <= 30 && seconds > 10 && !c.alert30Fired) {
             c.alert30Fired = true;
-            mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
-            showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
-                    EnumChatFormatting.RED + "Ledig om 30 sekunder!", 10, 40, 10);
+            if (CelleScannerMod.config.alert30sEnabled) {
+                mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
+                showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
+                        EnumChatFormatting.RED + "Ledig om 30 sekunder!", 10, 40, 10);
+            }
         } else if (seconds == 0 && !c.alert0Fired) {
             c.alert0Fired = true;
             mc.thePlayer.playSound("random.levelup", 1.0F, 1.0F);
@@ -159,7 +165,8 @@ public class CelleScanner {
         }
 
         // 2. Second-by-second countdown for the final 10 seconds
-        if (seconds > 0 && seconds <= 10 && seconds != c.lastAlertSeconds) {
+        if (CelleScannerMod.config.alert10sEnabled && seconds > 0 && seconds <= 10 && seconds != c.lastAlertSeconds) {
+            c.lastAlertSeconds = seconds;
             mc.thePlayer.playSound("random.click", 0.5F, 1.0F);
             showTitle(mc, EnumChatFormatting.RED + c.celleId,
                     EnumChatFormatting.GOLD + "Ledig om " + seconds + "s...", 0, 20, 5);
@@ -439,14 +446,6 @@ public class CelleScanner {
         double hours = celle.liveRemainingHours();
         if (hours >= CelleScannerMod.config.minHours && hours <= CelleScannerMod.config.maxHours) {
             celle.notified = true;
-
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.thePlayer != null) {
-                String verb = celle.status == CelleStatus.TIL_SALG ? "er til salg og" : "bliver snart ledig og";
-                mc.thePlayer.addChatMessage(new ChatComponentText(
-                        EnumChatFormatting.GOLD + "Celle " + celle.celleId + " " + verb + " er nu indenfor "
-                                + CelleScannerMod.config.maxHours + " timer."));
-            }
         }
     }
 
