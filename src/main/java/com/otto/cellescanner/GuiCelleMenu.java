@@ -25,7 +25,8 @@ public class GuiCelleMenu extends GuiScreen {
     private static final int ID_RELOAD = 7;
     private static final int ID_CLEAR = 8;
     private static final int ID_SPECIAL = 9;
-    private static final int ID_CLOSE = 10;
+    private static final int ID_SETTINGS = 10;
+    private static final int ID_CLOSE = 11;
 
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
@@ -67,8 +68,9 @@ public class GuiCelleMenu extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_MAX_UP, left + PANEL_W - 22, y, 22, BTN_H, "+"));
         y += 32;
 
-        // Card 3: Action Tools
-        this.buttonList.add(new StyledButton(ID_SPECIAL, left, y, PANEL_W, BTN_H, "Special Celler (Fuldte celler)"));
+        // Card 3: Action Tools & Settings
+        this.buttonList.add(new StyledButton(ID_SPECIAL, left, y, halfW, BTN_H, "Special Celler"));
+        this.buttonList.add(new StyledButton(ID_SETTINGS, left + halfW + 4, y, halfW, BTN_H, "Indstillinger"));
         y += 24;
 
         this.buttonList.add(new StyledButton(ID_RELOAD, left, y, halfW, BTN_H, "Genindlæs"));
@@ -138,6 +140,9 @@ public class GuiCelleMenu extends GuiScreen {
                 break;
             case ID_SPECIAL:
                 CelleActions.openSpecialScreen();
+                break;
+            case ID_SETTINGS:
+                CelleActions.openSettings();
                 break;
             case ID_RELOAD:
                 CelleActions.reloadConfig();
