@@ -167,24 +167,49 @@ public final class CellePositions {
         }
 
         if (changed) {
-            save();
-            if (isNew) {
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
-                if (mc.thePlayer != null) {
-                    mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                            net.minecraft.util.EnumChatFormatting.GREEN + "[Massiveo's addons] Ny celle kortlagt: " 
-                            + displayId + " (" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ")"
-                    ));
-                }
-            }
+            saveAsync();
         }
     }
 
-    /**
-     * Drops the least-recently-seen entries until the map is back at
-     * MAX_ENTRIES. Only runs on the rare tick that pushes it over the cap, so
-     * the sort cost is paid almost never.
-     */
+    private static boolean dirty = false;
+    private static long lastSaveTime = 0;
+    private static final java.util.concurrent.ExecutorService SAVE_EXECUTOR = java.util.concurrent.Executors.newSingleThreadExecutor();
+
+    public static void saveAsync() {
+        dirty = true;
+        long now = System.currentTimeMillis();
+        if (now - lastSaveTime > 3000) { // Throttle disk IO to once every 3s off-thread
+            flushAsync();
+        }
+    }
+
+    public static void flushAsync() {
+        if (!dirty || file == null) {
+            return;
+        }
+        dirty = false;
+        lastSaveTime = System.currentTimeMillis();
+        final Map<String, Entry> snapshot = new HashMap<String, Entry>(known);
+        SAVE_EXECUTOR.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (file.getParentFile() != null) {
+                        file.getParentFile().mkdirs();
+                    }
+                    FileWriter writer = new FileWriter(file);
+                    try {
+                        GSON.toJson(snapshot, writer);
+                    } finally {
+                        writer.close();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     private static void prune() {
         java.util.List<Map.Entry<String, Entry>> entries =
                 new java.util.ArrayList<Map.Entry<String, Entry>>(known.entrySet());
@@ -200,22 +225,7 @@ public final class CellePositions {
     }
 
     public static void save() {
-        if (file == null) {
-            return;
-        }
-        try {
-            if (file.getParentFile() != null) {
-                file.getParentFile().mkdirs();
-            }
-            FileWriter writer = new FileWriter(file);
-            try {
-                GSON.toJson(known, writer);
-            } finally {
-                writer.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        flushAsync();
     }
 
     /**
