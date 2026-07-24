@@ -3,22 +3,21 @@ package com.otto.cellescanner;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.Vec3;
+import net.minecraft.util.ChatComponentText;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
-import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 
 import java.util.UUID;
 
 /**
  * Freecam Addon for CelleScanner.
- * Detaches the view camera from the player entity to fly through blocks with WASD + Space/Shift,
+ * Detaches the camera view from the player entity to fly through blocks with WASD + Space/Shift and mouse look,
  * while AutoMine, PathWalker, or pathfinding continue to run uninterrupted on the real player in the background!
  */
 public class Freecam {
@@ -27,11 +26,6 @@ public class Freecam {
 
     private boolean active = false;
     private EntityOtherPlayerMP freecamEntity = null;
-    private double originalX, originalY, originalZ;
-    private float originalYaw, originalPitch;
-
-    // Default flight speed
-    private float speed = 0.5f;
 
     public boolean isActive() {
         return active;
@@ -53,13 +47,6 @@ public class Freecam {
 
         active = true;
 
-        // Save original position & rotation
-        originalX = mc.thePlayer.posX;
-        originalY = mc.thePlayer.posY;
-        originalZ = mc.thePlayer.posZ;
-        originalYaw = mc.thePlayer.rotationYaw;
-        originalPitch = mc.thePlayer.rotationPitch;
-
         // Spawn fake spectator camera entity
         GameProfile profile = new GameProfile(UUID.randomUUID(), "[Freecam]");
         freecamEntity = new EntityOtherPlayerMP(mc.theWorld, profile);
@@ -71,9 +58,7 @@ public class Freecam {
         mc.theWorld.addEntityToWorld(-9999, freecamEntity);
         mc.setRenderViewEntity(freecamEntity);
 
-        if (mc.thePlayer != null) {
-            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("§a[CelleScanner] Freecam §eAKTIVERET§a. Styr med WASD + Space/Shift. Mine-bot kører i baggrunden!"));
-        }
+        mc.thePlayer.addChatMessage(new ChatComponentText("§a[CelleScanner] Freecam §eAKTIVERET§a. Styr med WASD + Space/Shift. Mine-bot kører i baggrunden!"));
     }
 
     public void disable() {
@@ -87,7 +72,39 @@ public class Freecam {
 
         if (mc.thePlayer != null) {
             mc.setRenderViewEntity(mc.thePlayer);
-            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText("§c[CelleScanner] Freecam §7DEAKTIVERET."));
+            mc.thePlayer.addChatMessage(new ChatComponentText("§c[CelleScanner] Freecam §7DEAKTIVERET."));
+        }
+    }
+
+    @SubscribeEvent
+    public void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase != TickEvent.Phase.START || !active) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || freecamEntity == null) {
+            return;
+        }
+
+        // Keep view entity attached to freecamEntity
+        if (mc.getRenderViewEntity() != freecamEntity) {
+            mc.setRenderViewEntity(freecamEntity);
+        }
+
+        // Handle mouse look for freecam camera
+        if (mc.currentScreen == null && Mouse.isGrabbed()) {
+            float mouseSensitivity = mc.gameSettings.mouseSensitivity * 0.6F + 0.2F;
+            float factor = mouseSensitivity * mouseSensitivity * mouseSensitivity * 8.0F;
+
+            float dx = Mouse.getDX() * factor * 0.15F;
+            float dy = Mouse.getDY() * factor * 0.15F;
+
+            freecamEntity.rotationYaw += dx;
+            freecamEntity.rotationPitch = Math.max(-90.0F, Math.min(90.0F, freecamEntity.rotationPitch - dy));
+            freecamEntity.rotationYawHead = freecamEntity.rotationYaw;
+            freecamEntity.prevRotationYaw = freecamEntity.rotationYaw;
+            freecamEntity.prevRotationPitch = freecamEntity.rotationPitch;
         }
     }
 
@@ -103,12 +120,7 @@ public class Freecam {
             return;
         }
 
-        // Keep camera entity in sync with view entity
-        if (mc.getRenderViewEntity() != freecamEntity) {
-            mc.setRenderViewEntity(freecamEntity);
-        }
-
-        // Handle camera motion inputs (only when no GUI screen is open)
+        // Handle flight motion
         if (mc.currentScreen == null) {
             GameSettings gs = mc.gameSettings;
             float moveSpeed = (float) (CelleScannerMod.config != null ? CelleScannerMod.config.freecamSpeed : 1.5);
@@ -127,25 +139,15 @@ public class Freecam {
             if (gs.keyBindJump.isKeyDown()) up += 1;
             if (gs.keyBindSneak.isKeyDown()) up -= 1;
 
-            // Compute 3D direction vector from camera rotation
-            float yaw = freecamEntity.rotationYaw;
-            float pitch = freecamEntity.rotationPitch;
+            double radYaw = Math.toRadians(freecamEntity.rotationYaw);
+            double speedVal = moveSpeed * 0.35;
 
-            double radYaw = Math.toRadians(yaw);
-            double radPitch = Math.toRadians(pitch);
+            double sinY = Math.sin(radYaw);
+            double cosY = Math.cos(radYaw);
 
-            double dx = 0;
-            double dy = up * moveSpeed * 0.4;
-            double dz = 0;
-
-            if (forward != 0 || strafe != 0) {
-                double speedVal = moveSpeed * 0.4;
-                double sinY = Math.sin(radYaw);
-                double cosY = Math.cos(radYaw);
-
-                dx = (forward * -sinY + strafe * cosY) * speedVal;
-                dz = (forward * cosY + strafe * sinY) * speedVal;
-            }
+            double dx = (forward * -sinY + strafe * cosY) * speedVal;
+            double dy = up * speedVal;
+            double dz = (forward * cosY + strafe * sinY) * speedVal;
 
             freecamEntity.setPosition(
                     freecamEntity.posX + dx,
@@ -153,13 +155,13 @@ public class Freecam {
                     freecamEntity.posZ + dz
             );
 
-            // Cancel manual player movement keys so manual WASD doesn't fight AutoMine
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindForward.getKeyCode(), false);
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindBack.getKeyCode(), false);
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindLeft.getKeyCode(), false);
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindRight.getKeyCode(), false);
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindJump.getKeyCode(), false);
-            net.minecraft.client.settings.KeyBinding.setKeyBindState(gs.keyBindSneak.getKeyCode(), false);
+            // Unpress WASD/Jump/Sneak for the real player so manual keyboard inputs steer the camera, not the player!
+            KeyBinding.setKeyBindState(gs.keyBindForward.getKeyCode(), false);
+            KeyBinding.setKeyBindState(gs.keyBindBack.getKeyCode(), false);
+            KeyBinding.setKeyBindState(gs.keyBindLeft.getKeyCode(), false);
+            KeyBinding.setKeyBindState(gs.keyBindRight.getKeyCode(), false);
+            KeyBinding.setKeyBindState(gs.keyBindJump.getKeyCode(), false);
+            KeyBinding.setKeyBindState(gs.keyBindSneak.getKeyCode(), false);
         }
     }
 
@@ -175,10 +177,6 @@ public class Freecam {
 
         // Render player body shell at real physical position so player can spectate their bot working
         try {
-            double renderX = mc.thePlayer.lastTickPosX + (mc.thePlayer.posX - mc.thePlayer.lastTickPosX) * event.partialTicks - mc.getRenderManager().viewerPosX;
-            double renderY = mc.thePlayer.lastTickPosY + (mc.thePlayer.posY - mc.thePlayer.lastTickPosY) * event.partialTicks - mc.getRenderManager().viewerPosY;
-            double renderZ = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * event.partialTicks - mc.getRenderManager().viewerPosZ;
-
             mc.getRenderManager().renderEntitySimple(mc.thePlayer, event.partialTicks);
         } catch (Throwable ignored) {
         }
