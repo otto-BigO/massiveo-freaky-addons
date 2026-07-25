@@ -67,9 +67,12 @@ public class BandeEsp {
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         if (mode.equalsIgnoreCase("2D") || mode.equalsIgnoreCase("Corners")) {
+            MODEL_MATRIX.rewind();
+            PROJ_MATRIX.rewind();
             GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, MODEL_MATRIX);
             GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, PROJ_MATRIX);
-            GL11.glGetInteger(GL11.GL_VIEWPORT, GLAllocation.createDirectIntBuffer(16));
+            MODEL_MATRIX.rewind();
+            PROJ_MATRIX.rewind();
             VIEWPORT[0] = 0;
             VIEWPORT[1] = 0;
             VIEWPORT[2] = mc.displayWidth;
@@ -268,8 +271,14 @@ public class BandeEsp {
     }
 
     private float[] project(double x, double y, double z) {
+        MODEL_MATRIX.rewind();
+        PROJ_MATRIX.rewind();
+
         Matrix4f model = new Matrix4f(); model.load(MODEL_MATRIX);
         Matrix4f proj = new Matrix4f(); proj.load(PROJ_MATRIX);
+
+        MODEL_MATRIX.rewind();
+        PROJ_MATRIX.rewind();
 
         Vector4f in = new Vector4f((float) x, (float) y, (float) z, 1.0f);
         Vector4f out = Matrix4f.transform(model, in, null);
