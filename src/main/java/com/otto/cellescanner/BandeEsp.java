@@ -58,14 +58,6 @@ public class BandeEsp {
 
         String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
 
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(-px, -py, -pz);
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-        GlStateManager.depthMask(false);
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-
         if (mode.equalsIgnoreCase("2D") || mode.equalsIgnoreCase("Corners")) {
             MODEL_MATRIX.rewind();
             PROJ_MATRIX.rewind();
@@ -78,6 +70,14 @@ public class BandeEsp {
             VIEWPORT[2] = mc.displayWidth;
             VIEWPORT[3] = mc.displayHeight;
         }
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(-px, -py, -pz);
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         for (Object obj : mc.theWorld.playerEntities) {
             if (!(obj instanceof EntityPlayer)) {
@@ -177,7 +177,14 @@ public class BandeEsp {
         float maxX = screen[2];
         float maxY = screen[3];
 
+        GlStateManager.matrixMode(GL11.GL_PROJECTION);
         GlStateManager.pushMatrix();
+        GlStateManager.loadIdentity();
+        GlStateManager.ortho(0, mc.displayWidth, mc.displayHeight, 0, -1, 1);
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+        GlStateManager.pushMatrix();
+        GlStateManager.loadIdentity();
+
         GlStateManager.disableTexture2D();
         GL11.glLineWidth(2.0f);
         GlStateManager.color(r, g, b, 0.95f);
@@ -189,6 +196,9 @@ public class BandeEsp {
         GL11.glVertex2f(minX, maxY);
         GL11.glEnd();
 
+        GlStateManager.matrixMode(GL11.GL_PROJECTION);
+        GlStateManager.popMatrix();
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW);
         GlStateManager.popMatrix();
     }
 
@@ -204,7 +214,14 @@ public class BandeEsp {
         float w = (maxX - minX) * 0.25f;
         float h = (maxY - minY) * 0.25f;
 
+        GlStateManager.matrixMode(GL11.GL_PROJECTION);
         GlStateManager.pushMatrix();
+        GlStateManager.loadIdentity();
+        GlStateManager.ortho(0, mc.displayWidth, mc.displayHeight, 0, -1, 1);
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+        GlStateManager.pushMatrix();
+        GlStateManager.loadIdentity();
+
         GlStateManager.disableTexture2D();
         GL11.glLineWidth(2.5f);
         GlStateManager.color(r, g, b, 1.0f);
@@ -227,13 +244,21 @@ public class BandeEsp {
         GL11.glVertex2f(maxX, maxY); GL11.glVertex2f(maxX, maxY - h);
         GL11.glEnd();
 
+        GlStateManager.matrixMode(GL11.GL_PROJECTION);
+        GlStateManager.popMatrix();
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW);
         GlStateManager.popMatrix();
     }
 
     private float[] getScreenBounds(Minecraft mc, EntityPlayer p, float partialTicks) {
-        double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
-        double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
-        double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
+        Entity viewer = mc.thePlayer;
+        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
+        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
+        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
+
+        double x = (p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks) - px;
+        double y = (p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks) - py;
+        double z = (p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks) - pz;
         double w = p.width / 2.0;
 
         AxisAlignedBB bb = new AxisAlignedBB(x - w, y, z - w, x + w, y + p.height, z + w);
@@ -250,14 +275,11 @@ public class BandeEsp {
         float maxX = -Float.MAX_VALUE;
         float maxY = -Float.MAX_VALUE;
 
-        ScaledResolution sr = new ScaledResolution(mc);
-        int factor = sr.getScaleFactor();
-
         for (double[] c : corners) {
             float[] screenPos = project(c[0], c[1], c[2]);
-            if (screenPos != null) {
-                float sx = screenPos[0] / factor;
-                float sy = (mc.displayHeight - screenPos[1]) / factor;
+            if (screenPos != null && screenPos[2] >= 0.0f && screenPos[2] <= 1.0f) {
+                float sx = screenPos[0];
+                float sy = mc.displayHeight - screenPos[1];
 
                 if (sx < minX) minX = sx;
                 if (sy < minY) minY = sy;
@@ -266,7 +288,7 @@ public class BandeEsp {
             }
         }
 
-        if (minX == Float.MAX_VALUE) return null;
+        if (minX == Float.MAX_VALUE || maxX <= minX || maxY <= minY) return null;
         return new float[]{minX, minY, maxX, maxY};
     }
 
@@ -284,7 +306,7 @@ public class BandeEsp {
         Vector4f out = Matrix4f.transform(model, in, null);
         out = Matrix4f.transform(proj, out, null);
 
-        if (out.w == 0.0f) return null;
+        if (out.w <= 0.0f) return null;
 
         out.x /= out.w;
         out.y /= out.w;
@@ -293,7 +315,7 @@ public class BandeEsp {
         float windowX = VIEWPORT[0] + VIEWPORT[2] * (out.x + 1.0f) / 2.0f;
         float windowY = VIEWPORT[1] + VIEWPORT[3] * (out.y + 1.0f) / 2.0f;
 
-        return new float[]{windowX, windowY, out.z};
+        return new float[]{windowX, windowY, (out.z + 1.0f) / 2.0f};
     }
 
     private boolean isVagt(Minecraft mc, EntityPlayer p) {

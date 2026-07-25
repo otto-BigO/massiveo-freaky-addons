@@ -141,7 +141,7 @@ public class CelleEsp {
     // Harmonised ESP palette, distinct per meaning: aqua = available now,
     // amber = about to free up. (Bande = green, your celler = violet, finder =
     // white - kept different so the overlays don't all look alike.)
-    private static final float[] COLOR_TIL_SALG = {0.30f, 0.78f, 1.0f};
+    private static final float[] COLOR_TIL_SALG = {0.20f, 1.00f, 0.30f};
     private static final float[] COLOR_SOLGT = {1.0f, 0.66f, 0.28f};
 
     private static float[] colorFor(Celle c) {
