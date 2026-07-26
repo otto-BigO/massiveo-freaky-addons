@@ -7,9 +7,9 @@ import net.minecraft.util.EnumChatFormatting;
 import java.io.IOException;
 
 /**
- * Clean, customizable Theme & Personalization Editor screen.
- * Allows each player to customize UI theme presets, card transparency,
- * title animation effects, alert sound chimes, and Auto Armour settings.
+ * Redesigned, clean, non-overlapping Theme & Appearance Customization screen.
+ * Features live color swatches for 6 theme presets, card transparency slider,
+ * title animation effects, and countdown alert sound chime selector.
  */
 public class GuiThemeEditor extends GuiScreen {
 
@@ -24,16 +24,14 @@ public class GuiThemeEditor extends GuiScreen {
     private static final int ID_ALPHA_UP = 7;
     private static final int ID_TITLE_STYLE = 8;
     private static final int ID_SOUND_STYLE = 9;
-    private static final int ID_AUTO_ARMOR = 10;
-    private static final int ID_BACK = 11;
+    private static final int ID_BACK = 10;
 
-    private static final int PANEL_W = 230;
+    private static final int PANEL_W = 220;
     private static final int BTN_H = 18;
 
     private GuiButton alphaLabelBtn;
     private GuiButton titleStyleBtn;
     private GuiButton soundStyleBtn;
-    private GuiButton autoArmorBtn;
 
     @Override
     public void initGui() {
@@ -45,43 +43,39 @@ public class GuiThemeEditor extends GuiScreen {
         int thirdW = (PANEL_W - 8) / 3;
         int halfW = (PANEL_W - 4) / 2;
 
-        int y = cy - 110;
+        int y = cy - 100;
 
-        // Row 1: Preset Themes Group A
+        // Row 1: Theme Presets Row 1 (Emerald, Cyan, Lilla)
         this.buttonList.add(new StyledButton(ID_PRESET_EMERALD, left, y, thirdW, BTN_H, "Emerald"));
         this.buttonList.add(new StyledButton(ID_PRESET_CYAN, left + thirdW + 4, y, thirdW, BTN_H, "Cyan"));
         this.buttonList.add(new StyledButton(ID_PRESET_PURPLE, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Lilla"));
-        y += 22;
+        y += 24;
 
-        // Row 2: Preset Themes Group B
+        // Row 2: Theme Presets Row 2 (Pink, Guld, Mørk)
         this.buttonList.add(new StyledButton(ID_PRESET_PINK, left, y, thirdW, BTN_H, "Pink"));
         this.buttonList.add(new StyledButton(ID_PRESET_GOLD, left + thirdW + 4, y, thirdW, BTN_H, "Guld"));
         this.buttonList.add(new StyledButton(ID_PRESET_STEALTH, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Mørk"));
-        y += 26;
-
-        // Row 3: Card Transparency Stepper
-        this.buttonList.add(new StyledButton(ID_ALPHA_DOWN, left, y, 22, BTN_H, "-"));
-        this.buttonList.add(alphaLabelBtn = new StyledButton(ID_ALPHA_DOWN - 100, left + 24, y, PANEL_W - 48, BTN_H, alphaLabel()));
-        alphaLabelBtn.enabled = false;
-        this.buttonList.add(new StyledButton(ID_ALPHA_UP, left + PANEL_W - 22, y, 22, BTN_H, "+"));
-        y += 24;
-
-        // Row 4: Title Effect & Sound Selector
-        this.buttonList.add(titleStyleBtn = new StyledButton(ID_TITLE_STYLE, left, y, halfW, BTN_H, titleStyleLabel()));
-        this.buttonList.add(soundStyleBtn = new StyledButton(ID_SOUND_STYLE, left + halfW + 4, y, halfW, BTN_H, soundStyleLabel()));
-        y += 24;
-
-        // Row 5: Auto Armour Quick Equip
-        this.buttonList.add(autoArmorBtn = new StyledButton(ID_AUTO_ARMOR, left, y, PANEL_W, BTN_H, autoArmorLabel()));
         y += 28;
 
-        // Row 6: Back to Hub
+        // Row 3: Card Transparency Stepper
+        this.buttonList.add(new StyledButton(ID_ALPHA_DOWN, left, y, 24, BTN_H, "-"));
+        this.buttonList.add(alphaLabelBtn = new StyledButton(ID_ALPHA_DOWN - 100, left + 26, y, PANEL_W - 52, BTN_H, alphaLabel()));
+        alphaLabelBtn.enabled = false;
+        this.buttonList.add(new StyledButton(ID_ALPHA_UP, left + PANEL_W - 24, y, 24, BTN_H, "+"));
+        y += 26;
+
+        // Row 4: Title Effect & Countdown Chime Sound
+        this.buttonList.add(titleStyleBtn = new StyledButton(ID_TITLE_STYLE, left, y, halfW, BTN_H, titleStyleLabel()));
+        this.buttonList.add(soundStyleBtn = new StyledButton(ID_SOUND_STYLE, left + halfW + 4, y, halfW, BTN_H, soundStyleLabel()));
+        y += 32;
+
+        // Row 5: Back to Hub
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
     }
 
     private String alphaLabel() {
         int percent = Math.round((CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f) * 100f);
-        return "Kort-Synlighed: " + percent + "%";
+        return "Synlighed: " + percent + "%";
     }
 
     private String titleStyleLabel() {
@@ -94,11 +88,6 @@ public class GuiThemeEditor extends GuiScreen {
         String s = CelleScannerMod.config != null ? CelleScannerMod.config.alertSound : "note.pling";
         String name = s.contains("pling") ? "Pling" : (s.contains("levelup") ? "Level Up" : (s.contains("orb") ? "Orb" : "Klik"));
         return "Lyd: " + name;
-    }
-
-    private String autoArmorLabel() {
-        boolean active = CelleScannerMod.config != null && CelleScannerMod.config.autoArmorEnabled;
-        return "Auto Armour Hotkey: " + (active ? EnumChatFormatting.GREEN + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     @Override
@@ -142,10 +131,6 @@ public class GuiThemeEditor extends GuiScreen {
                 else CelleScannerMod.config.alertSound = "note.pling";
                 soundStyleBtn.displayString = soundStyleLabel();
                 break;
-            case ID_AUTO_ARMOR:
-                CelleScannerMod.config.autoArmorEnabled = !CelleScannerMod.config.autoArmorEnabled;
-                autoArmorBtn.displayString = autoArmorLabel();
-                break;
             case ID_BACK:
                 CelleActions.openHub();
                 return;
@@ -164,9 +149,9 @@ public class GuiThemeEditor extends GuiScreen {
         int cx = this.width / 2;
         int cy = this.height / 2;
 
-        int titleY = cy - 134;
+        int titleY = cy - 126;
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Tema & Udseende", cx, titleY, Style.getAccentColor());
-        drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Tilpas farver, effekter og lyd", cx, titleY + 12, 0x888888);
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Vælg din personlige farve og stil", cx, titleY + 12, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

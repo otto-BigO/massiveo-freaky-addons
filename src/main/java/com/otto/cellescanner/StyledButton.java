@@ -6,10 +6,7 @@ import net.minecraft.client.gui.GuiButton;
 
 /**
  * A drop-in replacement for the vanilla stone GuiButton that draws a flat dark
- * rounded button with a green accent on hover, matching Style. Constructor
- * signature matches GuiButton so it can be swapped in directly. Disabled
- * buttons render as flat labels (several screens use a disabled button as a
- * value readout in a stepper row).
+ * rounded button with dynamic theme accents on hover, matching Style.
  */
 public class StyledButton extends GuiButton {
 
@@ -64,10 +61,15 @@ public class StyledButton extends GuiButton {
             int bF = (int) (0x2E + (0x3F - 0x2E) * fadeFactor);
             fill = 0xFF000000 | (rF << 16) | (gF << 8) | bF;
 
-            // Blend border: BTN_BORDER -> ACCENT
-            int rB = (int) (0x12 + (0x4B - 0x12) * fadeFactor);
-            int gB = (int) (0x12 + (0xE0 - 0x12) * fadeFactor);
-            int bB = (int) (0x16 + (0x8C - 0x16) * fadeFactor);
+            // Blend border dynamically using user's chosen Theme Accent Color!
+            int accent = Style.getAccentColor();
+            int accR = (accent >> 16) & 0xFF;
+            int accG = (accent >> 8) & 0xFF;
+            int accB = accent & 0xFF;
+
+            int rB = (int) (0x12 + (accR - 0x12) * fadeFactor);
+            int gB = (int) (0x12 + (accG - 0x12) * fadeFactor);
+            int bB = (int) (0x16 + (accB - 0x16) * fadeFactor);
             border = 0xFF000000 | (rB << 16) | (gB << 8) | bB;
 
             // Blend text: TEXT -> TEXT_HOVER

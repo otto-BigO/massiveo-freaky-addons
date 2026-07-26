@@ -4,12 +4,15 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.network.play.client.C0DPacketCloseWindow;
+import net.minecraft.network.play.client.C16PacketClientStatus;
 import net.minecraft.util.EnumChatFormatting;
 
 /**
  * Auto Armour Addon.
  * Allows quick-equipping the best armor set from inventory or stripping
- * all equipped armor back into main inventory using windowClick (shift-click).
+ * all equipped armor back into main inventory using server-synced container packets.
  */
 public class AutoArmor {
 
@@ -22,7 +25,7 @@ public class AutoArmor {
      */
     public static void toggleArmor() {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null || mc.playerController == null) {
+        if (mc.thePlayer == null || mc.playerController == null || mc.thePlayer.sendQueue == null) {
             return;
         }
 
@@ -38,16 +41,23 @@ public class AutoArmor {
                 || player.getCurrentArmor(2) != null
                 || player.getCurrentArmor(3) != null;
 
+        // Open inventory container state on server so anti-cheat allows slot manipulation
+        mc.thePlayer.sendQueue.addToSendQueue(
+                new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+
         if (hasEquippedArmor) {
             stripArmor(mc, player);
         } else {
             equipArmor(mc, player);
         }
+
+        // Close inventory container state on server
+        mc.thePlayer.sendQueue.addToSendQueue(new C0DPacketCloseWindow(0));
     }
 
     private static void stripArmor(Minecraft mc, EntityPlayer player) {
-        // Armor slots in ContainerPlayer: 5=Helmet, 6=Chestplate, 7=Leggings, 8=Boots
         int stripped = 0;
+        // Armor slots in ContainerPlayer: 5=Helmet, 6=Chestplate, 7=Leggings, 8=Boots
         for (int slot = 5; slot <= 8; slot++) {
             ItemStack stack = player.inventoryContainer.getSlot(slot).getStack();
             if (stack != null) {
@@ -63,19 +73,30 @@ public class AutoArmor {
     }
 
     private static void equipArmor(Minecraft mc, EntityPlayer player) {
-        // Target armor types: 0 = Helmet, 1 = Chestplate, 2 = Leggings, 3 = Boots
         int equipped = 0;
+        // Target armor types: 0 = Helmet, 1 = Chestplate, 2 = Leggings, 3 = Boots
         for (int type = 0; type < 4; type++) {
-            // Check if slot is empty (armorType index 0=boots, 1=legs, 2=chest, 3=helm in Minecraft entity array)
             if (player.getCurrentArmor(type) != null) {
                 continue;
             }
 
             int bestSlot = findBestArmorSlot(player, type);
             if (bestSlot != -1) {
-                // Shift-click best armor item into armor slot (mode = 1)
-                mc.playerController.windowClick(0, bestSlot, 0, 1, player);
-                equipped++;
+                // If the item is in hotbar (slots 36-44), right-click placement packet works instantly
+                if (bestSlot >= 36 && bestSlot <= 44) {
+                    int origSlot = player.inventory.currentItem;
+                    player.inventory.currentItem = bestSlot - 36;
+                    ItemStack stack = player.inventory.getCurrentItem();
+                    if (stack != null) {
+                        mc.thePlayer.sendQueue.addToSendQueue(new C08PacketPlayerBlockPlacement(stack));
+                        equipped++;
+                    }
+                    player.inventory.currentItem = origSlot;
+                } else {
+                    // Shift-click item into armor slot
+                    mc.playerController.windowClick(0, bestSlot, 0, 1, player);
+                    equipped++;
+                }
             }
         }
 
@@ -86,16 +107,13 @@ public class AutoArmor {
     }
 
     private static int findBestArmorSlot(EntityPlayer player, int targetType) {
-        // TargetType: 0 = Boots, 1 = Leggings, 2 = Chestplate, 3 = Helmet
         int bestSlot = -1;
         int bestProt = -1;
 
-        // Check Inventory slots 9 to 44
         for (int slot = 9; slot < 45; slot++) {
             ItemStack stack = player.inventoryContainer.getSlot(slot).getStack();
             if (stack != null && stack.getItem() instanceof ItemArmor) {
                 ItemArmor armor = (ItemArmor) stack.getItem();
-                // armor.armorType: 0 = Helmet, 1 = Chestplate, 2 = Leggings, 3 = Boots
                 int matchType = 3 - armor.armorType;
                 if (matchType == targetType) {
                     int prot = armor.damageReduceAmount;
