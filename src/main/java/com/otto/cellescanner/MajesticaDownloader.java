@@ -69,9 +69,12 @@ public class MajesticaDownloader {
         Thread downloadThread = new Thread(new Runnable() {
             @Override
             public void run() {
+                InputStream is = null;
+                FileOutputStream fos = null;
+                File mcDir = Minecraft.getMinecraft().mcDataDir;
+                File zipFile = new File(mcDir, "config/cellescanner/majestica_assets.zip");
+
                 try {
-                    File mcDir = Minecraft.getMinecraft().mcDataDir;
-                    File zipFile = new File(mcDir, "config/cellescanner/majestica_assets.zip");
                     zipFile.getParentFile().mkdirs();
 
                     URL url = new URL(ASSET_URL);
@@ -81,8 +84,8 @@ public class MajesticaDownloader {
                     conn.setRequestProperty("User-Agent", "Mozilla/5.0");
 
                     int totalSize = conn.getContentLength();
-                    InputStream is = conn.getInputStream();
-                    FileOutputStream fos = new FileOutputStream(zipFile);
+                    is = conn.getInputStream();
+                    fos = new FileOutputStream(zipFile);
 
                     byte[] buffer = new byte[8192];
                     int bytesRead;
@@ -96,15 +99,28 @@ public class MajesticaDownloader {
                         }
                     }
 
-                    fos.close();
-                    is.close();
+                } catch (Throwable t) {
+                    System.err.println("[MajesticaDownloader] Download error: " + t.getMessage());
+                    statusMessage = "Fejl ved hentning: " + t.getMessage();
+                    downloading = false;
+                    return;
+                } finally {
+                    if (fos != null) {
+                        try { fos.close(); } catch (IOException ignored) {}
+                    }
+                    if (is != null) {
+                        try { is.close(); } catch (IOException ignored) {}
+                    }
+                }
 
-                    // Extract ZIP
-                    statusMessage = "Udpakker 3D modeller...";
-                    progressPercent = 85;
+                // Extract ZIP
+                statusMessage = "Udpakker 3D modeller...";
+                progressPercent = 85;
 
-                    File destDir = getMajesticaDir();
-                    ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
+                File destDir = getMajesticaDir();
+                ZipInputStream zis = null;
+                try {
+                    zis = new ZipInputStream(new FileInputStream(zipFile));
                     ZipEntry entry;
 
                     while ((entry = zis.getNextEntry()) != null) {
@@ -113,18 +129,22 @@ public class MajesticaDownloader {
                             newFile.mkdirs();
                         } else {
                             newFile.getParentFile().mkdirs();
-                            FileOutputStream out = new FileOutputStream(newFile);
-                            byte[] buf = new byte[4096];
-                            int len;
-                            while ((len = zis.read(buf)) > 0) {
-                                out.write(buf, 0, len);
+                            FileOutputStream out = null;
+                            try {
+                                out = new FileOutputStream(newFile);
+                                byte[] buf = new byte[4096];
+                                int len;
+                                while ((len = zis.read(buf)) > 0) {
+                                    out.write(buf, 0, len);
+                                }
+                            } finally {
+                                if (out != null) {
+                                    try { out.close(); } catch (IOException ignored) {}
+                                }
                             }
-                            out.close();
                         }
                         zis.closeEntry();
                     }
-                    zis.close();
-                    zipFile.delete();
 
                     progressPercent = 100;
                     statusMessage = "Færdig!";
@@ -135,9 +155,16 @@ public class MajesticaDownloader {
                     }
 
                 } catch (Throwable t) {
-                    System.err.println("[MajesticaDownloader] Download error: " + t.getMessage());
-                    statusMessage = "Fejl ved hentning: " + t.getMessage();
+                    System.err.println("[MajesticaDownloader] Extract error: " + t.getMessage());
+                    statusMessage = "Fejl ved udpakning: " + t.getMessage();
                     downloading = false;
+                } finally {
+                    if (zis != null) {
+                        try { zis.close(); } catch (IOException ignored) {}
+                    }
+                    if (zipFile.exists()) {
+                        zipFile.delete();
+                    }
                 }
             }
         }, "Majestica-Downloader");

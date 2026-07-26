@@ -12,6 +12,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -225,11 +226,14 @@ public class AutoUpdater {
                     + "mv -f \"" + pend + "\" \"" + fin + "\"\n"
                     + "rm -- \"$0\"\n";
         }
-        OutputStream out = new FileOutputStream(script);
+        OutputStream out = null;
         try {
+            out = new FileOutputStream(script);
             out.write(content.getBytes(UTF8));
         } finally {
-            out.close();
+            if (out != null) {
+                try { out.close(); } catch (IOException ignored) {}
+            }
         }
         return script;
     }
@@ -404,19 +408,21 @@ public class AutoUpdater {
             throw new Exception("Too many redirects");
         }
 
+        OutputStream out = null;
         try {
-            OutputStream out = new FileOutputStream(dest);
-            try {
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) != -1) {
-                    out.write(buf, 0, n);
-                }
-            } finally {
-                out.close();
+            out = new FileOutputStream(dest);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                out.write(buf, 0, n);
             }
         } finally {
-            in.close();
+            if (out != null) {
+                try { out.close(); } catch (IOException ignored) {}
+            }
+            if (in != null) {
+                try { in.close(); } catch (IOException ignored) {}
+            }
             conn.disconnect();
         }
     }

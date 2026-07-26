@@ -26,7 +26,7 @@ public final class AutoEat {
 
     /** Eat if hungry. Returns true while eating (the caller should hold still). */
     public static boolean tick(Minecraft mc) {
-        if (mc.thePlayer == null) {
+        if (mc.thePlayer == null || mc.thePlayer.inventory == null) {
             return false;
         }
         int food = mc.thePlayer.getFoodStats().getFoodLevel();
