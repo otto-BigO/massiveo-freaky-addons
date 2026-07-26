@@ -752,6 +752,10 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiCelleSettings());
     }
 
+    public static void openThemeEditor() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiThemeEditor());
+    }
+
     public static void openBotScreen() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiCelleBot());
     }

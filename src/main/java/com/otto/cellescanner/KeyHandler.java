@@ -23,6 +23,11 @@ public class KeyHandler {
         if (CelleScannerMod.autoMineKey != null && CelleScannerMod.autoMineKey.isPressed()) {
             CelleActions.toggleAutoMine();
         }
+        if (CelleScannerMod.armorKey != null && CelleScannerMod.armorKey.isPressed()) {
+            if (CelleScannerMod.config != null && CelleScannerMod.config.autoArmorEnabled) {
+                AutoArmor.toggleArmor();
+            }
+        }
         if (CelleScannerMod.phoneKey != null && CelleScannerMod.phoneKey.isPressed()) {
             CelleActions.openPhoneGui();
         }

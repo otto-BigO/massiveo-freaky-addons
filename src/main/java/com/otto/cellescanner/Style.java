@@ -3,14 +3,13 @@ package com.otto.cellescanner;
 import net.minecraft.client.gui.Gui;
 
 /**
- * Shared look-and-feel for the addon GUIs: flat dark rounded panels and a green
- * accent, in the spirit of SkyHanni / NotEnoughUpdates rather than vanilla's
- * stone buttons. Kept deliberately small - a couple of colors and a rounded
- * rectangle helper that everything draws through.
+ * Shared look-and-feel for the addon GUIs: flat dark rounded panels and customizable
+ * theme accents, in the spirit of modern web design. All cards and HUD components
+ * draw through Style using dynamic theme tokens from CelleConfig.
  */
 public final class Style {
 
-    public static final int ACCENT = 0xFF4BE08C;        // mint green accent
+    public static final int ACCENT = 0xFF4BE08C;        // mint green default accent
     public static final int PANEL_BORDER = 0xFF000000;
     public static final int PANEL_BG = 0xE6101014;      // dark translucent panel
 
@@ -25,10 +24,15 @@ public final class Style {
     private Style() {
     }
 
+    public static int getAccentColor() {
+        if (CelleScannerMod.config != null) {
+            return 0xFF000000 | (CelleScannerMod.config.themeAccentColor & 0xFFFFFF);
+        }
+        return ACCENT;
+    }
+
     /**
-     * A filled rectangle with 1px "rounded" corners (the corner pixels of the
-     * top and bottom rows are pulled in by one), which reads as a soft edge
-     * without needing a texture.
+     * A filled rectangle with 1px "rounded" corners.
      */
     public static void roundedRect(int x1, int y1, int x2, int y2, int color) {
         Gui.drawRect(x1 + 1, y1, x2 - 1, y1 + 1, color);
@@ -46,31 +50,28 @@ public final class Style {
         if ("Tracking".equalsIgnoreCase(category)) return COLOR_TRACKING;
         if ("Quality of life".equalsIgnoreCase(category)) return COLOR_QOL;
         if ("Automation".equalsIgnoreCase(category)) return COLOR_AUTO;
-        return 0xFFFFFFFF;
+        return getAccentColor();
     }
 
-    /** A panel: a dark rounded body with a gradient background and glowing borders. */
+    /** A panel: a dark rounded body with glowing theme borders. */
     public static void panel(int x1, int y1, int x2, int y2) {
+        int accent = getAccentColor();
+        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255)));
+
         // Outer border
         roundedRect(x1, y1, x2, y2, 0xFF14151E);
-        // Inner glowing border
-        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, 0x444BE08C); // alpha accent glow
-        
-        // Gradient fill
-        for (int y = y1 + 2; y < y2 - 2; y++) {
-            float ratio = (float)(y - y1) / (y2 - y1);
-            int r = (int)(0x18 * (1 - ratio) + 0x0A * ratio);
-            int g = (int)(0x18 * (1 - ratio) + 0x0A * ratio);
-            int b = (int)(0x22 * (1 - ratio) + 0x0F * ratio);
-            int color = 0xF0000000 | (r << 16) | (g << 8) | b;
-            Gui.drawRect(x1 + 2, y, x2 - 2, y + 1, color);
-        }
+        // Inner glowing border with theme accent
+        int glowColor = (0x55 << 24) | (accent & 0xFFFFFF);
+        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, glowColor);
+
+        // Dark card fill with user transparency
+        int bgColor = (alphaInt << 24) | 0x0A0A0F;
+        Gui.drawRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, bgColor);
     }
 
     /**
-     * A centered card the screen content sits inside, sized generously but
-     * clamped to the screen so it never runs off the edges. Every addon screen
-     * draws this right after the dimmed background for a consistent look.
+     * A centered card the screen content sits inside.
      */
     public static void card(int screenW, int screenH) {
         int cx = screenW / 2;

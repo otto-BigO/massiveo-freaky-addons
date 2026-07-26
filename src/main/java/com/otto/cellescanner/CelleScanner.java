@@ -216,6 +216,13 @@ public class CelleScanner {
             String u2 = line2.toUpperCase(java.util.Locale.ROOT);
             String u3 = line3.toUpperCase(java.util.Locale.ROOT);
 
+            String fullText = (u1 + " " + u2 + " " + u3);
+            if (fullText.contains("INFO") || fullText.contains("REGLER") || fullText.contains("SKILT")
+                    || fullText.contains("HJÆLP") || fullText.contains("PRIS") || fullText.contains("KLIK")
+                    || fullText.contains("VELKOMMEN") || fullText.contains("SPAWN")) {
+                continue;
+            }
+
             if (u1.contains("SOLGT")) {
                 status = CelleStatus.SOLGT;
                 owner = line2;
@@ -224,8 +231,7 @@ public class CelleScanner {
                 if (remaining < 0) {
                     continue;
                 }
-            } else if (u1.contains("TIL SALG") || u1.contains("LEDIG") || u1.contains("SALG") || u1.contains("LEJE")
-                    || u2.contains("TIL SALG") || u2.contains("LEDIG")) {
+            } else if (u1.contains("TIL SALG") || u1.contains("LEDIG") || u2.contains("TIL SALG") || u2.contains("LEDIG")) {
                 status = CelleStatus.TIL_SALG;
                 owner = null;
                 remaining = 0;
@@ -241,7 +247,7 @@ public class CelleScanner {
                 continue;
             }
 
-            if (celleId == null || celleId.isEmpty()) {
+            if (celleId == null || celleId.isEmpty() || !celleId.matches(".*\\d+.*")) {
                 continue;
             }
 

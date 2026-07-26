@@ -1,7 +1,6 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
@@ -9,6 +8,8 @@ import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.Vec3;
+import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.BufferUtils;
@@ -25,12 +26,12 @@ import java.nio.FloatBuffer;
  * 1. 2D Box (Clean 2D screen overlay box projected from entity bounds)
  * 2. Corners (Meteor-style bracket corners ┌ ┐ └ ┘)
  * 3. 3D Box (3D wireframe bounding box through walls)
- * 4. Outline (3D entity contour line outline)
+ * 4. Outline (3D Player Model wireframe contour outline via RenderPlayerEvent)
  *
- * Color Scheme:
- * - BLUE  : Bande Members & Friends
- * - GREEN : Vagter (Prison Guards)
- * - RED   : Other Players
+ * Custom ESP Colors from CelleConfig:
+ * - Blue  : Bande Members & Friends
+ * - Green : Vagter (Prison Guards)
+ * - Red   : Other Players
  */
 public class BandeEsp {
 
@@ -39,16 +40,73 @@ public class BandeEsp {
     private static final int[] VIEWPORT = new int[4];
 
     @SubscribeEvent
-    public void onRenderWorldLast(RenderWorldLastEvent event) {
+    public void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
         CelleConfig cfg = CelleScannerMod.config;
-        if (!cfg.bandeEspEnabled) {
-            return;
+        if (cfg == null || !cfg.bandeEspEnabled) return;
+
+        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        if (!mode.equalsIgnoreCase("Outline")) return;
+
+        EntityPlayer p = event.entityPlayer;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (p == null || p == mc.thePlayer) return;
+
+        boolean friend = isFriend(mc, p);
+        boolean bande = isBande(mc, p);
+        boolean vagt = isVagt(mc, p);
+
+        if (!friend && !bande && !vagt && !cfg.bandeEspAll) return;
+
+        float r, g, b;
+        if (friend || bande) {
+            r = ((cfg.espColorBande >> 16) & 0xFF) / 255f;
+            g = ((cfg.espColorBande >> 8) & 0xFF) / 255f;
+            b = (cfg.espColorBande & 0xFF) / 255f;
+        } else if (vagt) {
+            r = ((cfg.espColorVagt >> 16) & 0xFF) / 255f;
+            g = ((cfg.espColorVagt >> 8) & 0xFF) / 255f;
+            b = (cfg.espColorVagt & 0xFF) / 255f;
+        } else {
+            r = ((cfg.espColorOther >> 16) & 0xFF) / 255f;
+            g = ((cfg.espColorOther >> 8) & 0xFF) / 255f;
+            b = (cfg.espColorOther & 0xFF) / 255f;
         }
 
+        GlStateManager.pushMatrix();
+        GlStateManager.disableDepth();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableLighting();
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
+        GL11.glLineWidth(2.5f);
+        GlStateManager.color(r, g, b, 1.0f);
+    }
+
+    @SubscribeEvent
+    public void onRenderPlayerPost(RenderPlayerEvent.Post event) {
+        CelleConfig cfg = CelleScannerMod.config;
+        if (cfg == null || !cfg.bandeEspEnabled) return;
+
+        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        if (!mode.equalsIgnoreCase("Outline")) return;
+
+        EntityPlayer p = event.entityPlayer;
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null || mc.theWorld == null) {
-            return;
-        }
+        if (p == null || p == mc.thePlayer) return;
+
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
+        GlStateManager.enableLighting();
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.popMatrix();
+    }
+
+    @SubscribeEvent
+    public void onRenderWorldLast(RenderWorldLastEvent event) {
+        CelleConfig cfg = CelleScannerMod.config;
+        if (cfg == null || !cfg.bandeEspEnabled) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.theWorld == null) return;
 
         float partialTicks = event.partialTicks;
         Entity viewer = mc.thePlayer;
@@ -57,6 +115,7 @@ public class BandeEsp {
         double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
         String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        if (mode.equalsIgnoreCase("Outline")) return; // Rendered via RenderPlayerEvent above
 
         if (mode.equalsIgnoreCase("2D") || mode.equalsIgnoreCase("Corners")) {
             MODEL_MATRIX.rewind();
@@ -80,38 +139,36 @@ public class BandeEsp {
         GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
 
         for (Object obj : mc.theWorld.playerEntities) {
-            if (!(obj instanceof EntityPlayer)) {
-                continue;
-            }
+            if (!(obj instanceof EntityPlayer)) continue;
             EntityPlayer p = (EntityPlayer) obj;
-            if (p == mc.thePlayer) {
-                continue;
-            }
+            if (p == mc.thePlayer) continue;
 
             boolean friend = isFriend(mc, p);
             boolean bande = isBande(mc, p);
             boolean vagt = isVagt(mc, p);
 
-            if (!friend && !bande && !vagt && !cfg.bandeEspAll) {
-                continue;
-            }
+            if (!friend && !bande && !vagt && !cfg.bandeEspAll) continue;
 
-            // Colors: Blue = Bande & Friends, Green = Vagter, Red = Others
             float r, g, b;
             if (friend || bande) {
-                r = 0.0f; g = 0.65f; b = 1.0f; // Blue
+                r = ((cfg.espColorBande >> 16) & 0xFF) / 255f;
+                g = ((cfg.espColorBande >> 8) & 0xFF) / 255f;
+                b = (cfg.espColorBande & 0xFF) / 255f;
             } else if (vagt) {
-                r = 0.0f; g = 1.0f; b = 0.4f;  // Green
+                r = ((cfg.espColorVagt >> 16) & 0xFF) / 255f;
+                g = ((cfg.espColorVagt >> 8) & 0xFF) / 255f;
+                b = (cfg.espColorVagt & 0xFF) / 255f;
             } else {
-                r = 1.0f; g = 0.25f; b = 0.25f; // Red
+                r = ((cfg.espColorOther >> 16) & 0xFF) / 255f;
+                g = ((cfg.espColorOther >> 8) & 0xFF) / 255f;
+                b = (cfg.espColorOther & 0xFF) / 255f;
             }
 
-            if (mode.equalsIgnoreCase("3D") || mode.equalsIgnoreCase("Outline")) {
+            if (mode.equalsIgnoreCase("3D")) {
                 draw3DBox(p, partialTicks, r, g, b);
             } else if (mode.equalsIgnoreCase("Corners")) {
                 draw2DBrackets(mc, p, partialTicks, r, g, b);
             } else {
-                // Default: 2D Box
                 draw2DBox(mc, p, partialTicks, r, g, b);
             }
         }

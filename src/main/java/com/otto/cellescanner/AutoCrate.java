@@ -10,7 +10,8 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import java.lang.reflect.Method;
 
 /**
- * Auto-Crate Opener bot that left-clicks crate blocks when holding keys (tripwire hooks) and loops automatically.
+ * Auto-Crate Opener bot that left-clicks crate blocks when holding keys
+ * (tripwire hooks) and loops automatically.
  */
 public class AutoCrate {
 
@@ -62,7 +63,7 @@ public class AutoCrate {
         // If a chest GUI is currently open, we are watching the opening animation.
         if (mc.currentScreen instanceof GuiChest) {
             guiWasOpen = true;
-            tickCooldown = 15; // Set 15-tick (750ms) cooldown to run after the GUI closes.
+            tickCooldown = 1; // Set 15-tick (750ms) cooldown to run after the GUI closes.
             return;
         }
 
@@ -93,15 +94,15 @@ public class AutoCrate {
             if (keySlot != -1) {
                 // Auto switch held item to the key
                 mc.thePlayer.inventory.currentItem = keySlot;
-                tickCooldown = 5; // wait 250ms for client sync
+                tickCooldown = 1;
                 return;
             } else {
                 // No keys left! Disable Auto-Crate and notify player
                 CelleScannerMod.config.autoCrateEnabled = false;
                 CelleScannerMod.config.save();
                 mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                        net.minecraft.util.EnumChatFormatting.RED + "[Massiveo's addons] Alle kasser åbnet / ingen nøgler fundet! Auto-Crate deaktiveret."
-                ));
+                        net.minecraft.util.EnumChatFormatting.RED
+                                + "[Massiveo's addons] Alle kasser åbnet / ingen nøgler fundet! Auto-Crate deaktiveret."));
                 return;
             }
         }
@@ -110,7 +111,8 @@ public class AutoCrate {
         MovingObjectPosition mop = mc.objectMouseOver;
         if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
             rightClick();
-            // Fallback click timer: if the GUI doesn't open within 30 ticks (1.5s) due to a lag/miss, click again.
+            // Fallback click timer: if the GUI doesn't open within 30 ticks (1.5s) due to a
+            // lag/miss, click again.
             tickCooldown = 30;
         }
     }

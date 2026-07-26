@@ -7,14 +7,15 @@ import java.io.IOException;
 
 /**
  * Lightweight screen opened with "/celler move" that lets the player
- * click-and-drag the HUD to a new position. Position is saved to the
- * config file when this screen is closed.
+ * click-and-drag the HUD to a new position with visual grid snapping guides.
  */
 public class GuiCelleHudMover extends GuiScreen {
 
     private boolean dragging = false;
     private int offsetX;
     private int offsetY;
+    private boolean snappedX = false;
+    private boolean snappedY = false;
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
@@ -40,24 +41,47 @@ public class GuiCelleHudMover extends GuiScreen {
         if (dragging && this.mc != null) {
             int mouseX = Mouse.getX() * this.width / this.mc.displayWidth;
             int mouseY = this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
-            CelleScannerMod.config.hudX = mouseX - offsetX;
-            CelleScannerMod.config.hudY = mouseY - offsetY;
+            int newX = mouseX - offsetX;
+            int newY = mouseY - offsetY;
+
+            // Snap-to-Grid Math
+            snappedX = false;
+            snappedY = false;
+
+            int centerX = this.width / 2;
+            int centerY = this.height / 2;
+            int boxW = CelleHud.lastBoxRight - CelleHud.lastBoxLeft;
+            int boxH = CelleHud.lastBoxBottom - CelleHud.lastBoxTop;
+
+            // Snap to Center-X
+            if (Math.abs((newX + boxW / 2) - centerX) < 10) {
+                newX = centerX - boxW / 2;
+                snappedX = true;
+            } else if (Math.abs(newX - 10) < 8) {
+                newX = 10;
+                snappedX = true;
+            }
+
+            // Snap to Center-Y
+            if (Math.abs((newY + boxH / 2) - centerY) < 10) {
+                newY = centerY - boxH / 2;
+                snappedY = true;
+            } else if (Math.abs(newY - 10) < 8) {
+                newY = 10;
+                snappedY = true;
+            }
+
+            CelleScannerMod.config.hudX = newX;
+            CelleScannerMod.config.hudY = newY;
             clampToScreen();
         }
     }
 
-    /**
-     * Keep the whole HUD box on screen so it can never be dragged fully out of
-     * reach (which previously left no way back except hand-editing the config).
-     * The box is drawn from (hudX - 4, hudY - 4); CelleHud publishes its real
-     * rendered size, so derive the box width/height from that.
-     */
     private void clampToScreen() {
         int boxW = CelleHud.lastBoxRight - CelleHud.lastBoxLeft;
         int boxH = CelleHud.lastBoxBottom - CelleHud.lastBoxTop;
         int maxX = this.width - boxW;
         int maxY = this.height - boxH;
-        // hudX/hudY are the text origin; the box starts 4px up and left of it.
         CelleScannerMod.config.hudX = Math.max(4, Math.min(maxX + 4, CelleScannerMod.config.hudX));
         CelleScannerMod.config.hudY = Math.max(4, Math.min(maxY + 4, CelleScannerMod.config.hudY));
     }
@@ -65,17 +89,25 @@ public class GuiCelleHudMover extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        // Draw Center Snap Grid Guides when dragging
+        if (dragging) {
+            int cx = this.width / 2;
+            int cy = this.height / 2;
+            int accent = Style.getAccentColor();
+
+            // Center vertical & horizontal guides
+            drawRect(cx - 1, 0, cx + 1, this.height, snappedX ? accent : 0x44FFFFFF);
+            drawRect(0, cy - 1, this.width, cy + 1, snappedY ? accent : 0x44FFFFFF);
+        }
+
         drawCenteredString(this.fontRendererObj,
-                "Træk HUD'et med musen. Luk denne skærm (Esc) for at gemme placeringen.",
-                this.width / 2, 10, 0xFFFFFF);
+                "Træk HUD'et med musen. Snap-guide viser midterlinjer. Luk (Esc) for at gemme.",
+                this.width / 2, 12, Style.getAccentColor());
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
     private boolean isInsideHud(int mouseX, int mouseY) {
-        // Grab anywhere inside the box the HUD actually drew last frame, rather
-        // than a fixed 110x100 guess that no longer matches the now
-        // content-sized box (too small with long owner names / many entries,
-        // too big when nearly empty).
         return mouseX >= CelleHud.lastBoxLeft && mouseX <= CelleHud.lastBoxRight
                 && mouseY >= CelleHud.lastBoxTop && mouseY <= CelleHud.lastBoxBottom;
     }

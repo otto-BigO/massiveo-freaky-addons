@@ -388,6 +388,33 @@ public final class AddonList {
             }
         });
 
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Auto Armour";
+            }
+
+            public String description() {
+                return "Tryk R (hotkey) for at tage rustning på/af hurtigt";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return config.autoArmorEnabled;
+            }
+
+            public void open() {
+                AutoArmor.toggleArmor();
+            }
+
+            public void toggle() {
+                config.autoArmorEnabled = !config.autoArmorEnabled;
+                config.save();
+            }
+        });
+
         // Mod-brugere addon shelved for now - good idea, saved for later. The
         // code (GuiModIcon, ModUserIcon) is kept; to re-enable, restore this
         // registration and the ModUserIcon event registration in

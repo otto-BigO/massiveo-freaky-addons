@@ -24,6 +24,7 @@ public class GuiAddonsHub extends GuiScreen {
 
     private static final int ID_CLOSE = 1000;
     private static final int ID_BACK = 1001;
+    private static final int ID_THEME = 1002;
 
     private static final int ROW_H = 24;
     private static final int BTN_H = 20;
@@ -172,7 +173,9 @@ public class GuiAddonsHub extends GuiScreen {
                     this.itemButtons.add(b);
                     y += ROW_H;
                 }
-                this.buttonList.add(new StyledButton(ID_CLOSE, left, this.height / 2 + 110, PANEL_W, BTN_H, "Luk"));
+                int halfW = (PANEL_W - 4) / 2;
+                this.buttonList.add(new StyledButton(ID_THEME, left, this.height / 2 + 110, halfW, BTN_H, "🎨 Temaer"));
+                this.buttonList.add(new StyledButton(ID_CLOSE, left + halfW + 4, this.height / 2 + 110, halfW, BTN_H, "Luk"));
             } else {
                 levelAddons.addAll(MassiveoAddons.addonsIn(category));
                 int id = 0;
@@ -220,6 +223,10 @@ public class GuiAddonsHub extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == ID_CLOSE) {
             this.mc.displayGuiScreen(null);
+            return;
+        }
+        if (button.id == ID_THEME) {
+            CelleActions.openThemeEditor();
             return;
         }
         if (button.id == ID_BACK) {
@@ -318,9 +325,9 @@ public class GuiAddonsHub extends GuiScreen {
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
-        // Render other buttons (back/close) outside scissor
+        // Render other buttons (back/close/theme) outside scissor
         for (GuiButton b : this.buttonList) {
-            if (b.id == ID_CLOSE || b.id == ID_BACK) {
+            if (b.id == ID_CLOSE || b.id == ID_BACK || b.id == ID_THEME) {
                 b.drawButton(this.mc, mouseX, mouseY);
             }
         }

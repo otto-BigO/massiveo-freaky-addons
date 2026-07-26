@@ -244,6 +244,19 @@ public class CelleConfig {
     public boolean alert30sEnabled = true;
     public boolean alert10sEnabled = true;
 
+    // Custom Theme & Personalization Settings
+    public int themeAccentColor = 0x00FF88; // Default Emerald Matrix (#00FF88)
+    public float themeBgAlpha = 0.65f;
+    public int themeTitleStyle = 0; // 0 = Rainbow HSB, 1 = Pulsing Glow, 2 = Static Accent
+    public String alertSound = "note.pling"; // note.pling, random.levelup, orb.pickup, random.click
+
+    // Custom ESP Colors
+    public int espColorBande = 0x00A2FF; // Blue
+    public int espColorVagt = 0x00FF88;  // Green
+    public int espColorOther = 0xFF3366; // Red
+
+    public boolean autoArmorEnabled = true;
+
     // Armor HUD: shows your equipped armor pieces + durability on screen, with a
     // red warning when a piece drops below armorHudWarnPercent.
     public boolean armorHudEnabled = true;
