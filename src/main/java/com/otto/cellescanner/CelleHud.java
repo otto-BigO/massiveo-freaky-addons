@@ -45,6 +45,10 @@ public class CelleHud {
             return;
         }
 
+        if (CelleScannerMod.config != null && CelleScannerMod.config.debugOverlayEnabled) {
+            drawDebugOverlay(mc, mc.fontRendererObj);
+        }
+
         boolean editing = mc.currentScreen instanceof GuiCelleHudMover;
         if (!CelleScannerMod.config.enabled && !editing) {
             return;
@@ -161,5 +165,28 @@ public class CelleHud {
     public static String formatDuration(Celle c) {
         String base = formatDuration(c.liveRemainingSeconds());
         return c.timerConfirmed ? base : "~" + base;
+    }
+
+    private void drawDebugOverlay(Minecraft mc, FontRenderer fr) {
+        long totalMem = Runtime.getRuntime().totalMemory() / (1024 * 1024);
+        long freeMem = Runtime.getRuntime().freeMemory() / (1024 * 1024);
+        long usedMem = totalMem - freeMem;
+
+        int fps = Minecraft.getDebugFPS();
+        int entities = mc.theWorld != null ? mc.theWorld.loadedEntityList.size() : 0;
+        int accent = Style.getAccentColor();
+
+        int x = 6;
+        int y = 6;
+        int w = 150;
+        int h = 54;
+
+        Style.roundedRect(x, y, x + w, y + h, 0xDD0A0A0F);
+        Style.roundedRect(x + 1, y + 1, x + w - 1, y + h - 1, (0x66 << 24) | (accent & 0xFFFFFF));
+
+        fr.drawStringWithShadow("§lMassiveo Debug (F12)", x + 6, y + 4, accent);
+        fr.drawStringWithShadow("FPS: " + fps, x + 6, y + 16, 0xFFFFFF);
+        fr.drawStringWithShadow("Hukommelse: " + usedMem + "MB / " + totalMem + "MB", x + 6, y + 28, 0xAAAAAA);
+        fr.drawStringWithShadow("Entiteter: " + entities, x + 6, y + 40, 0xAAAAAA);
     }
 }

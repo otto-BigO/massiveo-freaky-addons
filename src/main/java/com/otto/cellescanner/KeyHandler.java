@@ -28,6 +28,16 @@ public class KeyHandler {
                 AutoArmor.toggleArmor();
             }
         }
+        if (CelleScannerMod.debugOverlayKey != null && CelleScannerMod.debugOverlayKey.isPressed()) {
+            if (CelleScannerMod.config != null) {
+                CelleScannerMod.config.debugOverlayEnabled = !CelleScannerMod.config.debugOverlayEnabled;
+                CelleScannerMod.config.save();
+                if (mc.thePlayer != null) {
+                    mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                            net.minecraft.util.EnumChatFormatting.AQUA + "[Debug Overlay] " + (CelleScannerMod.config.debugOverlayEnabled ? "TIL" : "FRA")));
+                }
+            }
+        }
         if (CelleScannerMod.phoneKey != null && CelleScannerMod.phoneKey.isPressed()) {
             CelleActions.openPhoneGui();
         }

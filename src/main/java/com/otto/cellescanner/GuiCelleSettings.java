@@ -2,14 +2,17 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
 /**
- * "Settings tab" for the HUD/ESP - turn optional info on/off (owner name,
- * status tag, distance, seconds, ESP labels), set how many HUD lines to show,
- * and read the color/symbol legend. Opened via the "Indstillinger" button in
- * the main menu, or /celler settings.
+ * Scrollable settings tab for HUD/ESP options (owner name, status tag,
+ * distance, seconds, ESP labels, max HUD entries). Features smooth viewport
+ * scrolling to accommodate unlimited future settings options cleanly.
  */
 public class GuiCelleSettings extends GuiScreen {
 
@@ -20,31 +23,30 @@ public class GuiCelleSettings extends GuiScreen {
     private static final int ID_ESP_LABELS = 4;
     private static final int ID_HUD_DOWN = 5;
     private static final int ID_HUD_UP = 6;
-    private static final int ID_BACK = 7;
-    private static final int ID_HUD_LABEL = -1000;
+    private static final int ID_BACK = 100;
 
     private static final int ROW_H = 24;
-    private static final int ROW_COUNT = 7;
-    private static final int CONTENT_H = ROW_H * ROW_COUNT;
-    private static final int BTN_H = 20;
-    private static final int PANEL_W = 200;
+    private static final int BTN_H = 18;
+    private static final int PANEL_W = 210;
+    private static final int VIEWPORT_H = 150;
 
     private GuiButton secondsButton;
     private GuiButton ownerButton;
     private GuiButton statusTagButton;
     private GuiButton distanceButton;
     private GuiButton espLabelsButton;
-    private GuiButton hudEntriesLabel;
 
-    private int legendY;
+    private float scroll = 0f;
+    private int targetScroll = 0;
+    private int maxScroll = 0;
 
     @Override
     public void initGui() {
         this.buttonList.clear();
 
-        int centerX = this.width / 2;
-        int left = centerX - PANEL_W / 2;
-        int y = this.height / 2 - CONTENT_H / 2;
+        int cx = this.width / 2;
+        int left = cx - PANEL_W / 2;
+        int y = this.height / 2 - 70;
 
         this.buttonList.add(secondsButton = new StyledButton(ID_SECONDS, left, y, PANEL_W, BTN_H, secondsLabel()));
         y += ROW_H;
@@ -57,17 +59,16 @@ public class GuiCelleSettings extends GuiScreen {
         this.buttonList.add(espLabelsButton = new StyledButton(ID_ESP_LABELS, left, y, PANEL_W, BTN_H, espLabelsLabel()));
         y += ROW_H;
 
-        // maxHudEntries stepper: - [label] +
-        this.buttonList.add(new StyledButton(ID_HUD_DOWN, left, y, 20, BTN_H, "-"));
-        this.buttonList.add(hudEntriesLabel = new StyledButton(ID_HUD_LABEL, left + 22, y, PANEL_W - 44, BTN_H, hudEntriesLabel()));
-        hudEntriesLabel.enabled = false;
-        this.buttonList.add(new StyledButton(ID_HUD_UP, left + PANEL_W - 20, y, 20, BTN_H, "+"));
-        y += ROW_H;
+        // maxHudEntries stepper buttons (- and +)
+        this.buttonList.add(new StyledButton(ID_HUD_DOWN, left, y, 22, BTN_H, "-"));
+        this.buttonList.add(new StyledButton(ID_HUD_UP, left + PANEL_W - 22, y, 22, BTN_H, "+"));
+        y += ROW_H + 10;
 
-        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
-        y += ROW_H + 6;
+        // Back button (placed outside scroll area)
+        this.buttonList.add(new StyledButton(ID_BACK, left, this.height / 2 + 82, PANEL_W, BTN_H, "< Tilbage"));
 
-        legendY = y;
+        int totalHeight = y - (this.height / 2 - 70);
+        maxScroll = Math.max(0, totalHeight - VIEWPORT_H);
     }
 
     private String secondsLabel() {
@@ -90,8 +91,36 @@ public class GuiCelleSettings extends GuiScreen {
         return "ESP celle-id label: " + (CelleScannerMod.config.espLabels ? "Til" : "Fra");
     }
 
-    private String hudEntriesLabel() {
-        return "Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries;
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        int d = Mouse.getDWheel();
+        if (d > 0) {
+            targetScroll -= ROW_H;
+        } else if (d < 0) {
+            targetScroll += ROW_H;
+        }
+        if (targetScroll < 0) targetScroll = 0;
+        if (targetScroll > maxScroll) targetScroll = maxScroll;
+    }
+
+    @Override
+    public void updateScreen() {
+        super.updateScreen();
+        float diff = targetScroll - scroll;
+        if (Math.abs(diff) > 0.05f) {
+            scroll += diff * 0.2f;
+        } else {
+            scroll = targetScroll;
+        }
+
+        int startY = this.height / 2 - 70 - (int) scroll;
+        int y = startY;
+        secondsButton.yPosition = y; y += ROW_H;
+        ownerButton.yPosition = y; y += ROW_H;
+        statusTagButton.yPosition = y; y += ROW_H;
+        distanceButton.yPosition = y; y += ROW_H;
+        espLabelsButton.yPosition = y;
     }
 
     @Override
@@ -119,11 +148,9 @@ public class GuiCelleSettings extends GuiScreen {
                 break;
             case ID_HUD_DOWN:
                 CelleActions.adjustMaxHudEntries(-1);
-                hudEntriesLabel.displayString = hudEntriesLabel();
                 break;
             case ID_HUD_UP:
                 CelleActions.adjustMaxHudEntries(1);
-                hudEntriesLabel.displayString = hudEntriesLabel();
                 break;
             case ID_BACK:
                 this.mc.displayGuiScreen(new GuiCelleMenu());
@@ -138,25 +165,43 @@ public class GuiCelleSettings extends GuiScreen {
         drawDefaultBackground();
         Style.card(this.width, this.height);
 
-        int titleY = this.height / 2 - CONTENT_H / 2 - 14;
-        drawCenteredString(this.fontRendererObj, "Celle Scanner - Indstillinger", this.width / 2, titleY, 0xFFFFFF);
+        int cx = this.width / 2;
+        int cy = this.height / 2;
+
+        int titleY = cy - 124;
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Indstillinger", cx, titleY, Style.getAccentColor());
+
+        // Render viewport scissoring for scrollable content
+        ScaledResolution sr = new ScaledResolution(this.mc);
+        int scale = sr.getScaleFactor();
+        int scissorX = (cx - PANEL_W / 2) * scale;
+        int scissorY = (this.mc.displayHeight - (cy + 75) * scale);
+        int scissorW = PANEL_W * scale;
+        int scissorH = VIEWPORT_H * scale;
+
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
+
+        for (GuiButton b : this.buttonList) {
+            if (b.id != ID_BACK) {
+                b.drawButton(this.mc, mouseX, mouseY);
+            }
+        }
+
+        // Draw HUD max entries label directly without using disabled button anti-pattern
+        int hudLabelY = cy - 70 - (int) scroll + 5 * ROW_H + 4;
+        drawCenteredString(this.fontRendererObj, "Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries, cx, hudLabelY, 0xFFFFFF);
+
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+        // Draw Back button outside scissor
+        for (GuiButton b : this.buttonList) {
+            if (b.id == ID_BACK) {
+                b.drawButton(this.mc, mouseX, mouseY);
+            }
+        }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
-
-        // Legend: what the ESP colors and the "~" prefix mean, so the HUD/ESP
-        // are self-explanatory without digging through the README.
-        int x = this.width / 2 - PANEL_W / 2;
-        int y = legendY;
-        int lh = this.fontRendererObj.FONT_HEIGHT + 1;
-        drawString(this.fontRendererObj, "Forklaring:", x, y, 0xFFFFFF);
-        y += lh;
-        drawString(this.fontRendererObj, "Grøn = til salg nu", x, y, 0x33FF55);
-        y += lh;
-        drawString(this.fontRendererObj, "Orange = solgt, bliver snart ledig", x, y, 0xFFAA00);
-        y += lh;
-        drawString(this.fontRendererObj, "Cyan = Celle Finder-mål", x, y, 0x55FFFF);
-        y += lh;
-        drawString(this.fontRendererObj, "~ foran tid/id = estimeret, ikke bekræftet endnu", x, y, 0xAAAAAA);
     }
 
     @Override

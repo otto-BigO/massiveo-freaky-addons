@@ -229,6 +229,7 @@ public class CelleConfig {
     // When debugEnabled is on, also mirror every debug message to massiveo_debug.log
     // in the config directory. Off by default so the file isn't created unless wanted.
     public Boolean debugLogEnabled = Boolean.FALSE;
+    public boolean debugOverlayEnabled = false;
 
     // Flip Case Opening: replaces the vanilla "Flip!" chest with a CS:GO-style
     // case-opening animation. On by default.

@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "3.0.3-test";
+    public static final String VERSION = "3.0.4-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -35,6 +35,7 @@ public class CelleScannerMod {
     public static KeyBinding majesticaKey;
     public static KeyBinding freecamKey;
     public static KeyBinding armorKey;
+    public static KeyBinding debugOverlayKey;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -78,6 +79,9 @@ public class CelleScannerMod {
 
         armorKey = new KeyBinding("key.cellescanner.armor", Keyboard.KEY_R, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(armorKey);
+
+        debugOverlayKey = new KeyBinding("key.cellescanner.debug", Keyboard.KEY_F12, "key.categories.cellescanner");
+        ClientRegistry.registerKeyBinding(debugOverlayKey);
 
         // majesticaKey = new KeyBinding("key.cellescanner.majestica", Keyboard.KEY_V, "key.categories.cellescanner");
         // ClientRegistry.registerKeyBinding(majesticaKey);
