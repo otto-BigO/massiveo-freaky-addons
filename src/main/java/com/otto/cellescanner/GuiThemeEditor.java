@@ -3,13 +3,15 @@ package com.otto.cellescanner;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.input.Mouse;
 
+import java.awt.Color;
 import java.io.IOException;
 
 /**
- * Live-previewable Theme & Appearance Customization screen.
- * Renders an interactive live preview card displaying live theme accents,
- * headers, status indicators, and card transparency in real-time.
+ * Live-previewable Theme & Appearance Customization screen with interactive HSV Color Picker.
+ * Features 6 instant presets, card transparency controls, alert sound selector, and a full
+ * interactive 2D HSV Color Picker for custom color selection!
  */
 public class GuiThemeEditor extends GuiScreen {
 
@@ -33,6 +35,13 @@ public class GuiThemeEditor extends GuiScreen {
     private GuiButton titleStyleBtn;
     private GuiButton soundStyleBtn;
 
+    // HSV Color Picker state
+    private float hue = 0.45f;
+    private float sat = 1.0f;
+    private float val = 1.0f;
+    private boolean draggingHue = false;
+    private boolean draggingSV = false;
+
     @Override
     public void initGui() {
         this.buttonList.clear();
@@ -43,7 +52,17 @@ public class GuiThemeEditor extends GuiScreen {
         int thirdW = (PANEL_W - 8) / 3;
         int halfW = (PANEL_W - 4) / 2;
 
-        int y = cy - 105;
+        // Initialize HSV state from config color
+        int currentColor = CelleScannerMod.config != null ? CelleScannerMod.config.themeAccentColor : 0x00FF88;
+        int r = (currentColor >> 16) & 0xFF;
+        int g = (currentColor >> 8) & 0xFF;
+        int b = currentColor & 0xFF;
+        float[] hsb = Color.RGBtoHSB(r, g, b, null);
+        this.hue = hsb[0];
+        this.sat = hsb[1];
+        this.val = hsb[2];
+
+        int y = cy - 128;
 
         // Row 1: Theme Presets Row 1 (Emerald, Cyan, Lilla)
         this.buttonList.add(new StyledButton(ID_PRESET_EMERALD, left, y, thirdW, BTN_H, "Emerald"));
@@ -57,6 +76,9 @@ public class GuiThemeEditor extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_PRESET_STEALTH, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Mørk"));
         y += 26;
 
+        // Space reserved for Interactive HSV Color Picker (y + 54px)
+        y += 54;
+
         // Row 3: Card Transparency Stepper using NumericStepper
         alphaStepper = new NumericStepper(ID_ALPHA_DOWN, ID_ALPHA_UP, left, y, PANEL_W, BTN_H);
         this.buttonList.add(alphaStepper.getBtnDown());
@@ -66,10 +88,32 @@ public class GuiThemeEditor extends GuiScreen {
         // Row 4: Title Effect & Countdown Chime Sound
         this.buttonList.add(titleStyleBtn = new StyledButton(ID_TITLE_STYLE, left, y, halfW, BTN_H, titleStyleLabel()));
         this.buttonList.add(soundStyleBtn = new StyledButton(ID_SOUND_STYLE, left + halfW + 4, y, halfW, BTN_H, soundStyleLabel()));
-        y += 72; // Space for Live Preview Card
+        y += 50; // Space for Live Preview Card
 
         // Row 5: Back to Hub
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
+    }
+
+    private void updatePickerFromPreset(int hexColor) {
+        if (CelleScannerMod.config != null) {
+            CelleScannerMod.config.themeAccentColor = hexColor;
+            CelleScannerMod.config.save();
+        }
+        int r = (hexColor >> 16) & 0xFF;
+        int g = (hexColor >> 8) & 0xFF;
+        int b = hexColor & 0xFF;
+        float[] hsb = Color.RGBtoHSB(r, g, b, null);
+        this.hue = hsb[0];
+        this.sat = hsb[1];
+        this.val = hsb[2];
+    }
+
+    private void applyColour() {
+        int argb = Color.HSBtoRGB(hue, sat, val) | 0xFF000000;
+        if (CelleScannerMod.config != null) {
+            CelleScannerMod.config.themeAccentColor = argb;
+            CelleScannerMod.config.save();
+        }
     }
 
     private String alphaLabel() {
@@ -93,32 +137,35 @@ public class GuiThemeEditor extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case ID_PRESET_EMERALD:
-                CelleScannerMod.config.themeAccentColor = 0x00FF88;
+                updatePickerFromPreset(0x00FF88);
                 break;
             case ID_PRESET_CYAN:
-                CelleScannerMod.config.themeAccentColor = 0x00E5FF;
+                updatePickerFromPreset(0x00E5FF);
                 break;
             case ID_PRESET_PURPLE:
-                CelleScannerMod.config.themeAccentColor = 0xB026FF;
+                updatePickerFromPreset(0xB026FF);
                 break;
             case ID_PRESET_PINK:
-                CelleScannerMod.config.themeAccentColor = 0xFF2A85;
+                updatePickerFromPreset(0xFF2A85);
                 break;
             case ID_PRESET_GOLD:
-                CelleScannerMod.config.themeAccentColor = 0xFF9900;
+                updatePickerFromPreset(0xFF9900);
                 break;
             case ID_PRESET_STEALTH:
-                CelleScannerMod.config.themeAccentColor = 0x505868;
+                updatePickerFromPreset(0x505868);
                 break;
             case ID_ALPHA_DOWN:
                 CelleScannerMod.config.themeBgAlpha = Math.max(0.20f, CelleScannerMod.config.themeBgAlpha - 0.05f);
+                CelleScannerMod.config.save();
                 break;
             case ID_ALPHA_UP:
                 CelleScannerMod.config.themeBgAlpha = Math.min(0.95f, CelleScannerMod.config.themeBgAlpha + 0.05f);
+                CelleScannerMod.config.save();
                 break;
             case ID_TITLE_STYLE:
                 CelleScannerMod.config.themeTitleStyle = (CelleScannerMod.config.themeTitleStyle + 1) % 3;
                 titleStyleBtn.displayString = titleStyleLabel();
+                CelleScannerMod.config.save();
                 break;
             case ID_SOUND_STYLE:
                 String s = CelleScannerMod.config.alertSound;
@@ -127,6 +174,7 @@ public class GuiThemeEditor extends GuiScreen {
                 else if (s.contains("orb")) CelleScannerMod.config.alertSound = "random.click";
                 else CelleScannerMod.config.alertSound = "note.pling";
                 soundStyleBtn.displayString = soundStyleLabel();
+                CelleScannerMod.config.save();
                 break;
             case ID_BACK:
                 CelleActions.openHub();
@@ -134,8 +182,68 @@ public class GuiThemeEditor extends GuiScreen {
             default:
                 break;
         }
+    }
 
-        CelleScannerMod.config.save();
+    @Override
+    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        super.mouseClicked(mouseX, mouseY, mouseButton);
+
+        if (mouseButton == 0) {
+            int cx = this.width / 2;
+            int cy = this.height / 2;
+            int left = cx - PANEL_W / 2;
+
+            // Hue Bar bounds: left, cy - 78, width = PANEL_W, height = 10
+            int hueX = left;
+            int hueY = cy - 78;
+            int hueW = PANEL_W;
+            int hueH = 10;
+
+            if (mouseX >= hueX && mouseX <= hueX + hueW && mouseY >= hueY && mouseY <= hueY + hueH) {
+                draggingHue = true;
+                updateHueFromMouse(mouseX, hueX, hueW);
+                return;
+            }
+
+            // SV Box bounds: left, cy - 64, width = PANEL_W, height = 34
+            int svX = left;
+            int svY = cy - 64;
+            int svW = PANEL_W;
+            int svH = 34;
+
+            if (mouseX >= svX && mouseX <= svX + svW && mouseY >= svY && mouseY <= svY + svH) {
+                draggingSV = true;
+                updateSVFromMouse(mouseX, mouseY, svX, svY, svW, svH);
+                return;
+            }
+        }
+    }
+
+    @Override
+    protected void mouseReleased(int mouseX, int mouseY, int state) {
+        super.mouseReleased(mouseX, mouseY, state);
+        if (state == 0) {
+            draggingHue = false;
+            draggingSV = false;
+        }
+    }
+
+    private void updateHueFromMouse(int mouseX, int hueX, int hueW) {
+        float sx = (float) (mouseX - hueX) / (float) hueW;
+        if (sx < 0f) sx = 0f;
+        if (sx > 1f) sx = 1f;
+        this.hue = sx;
+        applyColour();
+    }
+
+    private void updateSVFromMouse(int mouseX, int mouseY, int svX, int svY, int svW, int svH) {
+        float sx = (float) (mouseX - svX) / (float) svW;
+        float sy = (float) (mouseY - svY) / (float) svH;
+        if (sx < 0f) sx = 0f; if (sx > 1f) sx = 1f;
+        if (sy < 0f) sy = 0f; if (sy > 1f) sy = 1f;
+        this.sat = sx;
+        this.val = 1f - sy;
+        applyColour();
     }
 
     @Override
@@ -145,11 +253,57 @@ public class GuiThemeEditor extends GuiScreen {
 
         int cx = this.width / 2;
         int cy = this.height / 2;
+        int left = cx - PANEL_W / 2;
 
-        int titleY = cy - 128;
+        int titleY = cy - 142;
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Tema & Udseende", cx, titleY, Style.getAccentColor());
 
+        // Handle active dragging mouse events
+        if (Mouse.isButtonDown(0)) {
+            int hueX = left;
+            int hueY = cy - 78;
+            int hueW = PANEL_W;
+            if (draggingHue) {
+                updateHueFromMouse(mouseX, hueX, hueW);
+            }
+
+            int svX = left;
+            int svY = cy - 64;
+            int svW = PANEL_W;
+            int svH = 34;
+            if (draggingSV) {
+                updateSVFromMouse(mouseX, mouseY, svX, svY, svW, svH);
+            }
+        } else {
+            draggingHue = false;
+            draggingSV = false;
+        }
+
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        // Render Interactive Hue Bar Spectrum
+        int hueX = left;
+        int hueY = cy - 78;
+        int hueW = PANEL_W;
+        int hueH = 10;
+        drawHueBar(hueX, hueY, hueW, hueH);
+
+        // Draw Hue indicator cursor line
+        int cursorHueX = hueX + (int) (this.hue * hueW);
+        drawRect(cursorHueX - 1, hueY - 1, cursorHueX + 1, hueY + hueH + 1, 0xFFFFFFFF);
+
+        // Render Interactive SV Box Gradient
+        int svX = left;
+        int svY = cy - 64;
+        int svW = PANEL_W;
+        int svH = 34;
+        drawSVBox(svX, svY, svW, svH, this.hue);
+
+        // Draw SV indicator cursor dot
+        int cursorSvX = svX + (int) (this.sat * svW);
+        int cursorSvY = svY + (int) ((1f - this.val) * svH);
+        Style.roundedRect(cursorSvX - 2, cursorSvY - 2, cursorSvX + 2, cursorSvY + 2, 0xFFFFFFFF);
+        Style.roundedRect(cursorSvX - 1, cursorSvY - 1, cursorSvX + 1, cursorSvY + 1, Style.getAccentColor());
 
         // Draw NumericStepper label
         if (alphaStepper != null) {
@@ -157,7 +311,31 @@ public class GuiThemeEditor extends GuiScreen {
         }
 
         // Live Theme Mini Preview Card
-        drawLivePreviewCard(cx, cy - 31);
+        drawLivePreviewCard(cx, cy + 24);
+    }
+
+    private void drawHueBar(int x, int y, int width, int height) {
+        Style.roundedRect(x - 1, y - 1, x + width + 1, y + height + 1, 0xFF14151E);
+        for (int i = 0; i < width; i++) {
+            float h = (float) i / (float) width;
+            int rgb = Color.HSBtoRGB(h, 1.0f, 1.0f) | 0xFF000000;
+            drawRect(x + i, y, x + i + 1, y + height, rgb);
+        }
+    }
+
+    private void drawSVBox(int x, int y, int width, int height, float currentHue) {
+        Style.roundedRect(x - 1, y - 1, x + width + 1, y + height + 1, 0xFF14151E);
+        int stepX = Math.max(1, width / 40);
+        int stepY = Math.max(1, height / 16);
+
+        for (int px = 0; px < width; px += stepX) {
+            float s = (float) px / (float) width;
+            for (int py = 0; py < height; py += stepY) {
+                float v = 1.0f - ((float) py / (float) height);
+                int rgb = Color.HSBtoRGB(currentHue, s, v) | 0xFF000000;
+                drawRect(x + px, y + py, x + px + stepX, y + py + stepY, rgb);
+            }
+        }
     }
 
     private void drawLivePreviewCard(int cx, int topY) {
@@ -181,7 +359,7 @@ public class GuiThemeEditor extends GuiScreen {
         this.fontRendererObj.drawStringWithShadow("Live Tema-Forhåndsvisning", x1 + 8, y1 + 6, accent);
         this.fontRendererObj.drawStringWithShadow("A-12  (0h 14m)", x1 + 8, y1 + 22, 0xCCCCCC);
 
-        String pill = EnumChatFormatting.GREEN + "[ TIL ]";
+        String pill = Style.getAccentFormatting() + "[ TIL ]";
         this.fontRendererObj.drawStringWithShadow(pill, x2 - 8 - this.fontRendererObj.getStringWidth(pill), y1 + 22, 0xFFFFFF);
     }
 
