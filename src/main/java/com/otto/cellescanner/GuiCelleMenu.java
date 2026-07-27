@@ -168,7 +168,7 @@ public class GuiCelleMenu extends GuiScreen {
         int cy = this.height / 2;
 
         int titleY = cy - 134;
-        drawCenteredString(this.fontRendererObj, EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD + "Celle Scanner", cx, titleY, 0x00FF88);
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Celle Scanner", cx, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Hold Shift for +/- 5 timer", cx, titleY + 12, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);

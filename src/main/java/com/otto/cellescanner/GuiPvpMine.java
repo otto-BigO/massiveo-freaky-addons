@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.EnumChatFormatting;
 
 import java.io.IOException;
 
@@ -63,7 +64,7 @@ public class GuiPvpMine extends GuiScreen {
 
         int cx = this.width / 2;
         int titleY = this.height / 2 - 68;
-        drawCenteredString(this.fontRendererObj, "PvP Mine", cx, titleY, 0xFFD24B);
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "PvP Mine", cx, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Drop-timer (skilt) + alarm når en spiller er i minen.", cx, titleY + 12, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "HUD vises nederst til venstre.", cx, titleY + 22, 0x888888);
 

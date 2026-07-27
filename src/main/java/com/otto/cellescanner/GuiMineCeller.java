@@ -179,7 +179,7 @@ public class GuiMineCeller extends GuiScreen {
         int cy = this.height / 2;
         int titleY = cy - 126;
 
-        drawCenteredString(this.fontRendererObj, "Mine Celler", cx, titleY, 0x55FF55);
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Mine Celler", cx, titleY, Style.getAccentColor());
 
         idField.drawTextBox();
         List<String> ids = CelleScannerMod.config.myCelleIds;

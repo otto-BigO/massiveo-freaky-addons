@@ -61,7 +61,7 @@ public class GuiAutoMine extends GuiScreen {
 
         int cx = this.width / 2;
         int titleY = this.height / 2 + TITLE_Y_OFF;
-        drawCenteredString(this.fontRendererObj, "Auto Mine", cx, titleY, 0xFFD24B);
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Auto Mine", cx, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Miner mine-området og går til depot når tasken er fuld.",
                 cx, titleY + 14, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "Automatisering - brug kun hvor serveren tillader det.",

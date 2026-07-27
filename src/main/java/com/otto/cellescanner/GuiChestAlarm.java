@@ -150,7 +150,7 @@ public class GuiChestAlarm extends GuiScreen {
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 80 - 28;
-        drawCenteredString(this.fontRendererObj, "Chest Alarm", this.width / 2, titleY, 0xFF5555);
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Chest Alarm", this.width / 2, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Notifikation + lyd når en chest bliver åbnet i chatten.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         int left = this.width / 2 - FIELD_W / 2;

@@ -214,12 +214,12 @@ public class GuiChestOrganizer extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
-        // Draw Card Background
-        Style.roundedRect(startX - 1, startY - 1, startX + guiWidth + 1, startY + guiHeight + 1, 0x334BE08C); // glow border
+        int accent = Style.getAccentColor();
+        Style.roundedRect(startX - 1, startY - 1, startX + guiWidth + 1, startY + guiHeight + 1, (0x66 << 24) | (accent & 0xFFFFFF)); // glow border
         drawRect(startX, startY, startX + guiWidth, startY + guiHeight, 0xCC0C0C12); // background
 
         // Title
-        drawCenteredString(this.fontRendererObj, "Kiste-Organisering", startX + guiWidth / 2, startY + 15, 0x55FF55);
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Kiste-Organisering", startX + guiWidth / 2, startY + 15, accent);
 
         // Draw Search Input Box Label
         drawString(this.fontRendererObj, "Søg efter genstand:", startX + 15, startY + 25, 0x888888);

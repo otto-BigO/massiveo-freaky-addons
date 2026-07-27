@@ -111,7 +111,7 @@ public class GuiTroll extends GuiScreen {
 
         int cx = this.width / 2;
         int titleY = this.height / 2 - 92 - 24;
-        drawCenteredString(this.fontRendererObj, "Troll Lyde", cx, titleY, 0xFFD24B);
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Troll Lyde", cx, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Fjollede lyde kun du hører, på dine begivenheder.", cx, titleY + 12, 0xAAAAAA);
 
         super.drawScreen(mouseX, mouseY, partialTicks);

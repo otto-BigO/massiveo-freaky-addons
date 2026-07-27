@@ -241,7 +241,7 @@ public class GuiBande extends GuiScreen {
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 118 - 22;
-        drawCenteredString(this.fontRendererObj, "Bande ESP", this.width / 2, titleY, 0xFF5555);
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Bande ESP", this.width / 2, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Bande = grøn kasse. \"ESP på alle\" = rød kasse på alle andre.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         nameField.drawTextBox();
