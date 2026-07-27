@@ -35,6 +35,7 @@ public class GuiCelleSettings extends GuiScreen {
     private GuiButton statusTagButton;
     private GuiButton distanceButton;
     private GuiButton espLabelsButton;
+    private NumericStepper hudStepper;
 
     private float scroll = 0f;
     private int targetScroll = 0;
@@ -59,9 +60,10 @@ public class GuiCelleSettings extends GuiScreen {
         this.buttonList.add(espLabelsButton = new StyledButton(ID_ESP_LABELS, left, y, PANEL_W, BTN_H, espLabelsLabel()));
         y += ROW_H;
 
-        // maxHudEntries stepper buttons (- and +)
-        this.buttonList.add(new StyledButton(ID_HUD_DOWN, left, y, 22, BTN_H, "-"));
-        this.buttonList.add(new StyledButton(ID_HUD_UP, left + PANEL_W - 22, y, 22, BTN_H, "+"));
+        // maxHudEntries stepper using NumericStepper
+        hudStepper = new NumericStepper(ID_HUD_DOWN, ID_HUD_UP, left, y, PANEL_W, BTN_H);
+        this.buttonList.add(hudStepper.getBtnDown());
+        this.buttonList.add(hudStepper.getBtnUp());
         y += ROW_H + 10;
 
         // Back button (placed outside scroll area)
@@ -120,7 +122,10 @@ public class GuiCelleSettings extends GuiScreen {
         ownerButton.yPosition = y; y += ROW_H;
         statusTagButton.yPosition = y; y += ROW_H;
         distanceButton.yPosition = y; y += ROW_H;
-        espLabelsButton.yPosition = y;
+        espLabelsButton.yPosition = y; y += ROW_H;
+        if (hudStepper != null) {
+            hudStepper.updatePosition(this.width / 2 - PANEL_W / 2, y);
+        }
     }
 
     @Override
@@ -188,9 +193,10 @@ public class GuiCelleSettings extends GuiScreen {
             }
         }
 
-        // Draw HUD max entries label directly without using disabled button anti-pattern
-        int hudLabelY = cy - 70 - (int) scroll + 5 * ROW_H + 4;
-        drawCenteredString(this.fontRendererObj, "Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries, cx, hudLabelY, 0xFFFFFF);
+        // Draw HUD max entries stepper label via NumericStepper
+        if (hudStepper != null) {
+            hudStepper.draw(this.mc, mouseX, mouseY, "Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries);
+        }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 

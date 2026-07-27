@@ -173,20 +173,23 @@ public class CelleHud {
         long usedMem = totalMem - freeMem;
 
         int fps = Minecraft.getDebugFPS();
+        float renderMs = fps > 0 ? (1000.0f / fps) : 0f;
         int entities = mc.theWorld != null ? mc.theWorld.loadedEntityList.size() : 0;
+        int activeAddons = MassiveoAddons.all().size();
         int accent = Style.getAccentColor();
 
         int x = 6;
         int y = 6;
-        int w = 150;
-        int h = 54;
+        int w = 175;
+        int h = 66;
 
-        Style.roundedRect(x, y, x + w, y + h, 0xDD0A0A0F);
+        Style.roundedRect(x, y, x + w, y + h, 0xEE0A0A0F);
         Style.roundedRect(x + 1, y + 1, x + w - 1, y + h - 1, (0x66 << 24) | (accent & 0xFFFFFF));
 
         fr.drawStringWithShadow("§lMassiveo Debug (F12)", x + 6, y + 4, accent);
-        fr.drawStringWithShadow("FPS: " + fps, x + 6, y + 16, 0xFFFFFF);
+        fr.drawStringWithShadow(String.format("FPS: %d  (%.1f ms)", fps, renderMs), x + 6, y + 16, 0xFFFFFF);
         fr.drawStringWithShadow("Hukommelse: " + usedMem + "MB / " + totalMem + "MB", x + 6, y + 28, 0xAAAAAA);
-        fr.drawStringWithShadow("Entiteter: " + entities, x + 6, y + 40, 0xAAAAAA);
+        fr.drawStringWithShadow("Entiteter: " + entities + "  |  Addons: " + activeAddons, x + 6, y + 40, 0xAAAAAA);
+        fr.drawStringWithShadow("Tema Farve: #" + Integer.toHexString(accent & 0xFFFFFF).toUpperCase(), x + 6, y + 52, accent);
     }
 }

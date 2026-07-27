@@ -64,4 +64,8 @@ public final class MassiveoAddons {
         }
         return list;
     }
+
+    public static List<Addon> all() {
+        return ADDONS;
+    }
 }

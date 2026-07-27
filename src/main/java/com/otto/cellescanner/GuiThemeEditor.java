@@ -7,9 +7,9 @@ import net.minecraft.util.EnumChatFormatting;
 import java.io.IOException;
 
 /**
- * Redesigned, clean, non-overlapping Theme & Appearance Customization screen.
- * Features live color swatches for 6 theme presets, card transparency slider,
- * title animation effects, and countdown alert sound chime selector.
+ * Live-previewable Theme & Appearance Customization screen.
+ * Renders an interactive live preview card displaying live theme accents,
+ * headers, status indicators, and card transparency in real-time.
  */
 public class GuiThemeEditor extends GuiScreen {
 
@@ -26,10 +26,10 @@ public class GuiThemeEditor extends GuiScreen {
     private static final int ID_SOUND_STYLE = 9;
     private static final int ID_BACK = 10;
 
-    private static final int PANEL_W = 220;
+    private static final int PANEL_W = 230;
     private static final int BTN_H = 18;
 
-    private GuiButton alphaLabelBtn;
+    private NumericStepper alphaStepper;
     private GuiButton titleStyleBtn;
     private GuiButton soundStyleBtn;
 
@@ -43,31 +43,30 @@ public class GuiThemeEditor extends GuiScreen {
         int thirdW = (PANEL_W - 8) / 3;
         int halfW = (PANEL_W - 4) / 2;
 
-        int y = cy - 100;
+        int y = cy - 105;
 
         // Row 1: Theme Presets Row 1 (Emerald, Cyan, Lilla)
         this.buttonList.add(new StyledButton(ID_PRESET_EMERALD, left, y, thirdW, BTN_H, "Emerald"));
         this.buttonList.add(new StyledButton(ID_PRESET_CYAN, left + thirdW + 4, y, thirdW, BTN_H, "Cyan"));
         this.buttonList.add(new StyledButton(ID_PRESET_PURPLE, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Lilla"));
-        y += 24;
+        y += 22;
 
         // Row 2: Theme Presets Row 2 (Pink, Guld, Mørk)
         this.buttonList.add(new StyledButton(ID_PRESET_PINK, left, y, thirdW, BTN_H, "Pink"));
         this.buttonList.add(new StyledButton(ID_PRESET_GOLD, left + thirdW + 4, y, thirdW, BTN_H, "Guld"));
         this.buttonList.add(new StyledButton(ID_PRESET_STEALTH, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Mørk"));
-        y += 28;
-
-        // Row 3: Card Transparency Stepper
-        this.buttonList.add(new StyledButton(ID_ALPHA_DOWN, left, y, 24, BTN_H, "-"));
-        this.buttonList.add(alphaLabelBtn = new StyledButton(ID_ALPHA_DOWN - 100, left + 26, y, PANEL_W - 52, BTN_H, alphaLabel()));
-        alphaLabelBtn.enabled = false;
-        this.buttonList.add(new StyledButton(ID_ALPHA_UP, left + PANEL_W - 24, y, 24, BTN_H, "+"));
         y += 26;
+
+        // Row 3: Card Transparency Stepper using NumericStepper
+        alphaStepper = new NumericStepper(ID_ALPHA_DOWN, ID_ALPHA_UP, left, y, PANEL_W, BTN_H);
+        this.buttonList.add(alphaStepper.getBtnDown());
+        this.buttonList.add(alphaStepper.getBtnUp());
+        y += 24;
 
         // Row 4: Title Effect & Countdown Chime Sound
         this.buttonList.add(titleStyleBtn = new StyledButton(ID_TITLE_STYLE, left, y, halfW, BTN_H, titleStyleLabel()));
         this.buttonList.add(soundStyleBtn = new StyledButton(ID_SOUND_STYLE, left + halfW + 4, y, halfW, BTN_H, soundStyleLabel()));
-        y += 32;
+        y += 72; // Space for Live Preview Card
 
         // Row 5: Back to Hub
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
@@ -113,11 +112,9 @@ public class GuiThemeEditor extends GuiScreen {
                 break;
             case ID_ALPHA_DOWN:
                 CelleScannerMod.config.themeBgAlpha = Math.max(0.20f, CelleScannerMod.config.themeBgAlpha - 0.05f);
-                alphaLabelBtn.displayString = alphaLabel();
                 break;
             case ID_ALPHA_UP:
                 CelleScannerMod.config.themeBgAlpha = Math.min(0.95f, CelleScannerMod.config.themeBgAlpha + 0.05f);
-                alphaLabelBtn.displayString = alphaLabel();
                 break;
             case ID_TITLE_STYLE:
                 CelleScannerMod.config.themeTitleStyle = (CelleScannerMod.config.themeTitleStyle + 1) % 3;
@@ -149,11 +146,43 @@ public class GuiThemeEditor extends GuiScreen {
         int cx = this.width / 2;
         int cy = this.height / 2;
 
-        int titleY = cy - 126;
+        int titleY = cy - 128;
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Tema & Udseende", cx, titleY, Style.getAccentColor());
-        drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Vælg din personlige farve og stil", cx, titleY + 12, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        // Draw NumericStepper label
+        if (alphaStepper != null) {
+            alphaStepper.draw(this.mc, mouseX, mouseY, alphaLabel());
+        }
+
+        // Live Theme Mini Preview Card
+        drawLivePreviewCard(cx, cy - 31);
+    }
+
+    private void drawLivePreviewCard(int cx, int topY) {
+        int w = 180;
+        int h = 42;
+        int x1 = cx - w / 2;
+        int y1 = topY;
+        int x2 = cx + w / 2;
+        int y2 = topY + h;
+
+        int accent = Style.getAccentColor();
+        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255)));
+
+        // Outer & Inner border with dynamic accent
+        Style.roundedRect(x1, y1, x2, y2, 0xFF14151E);
+        Style.roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, (0x66 << 24) | (accent & 0xFFFFFF));
+        Style.roundedRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, (alphaInt << 24) | 0x0A0A0F);
+
+        // Sample text & active pill
+        this.fontRendererObj.drawStringWithShadow("Live Tema-Forhåndsvisning", x1 + 8, y1 + 6, accent);
+        this.fontRendererObj.drawStringWithShadow("A-12  (0h 14m)", x1 + 8, y1 + 22, 0xCCCCCC);
+
+        String pill = EnumChatFormatting.GREEN + "[ TIL ]";
+        this.fontRendererObj.drawStringWithShadow(pill, x2 - 8 - this.fontRendererObj.getStringWidth(pill), y1 + 22, 0xFFFFFF);
     }
 
     @Override
