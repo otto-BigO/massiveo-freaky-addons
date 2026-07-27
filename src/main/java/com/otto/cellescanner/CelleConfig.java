@@ -230,6 +230,8 @@ public class CelleConfig {
     // in the config directory. Off by default so the file isn't created unless wanted.
     public Boolean debugLogEnabled = Boolean.FALSE;
     public boolean debugOverlayEnabled = false;
+    public int debugX = 6;
+    public int debugY = 6;
 
     // Flip Case Opening: replaces the vanilla "Flip!" chest with a CS:GO-style
     // case-opening animation. On by default.

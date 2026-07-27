@@ -189,8 +189,8 @@ public class CelleHud {
         int activeAddons = MassiveoAddons.all().size();
         int accent = Style.getAccentColor();
 
-        int x = 6;
-        int y = 6;
+        int x = CelleScannerMod.config != null ? CelleScannerMod.config.debugX : 6;
+        int y = CelleScannerMod.config != null ? CelleScannerMod.config.debugY : 6;
         int w = 175;
         int h = 66;
 

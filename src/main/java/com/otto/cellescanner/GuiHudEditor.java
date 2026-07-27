@@ -102,6 +102,16 @@ public class GuiHudEditor extends GuiScreen {
             int defX(int sw) { return 4; }
             int defY(int sh) { return sh - h() - 4; }
         });
+        huds.add(new Hud("Debug Overlay (F12)") {
+            int w() { return 175; }
+            int h() { return 66; }
+            int cfgX() { return cfg.debugX; }
+            int cfgY() { return cfg.debugY; }
+            void setPos(int x, int y) { cfg.debugX = x; cfg.debugY = y; }
+            void reset() { cfg.debugX = 6; cfg.debugY = 6; }
+            int defX(int sw) { return 6; }
+            int defY(int sh) { return 6; }
+        });
 
         int bw = 90;
         this.buttonList.add(new StyledButton(ID_RESET, this.width / 2 - bw - 4, this.height - 24, bw, 20, "Nulstil"));
