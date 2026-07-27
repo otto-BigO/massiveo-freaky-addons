@@ -8,32 +8,62 @@ import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C0DPacketCloseWindow;
 import net.minecraft.network.play.client.C16PacketClientStatus;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 /**
- * Auto Armour Addon.
- * Allows quick-equipping the best armor set from inventory or stripping
- * all equipped armor back into main inventory using server-synced container packets.
+ * Humanized Anti-Cheat Safe Auto Armour Addon.
+ * Equips or strips armor pieces asynchronously with randomized human-like delays (70ms - 140ms)
+ * and randomized slot swap order to bypass server anti-cheat checks (GrimAC, Vulcan, Matrix, AAC).
  */
 public class AutoArmor {
 
-    private static long lastEquipTime = 0;
+    public static final AutoArmor INSTANCE = new AutoArmor();
+    private static final Random RANDOM = new Random();
+
+    private final List<ArmorTask> taskQueue = new ArrayList<ArmorTask>();
+    private long nextActionTime = 0;
+    private int totalTasksExecuted = 0;
+    private boolean isEquipOperation = true;
+
+    private static class ArmorTask {
+        int slot;
+        boolean isHotbar;
+        boolean isEquip;
+
+        ArmorTask(int slot, boolean isHotbar, boolean isEquip) {
+            this.slot = slot;
+            this.isHotbar = isHotbar;
+            this.isEquip = isEquip;
+        }
+    }
+
+    private AutoArmor() {
+    }
 
     /**
      * Toggles armor state:
-     * If armor is currently equipped on the player: strips all 4 armor slots into inventory.
-     * If any armor slot is empty: searches inventory for best available armor pieces and equips them.
+     * If armor is currently equipped on the player: queues stripping all 4 armor slots.
+     * If any armor slot is empty: searches inventory for best available armor pieces and queues equipping them.
      */
     public static void toggleArmor() {
+        INSTANCE.startToggle();
+    }
+
+    public synchronized void startToggle() {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.playerController == null || mc.thePlayer.sendQueue == null) {
             return;
         }
 
-        long now = System.currentTimeMillis();
-        if (now - lastEquipTime < 250) {
-            return; // Debounce
+        if (!taskQueue.isEmpty()) {
+            return; // Already executing a swap operation
         }
-        lastEquipTime = now;
 
         EntityPlayer player = mc.thePlayer;
         boolean hasEquippedArmor = player.getCurrentArmor(0) != null
@@ -41,69 +71,92 @@ public class AutoArmor {
                 || player.getCurrentArmor(2) != null
                 || player.getCurrentArmor(3) != null;
 
-        // Open inventory container state on server so anti-cheat allows slot manipulation
-        mc.thePlayer.sendQueue.addToSendQueue(
-                new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+        taskQueue.clear();
+        totalTasksExecuted = 0;
+        isEquipOperation = !hasEquippedArmor;
 
         if (hasEquippedArmor) {
-            stripArmor(mc, player);
+            // Queue stripping armor (slots 5..8)
+            for (int slot = 5; slot <= 8; slot++) {
+                ItemStack stack = player.inventoryContainer.getSlot(slot).getStack();
+                if (stack != null) {
+                    taskQueue.add(new ArmorTask(slot, false, false));
+                }
+            }
         } else {
-            equipArmor(mc, player);
-        }
-
-        // Close inventory container state on server
-        mc.thePlayer.sendQueue.addToSendQueue(new C0DPacketCloseWindow(0));
-    }
-
-    private static void stripArmor(Minecraft mc, EntityPlayer player) {
-        int stripped = 0;
-        // Armor slots in ContainerPlayer: 5=Helmet, 6=Chestplate, 7=Leggings, 8=Boots
-        for (int slot = 5; slot <= 8; slot++) {
-            ItemStack stack = player.inventoryContainer.getSlot(slot).getStack();
-            if (stack != null) {
-                // Shift-click armor piece back to inventory (mode = 1)
-                mc.playerController.windowClick(0, slot, 0, 1, player);
-                stripped++;
-            }
-        }
-        if (mc.thePlayer != null && stripped > 0) {
-            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                    EnumChatFormatting.GREEN + "[Auto Armour] Tog " + stripped + " rustningsdele af."));
-        }
-    }
-
-    private static void equipArmor(Minecraft mc, EntityPlayer player) {
-        int equipped = 0;
-        // Target armor types: 0 = Helmet, 1 = Chestplate, 2 = Leggings, 3 = Boots
-        for (int type = 0; type < 4; type++) {
-            if (player.getCurrentArmor(type) != null) {
-                continue;
-            }
-
-            int bestSlot = findBestArmorSlot(player, type);
-            if (bestSlot != -1) {
-                // If the item is in hotbar (slots 36-44), right-click placement packet works instantly
-                if (bestSlot >= 36 && bestSlot <= 44) {
-                    int origSlot = player.inventory.currentItem;
-                    player.inventory.currentItem = bestSlot - 36;
-                    ItemStack stack = player.inventory.getCurrentItem();
-                    if (stack != null) {
-                        mc.thePlayer.sendQueue.addToSendQueue(new C08PacketPlayerBlockPlacement(stack));
-                        equipped++;
-                    }
-                    player.inventory.currentItem = origSlot;
-                } else {
-                    // Shift-click item into armor slot
-                    mc.playerController.windowClick(0, bestSlot, 0, 1, player);
-                    equipped++;
+            // Queue equipping best armor
+            for (int type = 0; type < 4; type++) {
+                if (player.getCurrentArmor(type) != null) {
+                    continue;
+                }
+                int bestSlot = findBestArmorSlot(player, type);
+                if (bestSlot != -1) {
+                    boolean isHotbar = bestSlot >= 36 && bestSlot <= 44;
+                    taskQueue.add(new ArmorTask(bestSlot, isHotbar, true));
                 }
             }
         }
 
-        if (mc.thePlayer != null && equipped > 0) {
-            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                    EnumChatFormatting.GREEN + "[Auto Armour] Iførte " + equipped + " rustningsdele."));
+        if (!taskQueue.isEmpty()) {
+            // Randomize order so slot swap order varies (e.g. Helmet -> Boots vs Chest -> Legs)
+            Collections.shuffle(taskQueue, RANDOM);
+            nextActionTime = System.currentTimeMillis() + (40 + RANDOM.nextInt(40));
         }
+    }
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
+        if (taskQueue.isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+        if (now < nextActionTime) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.playerController == null || mc.thePlayer.sendQueue == null) {
+            taskQueue.clear();
+            return;
+        }
+
+        ArmorTask task = taskQueue.remove(0);
+        executeTask(mc, task);
+        totalTasksExecuted++;
+
+        if (taskQueue.isEmpty()) {
+            // All armor pieces swapped! Send completion message
+            if (mc.thePlayer != null) {
+                String actionStr = isEquipOperation ? "Iførte" : "Tog";
+                mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                        EnumChatFormatting.GREEN + "[Auto Armour] " + actionStr + " " + totalTasksExecuted + " rustningsdele."));
+            }
+        } else {
+            // Schedule next piece with randomized human delay (70ms - 130ms)
+            nextActionTime = now + (70 + RANDOM.nextInt(60));
+        }
+    }
+
+    private void executeTask(Minecraft mc, ArmorTask task) {
+        EntityPlayer player = mc.thePlayer;
+
+        // Open inventory container state on server so anti-cheat acknowledges inventory action
+        mc.thePlayer.sendQueue.addToSendQueue(
+                new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+
+        if (task.isHotbar) {
+            int origSlot = player.inventory.currentItem;
+            player.inventory.currentItem = task.slot - 36;
+            ItemStack stack = player.inventory.getCurrentItem();
+            if (stack != null) {
+                mc.thePlayer.sendQueue.addToSendQueue(new C08PacketPlayerBlockPlacement(stack));
+            }
+            player.inventory.currentItem = origSlot;
+        } else {
+            // Shift-click item into/out of armor slot
+            mc.playerController.windowClick(0, task.slot, 0, 1, player);
+        }
+
+        // Close inventory container state on server
+        mc.thePlayer.sendQueue.addToSendQueue(new C0DPacketCloseWindow(0));
     }
 
     private static int findBestArmorSlot(EntityPlayer player, int targetType) {
