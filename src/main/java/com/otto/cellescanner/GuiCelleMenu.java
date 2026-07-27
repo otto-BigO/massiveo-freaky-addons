@@ -82,17 +82,17 @@ public class GuiCelleMenu extends GuiScreen {
 
     private String toggleLabel() {
         boolean active = CelleScannerMod.config != null && CelleScannerMod.config.enabled;
-        return "Scanner Status: " + (active ? EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
+        return "Scanner Status: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String notifyLabel() {
         boolean active = CelleScannerMod.config != null && CelleScannerMod.config.notify;
-        return "Alarmer: " + (active ? EnumChatFormatting.GREEN + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
+        return "Alarmer: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String espLabel() {
         boolean active = CelleScannerMod.config != null && CelleScannerMod.config.espEnabled;
-        return "3D ESP: " + (active ? EnumChatFormatting.GREEN + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
+        return "3D ESP: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String minLabel() {

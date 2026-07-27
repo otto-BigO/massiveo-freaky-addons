@@ -116,10 +116,21 @@ public class CelleHud {
         lastBoxRight = x + boxWidth;
         lastBoxBottom = y + boxHeight;
 
-        Gui.drawRect(x - 4, y - 4, x + boxWidth, y + boxHeight, 0x88000000);
+        int accent = Style.getAccentColor();
+        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        int alphaInt = Math.max(20, Math.min(255, (int) (alpha * 255)));
+
+        int x1 = x - 4;
+        int y1 = y - 4;
+        int x2 = x + boxWidth;
+        int y2 = y + boxHeight;
+
+        Style.roundedRect(x1, y1, x2, y2, 0xFF14151E);
+        Style.roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, (0x66 << 24) | (accent & 0xFFFFFF));
+        Style.roundedRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, (alphaInt << 24) | 0x0A0A0F);
 
         int drawY = y;
-        fr.drawStringWithShadow("Celle Scanner", x, drawY, 0xFFFFFF);
+        fr.drawStringWithShadow("§lCelle Scanner", x, drawY, accent);
         drawY += lineHeight + 2;
         fr.drawStringWithShadow("KOMMER SNART", x, drawY, 0xFFAA00);
         drawY += lineHeight;

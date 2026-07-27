@@ -198,7 +198,7 @@ public class GuiAddonsHub extends GuiScreen {
 
     private static String addonLabel(MassiveoAddons.Addon addon) {
         String status = addon.isActive()
-                ? EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD + "[ TIL ]"
+                ? Style.getAccentFormatting() + "[ TIL ]"
                 : EnumChatFormatting.DARK_GRAY + "[ FRA ]";
         return addon.name() + "  " + status;
     }
@@ -280,9 +280,7 @@ public class GuiAddonsHub extends GuiScreen {
         int cy = this.height / 2;
 
         int titleY = cy - 138;
-        long time = System.currentTimeMillis();
-        float hue = (float) ((time % 3500) / 3500.0);
-        int titleColor = java.awt.Color.HSBtoRGB(hue, 0.7f, 1.0f);
+        int accent = Style.getAccentColor();
 
         // Render larger scaled title (1.4x scale)
         GL11.glPushMatrix();
@@ -292,7 +290,7 @@ public class GuiAddonsHub extends GuiScreen {
         int scaledCx = (int) (cx / titleScale);
 
         int titleW = this.fontRendererObj.getStringWidth(MassiveoAddons.BRAND);
-        this.fontRendererObj.drawString(MassiveoAddons.BRAND, scaledCx - titleW / 2, scaledTitleY, titleColor, true);
+        this.fontRendererObj.drawString(MassiveoAddons.BRAND, scaledCx - titleW / 2, scaledTitleY, accent, true);
         GL11.glPopMatrix();
 
         String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";

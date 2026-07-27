@@ -31,6 +31,16 @@ public final class Style {
         return ACCENT;
     }
 
+    public static String getAccentFormatting() {
+        int accent = getAccentColor() & 0xFFFFFF;
+        if (accent == 0x00E5FF) return net.minecraft.util.EnumChatFormatting.AQUA.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        if (accent == 0xB026FF) return net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        if (accent == 0xFF2A85) return net.minecraft.util.EnumChatFormatting.RED.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        if (accent == 0xFF9900) return net.minecraft.util.EnumChatFormatting.GOLD.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        if (accent == 0x505868) return net.minecraft.util.EnumChatFormatting.GRAY.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        return net.minecraft.util.EnumChatFormatting.GREEN.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+    }
+
     /**
      * A filled rectangle with 1px "rounded" corners.
      */
