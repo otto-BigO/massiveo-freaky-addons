@@ -67,12 +67,14 @@ public final class Style {
     public static void panel(int x1, int y1, int x2, int y2) {
         int accent = getAccentColor();
         float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
-        int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255)));
+        int alphaInt = Math.max(20, Math.min(255, (int) (alpha * 255)));
+        int borderAlpha = Math.max(30, Math.min(255, (int) (alpha * 255)));
+        int glowAlpha = Math.max(20, Math.min(255, (int) (alpha * 0.5f * 255)));
 
         // Outer border
-        roundedRect(x1, y1, x2, y2, 0xFF14151E);
+        roundedRect(x1, y1, x2, y2, (borderAlpha << 24) | 0x14151E);
         // Inner glowing border with theme accent
-        int glowColor = (0x55 << 24) | (accent & 0xFFFFFF);
+        int glowColor = (glowAlpha << 24) | (accent & 0xFFFFFF);
         roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, glowColor);
 
         // Dark card fill with user transparency

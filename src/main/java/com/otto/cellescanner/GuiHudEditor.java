@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import org.lwjgl.input.Mouse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,9 +10,8 @@ import java.util.List;
 
 /**
  * A unified HUD editor: drag every on-screen HUD (Celle HUD, Rustnings-HUD,
- * Item-log, PvP Mine) to reposition it. Each HUD is shown as a labelled box at
- * its current spot; drag it and it saves on release. "Nulstil" puts them back to
- * their defaults.
+ * Item-log, PvP Mine, Debug Overlay) to reposition it, and scroll the mouse wheel
+ * to scale any HUD bigger or smaller (0.5x to 2.5x).
  */
 public class GuiHudEditor extends GuiScreen {
 
@@ -22,7 +22,7 @@ public class GuiHudEditor extends GuiScreen {
     private int dragging = -1;
     private int dragOffX, dragOffY;
 
-    /** A movable HUD: its config position, a default spot, and a nominal box size. */
+    /** A movable HUD: its config position, default spot, box size, and scaling factor. */
     private abstract class Hud {
         final String name;
 
@@ -30,19 +30,22 @@ public class GuiHudEditor extends GuiScreen {
             this.name = name;
         }
 
-        abstract int w();
-        abstract int h();
+        abstract int baseW();
+        abstract int baseH();
+
+        abstract float getScale();
+        abstract void setScale(float s);
+
+        int w() { return (int) Math.max(20, baseW() * getScale()); }
+        int h() { return (int) Math.max(16, baseH() * getScale()); }
 
         abstract int cfgX();       // -1 when unset
-
         abstract int cfgY();
 
         abstract void setPos(int x, int y);
-
-        abstract void reset();
+        abstract void resetPosAndScale();
 
         abstract int defX(int screenW);
-
         abstract int defY(int screenH);
 
         int x() {
@@ -63,52 +66,62 @@ public class GuiHudEditor extends GuiScreen {
         final CelleConfig cfg = CelleScannerMod.config;
 
         huds.add(new Hud("Celle HUD") {
-            int w() { return CelleHud.lastBoxRight - CelleHud.lastBoxLeft; }
-            int h() { return CelleHud.lastBoxBottom - CelleHud.lastBoxTop; }
+            int baseW() { return Math.max(90, CelleHud.lastBoxRight - CelleHud.lastBoxLeft); }
+            int baseH() { return Math.max(40, CelleHud.lastBoxBottom - CelleHud.lastBoxTop); }
+            float getScale() { return cfg.hudFontScale; }
+            void setScale(float s) { cfg.hudFontScale = s; }
             int cfgX() { return cfg.hudX; }
             int cfgY() { return cfg.hudY; }
             void setPos(int x, int y) { cfg.hudX = x; cfg.hudY = y; }
-            void reset() { cfg.hudX = 10; cfg.hudY = 10; }
+            void resetPosAndScale() { cfg.hudX = 10; cfg.hudY = 10; cfg.hudFontScale = 1.0f; }
             int defX(int sw) { return 10; }
             int defY(int sh) { return 10; }
         });
         huds.add(new Hud("Rustnings-HUD") {
-            int w() { return ArmorHud.lastWidth; }
-            int h() { return ArmorHud.lastHeight; }
+            int baseW() { return Math.max(60, ArmorHud.lastWidth); }
+            int baseH() { return Math.max(30, ArmorHud.lastHeight); }
+            float getScale() { return cfg.armorHudScale; }
+            void setScale(float s) { cfg.armorHudScale = s; }
             int cfgX() { return cfg.armorHudX; }
             int cfgY() { return cfg.armorHudY; }
             void setPos(int x, int y) { cfg.armorHudX = x; cfg.armorHudY = y; }
-            void reset() { cfg.armorHudX = 5; cfg.armorHudY = 140; }
+            void resetPosAndScale() { cfg.armorHudX = 5; cfg.armorHudY = 140; cfg.armorHudScale = 1.0f; }
             int defX(int sw) { return 5; }
             int defY(int sh) { return 140; }
         });
         huds.add(new Hud("Item-log") {
-            int w() { return ItemPickupNotify.lastWidth; }
-            int h() { return ItemPickupNotify.lastHeight; }
+            int baseW() { return Math.max(80, ItemPickupNotify.lastWidth); }
+            int baseH() { return Math.max(30, ItemPickupNotify.lastHeight); }
+            float getScale() { return cfg.itemPickupScale; }
+            void setScale(float s) { cfg.itemPickupScale = s; }
             int cfgX() { return cfg.itemPickupX != null ? cfg.itemPickupX : -1; }
             int cfgY() { return cfg.itemPickupY != null ? cfg.itemPickupY : -1; }
             void setPos(int x, int y) { cfg.itemPickupX = x; cfg.itemPickupY = y; }
-            void reset() { cfg.itemPickupX = null; cfg.itemPickupY = null; }
+            void resetPosAndScale() { cfg.itemPickupX = null; cfg.itemPickupY = null; cfg.itemPickupScale = 1.0f; }
             int defX(int sw) { return sw - w() - 4; }
             int defY(int sh) { return sh - h() - 4; }
         });
         huds.add(new Hud("PvP Mine") {
-            int w() { return PvpMine.lastWidth; }
-            int h() { return PvpMine.lastHeight; }
+            int baseW() { return Math.max(80, PvpMine.lastWidth); }
+            int baseH() { return Math.max(30, PvpMine.lastHeight); }
+            float getScale() { return cfg.pvpMineScale; }
+            void setScale(float s) { cfg.pvpMineScale = s; }
             int cfgX() { return cfg.pvpMineX != null ? cfg.pvpMineX : -1; }
             int cfgY() { return cfg.pvpMineY != null ? cfg.pvpMineY : -1; }
             void setPos(int x, int y) { cfg.pvpMineX = x; cfg.pvpMineY = y; }
-            void reset() { cfg.pvpMineX = null; cfg.pvpMineY = null; }
+            void resetPosAndScale() { cfg.pvpMineX = null; cfg.pvpMineY = null; cfg.pvpMineScale = 1.0f; }
             int defX(int sw) { return 4; }
             int defY(int sh) { return sh - h() - 4; }
         });
         huds.add(new Hud("Debug Overlay (F12)") {
-            int w() { return 175; }
-            int h() { return 66; }
+            int baseW() { return 175; }
+            int baseH() { return 66; }
+            float getScale() { return cfg.debugScale; }
+            void setScale(float s) { cfg.debugScale = s; }
             int cfgX() { return cfg.debugX; }
             int cfgY() { return cfg.debugY; }
             void setPos(int x, int y) { cfg.debugX = x; cfg.debugY = y; }
-            void reset() { cfg.debugX = 6; cfg.debugY = 6; }
+            void resetPosAndScale() { cfg.debugX = 6; cfg.debugY = 6; cfg.debugScale = 1.0f; }
             int defX(int sw) { return 6; }
             int defY(int sh) { return 6; }
         });
@@ -119,10 +132,42 @@ public class GuiHudEditor extends GuiScreen {
     }
 
     @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();
+        int wheel = Mouse.getEventDWheel();
+        if (wheel != 0) {
+            int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
+            int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
+
+            int targetIdx = dragging >= 0 ? dragging : getHoveredHud(mouseX, mouseY);
+            if (targetIdx >= 0) {
+                Hud hud = huds.get(targetIdx);
+                float curScale = hud.getScale();
+                float newScale = wheel > 0 ? curScale + 0.1f : curScale - 0.1f;
+                newScale = Math.max(0.5f, Math.min(2.5f, Math.round(newScale * 10f) / 10f));
+                hud.setScale(newScale);
+                CelleScannerMod.config.save();
+            }
+        }
+    }
+
+    private int getHoveredHud(int mouseX, int mouseY) {
+        for (int i = 0; i < huds.size(); i++) {
+            Hud hud = huds.get(i);
+            int hx = hud.x();
+            int hy = hud.y();
+            if (mouseX >= hx && mouseX <= hx + hud.w() && mouseY >= hy && mouseY <= hy + hud.h()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == ID_RESET) {
             for (Hud hud : huds) {
-                hud.reset();
+                hud.resetPosAndScale();
             }
             CelleScannerMod.config.save();
         } else if (button.id == ID_BACK) {
@@ -136,16 +181,12 @@ public class GuiHudEditor extends GuiScreen {
         if (mouseButton != 0) {
             return;
         }
-        for (int i = 0; i < huds.size(); i++) {
-            Hud hud = huds.get(i);
-            int hx = hud.x();
-            int hy = hud.y();
-            if (mouseX >= hx && mouseX <= hx + hud.w() && mouseY >= hy && mouseY <= hy + hud.h()) {
-                dragging = i;
-                dragOffX = mouseX - hx;
-                dragOffY = mouseY - hy;
-                return;
-            }
+        int targetIdx = getHoveredHud(mouseX, mouseY);
+        if (targetIdx >= 0) {
+            Hud hud = huds.get(targetIdx);
+            dragging = targetIdx;
+            dragOffX = mouseX - hud.x();
+            dragOffY = mouseY - hud.y();
         }
     }
 
@@ -266,8 +307,8 @@ public class GuiHudEditor extends GuiScreen {
             drawRect(0, guideY, this.width, guideY + 1, 0x554BE08C);
         }
 
-        drawCenteredString(this.fontRendererObj, "Flyt HUD'er", this.width / 2, 8, 0x55FFFF);
-        drawCenteredString(this.fontRendererObj, "Træk hver kasse hen hvor du vil have den. Shift for finjustering.", this.width / 2, 20, 0xAAAAAA);
+        drawCenteredString(this.fontRendererObj, "Flyt & Skaler HUD'er", this.width / 2, 6, Style.getAccentColor());
+        drawCenteredString(this.fontRendererObj, "Træk for at flytte. Scroll musen over en HUD for at ændre størrelse (0.5x - 2.5x).", this.width / 2, 18, 0xAAAAAA);
 
         for (int i = 0; i < huds.size(); i++) {
             Hud hud = huds.get(i);
@@ -277,10 +318,12 @@ public class GuiHudEditor extends GuiScreen {
             int hh = hud.h();
             boolean active = dragging == i
                     || (dragging < 0 && mouseX >= hx && mouseX <= hx + hw && mouseY >= hy && mouseY <= hy + hh);
-            // Draw transparent background so the HUD underneath is visible
-            drawRect(hx, hy, hx + hw, hy + hh, active ? 0x204BE08C : 0x10FFFFFF);
-            Style.roundedRect(hx, hy, hx + hw, hy + hh, active ? Style.ACCENT : 0x55FFFFFF);
-            drawCenteredString(this.fontRendererObj, hud.name, hx + hw / 2, hy + hh / 2 - 4, active ? Style.ACCENT : 0xDDFFFFFF);
+
+            drawRect(hx, hy, hx + hw, hy + hh, active ? 0x304BE08C : 0x15FFFFFF);
+            Style.roundedRect(hx, hy, hx + hw, hy + hh, active ? Style.getAccentColor() : 0x55FFFFFF);
+
+            String label = hud.name + " (" + String.format("%.1fx", hud.getScale()) + ")";
+            drawCenteredString(this.fontRendererObj, label, hx + hw / 2, hy + hh / 2 - 4, active ? Style.getAccentColor() : 0xDDFFFFFF);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);

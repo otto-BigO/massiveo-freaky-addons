@@ -239,6 +239,10 @@ public class CelleConfig {
 
     // Granular HUD and Timer Alert Settings
     public float hudFontScale = 1.0f;
+    public float debugScale = 1.0f;
+    public float armorHudScale = 1.0f;
+    public float itemPickupScale = 1.0f;
+    public float pvpMineScale = 1.0f;
     public float hudBgAlpha = 0.6f;
     public boolean alert10mEnabled = true;
     public boolean alert5mEnabled = true;

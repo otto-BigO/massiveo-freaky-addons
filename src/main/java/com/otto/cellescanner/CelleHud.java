@@ -111,44 +111,54 @@ public class CelleHud {
         int lines = 2 + shown * 2 + (finderLine != null ? 1 : 0);
         int boxHeight = lines * lineHeight + 6;
 
+        float scale = CelleScannerMod.config != null ? CelleScannerMod.config.hudFontScale : 1.0f;
+        int unscaledWidth = boxWidth + 8;
+        int unscaledHeight = boxHeight + 8;
+
         lastBoxLeft = x - 4;
         lastBoxTop = y - 4;
-        lastBoxRight = x + boxWidth;
-        lastBoxBottom = y + boxHeight;
+        lastBoxRight = x - 4 + (int) (unscaledWidth * scale);
+        lastBoxBottom = y - 4 + (int) (unscaledHeight * scale);
+
+        org.lwjgl.opengl.GL11.glPushMatrix();
+        org.lwjgl.opengl.GL11.glScalef(scale, scale, 1.0f);
+
+        int sx = (int) ((x - 4) / scale);
+        int sy = (int) ((y - 4) / scale);
+        int sw = unscaledWidth;
+        int sh = unscaledHeight;
 
         int accent = Style.getAccentColor();
         float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
         int alphaInt = Math.max(20, Math.min(255, (int) (alpha * 255)));
 
-        int x1 = x - 4;
-        int y1 = y - 4;
-        int x2 = x + boxWidth;
-        int y2 = y + boxHeight;
+        Style.roundedRect(sx, sy, sx + sw, sy + sh, 0xFF14151E);
+        Style.roundedRect(sx + 1, sy + 1, sx + sw - 1, sy + sh - 1, (0x66 << 24) | (accent & 0xFFFFFF));
+        Style.roundedRect(sx + 2, sy + 2, sx + sw - 2, sy + sh - 2, (alphaInt << 24) | 0x0A0A0F);
 
-        Style.roundedRect(x1, y1, x2, y2, 0xFF14151E);
-        Style.roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, (0x66 << 24) | (accent & 0xFFFFFF));
-        Style.roundedRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, (alphaInt << 24) | 0x0A0A0F);
-
-        int drawY = y;
-        fr.drawStringWithShadow("§lCelle Scanner", x, drawY, accent);
+        int drawX = sx + 4;
+        int drawY = sy + 4;
+        fr.drawStringWithShadow("§lCelle Scanner", drawX, drawY, accent);
         drawY += lineHeight + 2;
-        fr.drawStringWithShadow("KOMMER SNART", x, drawY, 0xFFAA00);
+        fr.drawStringWithShadow("KOMMER SNART", drawX, drawY, 0xFFAA00);
         drawY += lineHeight;
 
         if (shown == 0) {
-            fr.drawStringWithShadow("(ingen lige nu)", x, drawY, 0xAAAAAA);
+            fr.drawStringWithShadow("(ingen lige nu)", drawX, drawY, 0xAAAAAA);
         } else {
             for (int i = 0; i < shown; i++) {
-                fr.drawStringWithShadow(nameLines.get(i), x, drawY, 0xFFFFFF);
+                fr.drawStringWithShadow(nameLines.get(i), drawX, drawY, 0xFFFFFF);
                 drawY += lineHeight;
-                fr.drawStringWithShadow(timeLines.get(i), x, drawY, 0xAAAAAA);
+                fr.drawStringWithShadow(timeLines.get(i), drawX, drawY, 0xAAAAAA);
                 drawY += lineHeight;
             }
         }
 
         if (finderLine != null) {
-            fr.drawStringWithShadow(finderLine, x, drawY, 0x55FFFF);
+            fr.drawStringWithShadow(finderLine, drawX, drawY, 0x55FFFF);
         }
+
+        org.lwjgl.opengl.GL11.glPopMatrix();
     }
 
     private static double distanceTo(EntityPlayer player, Celle celle) {
@@ -179,6 +189,18 @@ public class CelleHud {
     }
 
     private void drawDebugOverlay(Minecraft mc, FontRenderer fr) {
+        float dScale = CelleScannerMod.config != null ? CelleScannerMod.config.debugScale : 1.0f;
+        int rawX = CelleScannerMod.config != null ? CelleScannerMod.config.debugX : 6;
+        int rawY = CelleScannerMod.config != null ? CelleScannerMod.config.debugY : 6;
+
+        org.lwjgl.opengl.GL11.glPushMatrix();
+        org.lwjgl.opengl.GL11.glScalef(dScale, dScale, 1.0f);
+
+        int x = (int) (rawX / dScale);
+        int y = (int) (rawY / dScale);
+        int w = 175;
+        int h = 66;
+
         long totalMem = Runtime.getRuntime().totalMemory() / (1024 * 1024);
         long freeMem = Runtime.getRuntime().freeMemory() / (1024 * 1024);
         long usedMem = totalMem - freeMem;
@@ -189,11 +211,6 @@ public class CelleHud {
         int activeAddons = MassiveoAddons.all().size();
         int accent = Style.getAccentColor();
 
-        int x = CelleScannerMod.config != null ? CelleScannerMod.config.debugX : 6;
-        int y = CelleScannerMod.config != null ? CelleScannerMod.config.debugY : 6;
-        int w = 175;
-        int h = 66;
-
         Style.roundedRect(x, y, x + w, y + h, 0xEE0A0A0F);
         Style.roundedRect(x + 1, y + 1, x + w - 1, y + h - 1, (0x66 << 24) | (accent & 0xFFFFFF));
 
@@ -202,5 +219,7 @@ public class CelleHud {
         fr.drawStringWithShadow("Hukommelse: " + usedMem + "MB / " + totalMem + "MB", x + 6, y + 28, 0xAAAAAA);
         fr.drawStringWithShadow("Entiteter: " + entities + "  |  Addons: " + activeAddons, x + 6, y + 40, 0xAAAAAA);
         fr.drawStringWithShadow("Tema Farve: #" + Integer.toHexString(accent & 0xFFFFFF).toUpperCase(), x + 6, y + 52, accent);
+
+        org.lwjgl.opengl.GL11.glPopMatrix();
     }
 }

@@ -61,8 +61,8 @@ public class GuiThemeEditor extends GuiScreen {
         int halfW = (PANEL_W - 4) / 2;
 
         if (previewX < 0 || previewY < 0) {
-            previewX = cx - 90;
-            previewY = cy + 34;
+            previewX = cx + PANEL_W / 2 + 12;
+            previewY = cy - 78;
         }
 
         // Initialize HSV state from config color
