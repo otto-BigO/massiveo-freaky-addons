@@ -264,6 +264,11 @@ public class GuiThemeEditor extends GuiScreen {
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
         if (state == 0) {
+            if (draggingHue || draggingSV || draggingAlpha) {
+                if (MassiveOsFreakyAddons.config != null) {
+                    MassiveOsFreakyAddons.config.save();
+                }
+            }
             draggingHue = false;
             draggingSV = false;
             draggingAlpha = false;

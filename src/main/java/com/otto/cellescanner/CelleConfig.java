@@ -436,6 +436,7 @@ public class CelleConfig {
                 this.bandeEspEnabled = loaded.bandeEspEnabled;
                 this.bandeAutoTeam = loaded.bandeAutoTeam;
                 this.bandeEspAll = loaded.bandeEspAll;
+                this.bandeEspMode = loaded.bandeEspMode != null ? loaded.bandeEspMode : "2D";
                 this.bandeMembers = loaded.bandeMembers != null ? loaded.bandeMembers : new ArrayList<String>();
                 this.chestAlarmEnabled = loaded.chestAlarmEnabled;
                 this.chestAlarmToast = loaded.chestAlarmToast;
@@ -511,7 +512,39 @@ public class CelleConfig {
                 this.modIconEnabled = loaded.modIconEnabled == null ? Boolean.TRUE : loaded.modIconEnabled;
                 this.debugEnabled = loaded.debugEnabled == null ? Boolean.FALSE : loaded.debugEnabled;
                 this.debugLogEnabled = loaded.debugLogEnabled == null ? Boolean.FALSE : loaded.debugLogEnabled;
+                this.debugOverlayEnabled = loaded.debugOverlayEnabled;
+                this.debugX = loaded.debugX;
+                this.debugY = loaded.debugY;
                 this.flipCaseEnabled = loaded.flipCaseEnabled;
+                this.hudFontScale = loaded.hudFontScale > 0.1f ? loaded.hudFontScale : 1.0f;
+                this.debugScale = loaded.debugScale > 0.1f ? loaded.debugScale : 1.0f;
+                this.armorHudScale = loaded.armorHudScale > 0.1f ? loaded.armorHudScale : 1.0f;
+                this.itemPickupScale = loaded.itemPickupScale > 0.1f ? loaded.itemPickupScale : 1.0f;
+                this.pvpMineScale = loaded.pvpMineScale > 0.1f ? loaded.pvpMineScale : 1.0f;
+                this.mineTrackerScale = loaded.mineTrackerScale > 0.1f ? loaded.mineTrackerScale : 1.0f;
+                this.mineTrackerEnabled = loaded.mineTrackerEnabled;
+                this.mineTrackerX = loaded.mineTrackerX;
+                this.mineTrackerY = loaded.mineTrackerY;
+                this.ironPerDbRatio = loaded.ironPerDbRatio > 0 ? loaded.ironPerDbRatio : 64;
+                this.autoTrashEnabled = loaded.autoTrashEnabled;
+                this.trashWoodTools = loaded.trashWoodTools;
+                this.trashStoneTools = loaded.trashStoneTools;
+                this.trashBlocks = loaded.trashBlocks;
+                this.hudBgAlpha = loaded.hudBgAlpha;
+                this.alert10mEnabled = loaded.alert10mEnabled;
+                this.alert5mEnabled = loaded.alert5mEnabled;
+                this.alert2mEnabled = loaded.alert2mEnabled;
+                this.alert1mEnabled = loaded.alert1mEnabled;
+                this.alert30sEnabled = loaded.alert30sEnabled;
+                this.alert10sEnabled = loaded.alert10sEnabled;
+                this.themeAccentColor = loaded.themeAccentColor != 0 ? loaded.themeAccentColor : 0x00FF88;
+                this.themeBgAlpha = loaded.themeBgAlpha > 0f ? loaded.themeBgAlpha : 0.65f;
+                this.themeTitleStyle = loaded.themeTitleStyle;
+                this.alertSound = loaded.alertSound != null && !loaded.alertSound.isEmpty() ? loaded.alertSound : "note.pling";
+                this.espColorBande = loaded.espColorBande != 0 ? loaded.espColorBande : 0x00A2FF;
+                this.espColorVagt = loaded.espColorVagt != 0 ? loaded.espColorVagt : 0x00FF88;
+                this.espColorOther = loaded.espColorOther != 0 ? loaded.espColorOther : 0xFF3366;
+                this.autoArmorEnabled = loaded.autoArmorEnabled;
                 this.itemValueEnabled = loaded.itemValueEnabled;
                 this.autoUpdateEnabled = loaded.autoUpdateEnabled;
                 this.autoUpdatePreRelease = loaded.autoUpdatePreRelease;
@@ -524,9 +557,6 @@ public class CelleConfig {
                 this.autoCrateEnabled = loaded.autoCrateEnabled;
                 this.celleExpiryAlertsEnabled = loaded.celleExpiryAlertsEnabled;
                 this.playerEspEnabled = loaded.playerEspEnabled;
-                // These five were saved but never restored here, so toggling them
-                // off never stuck - the field snapped back to its default on every
-                // reload (the "module re-enables itself" bug).
                 this.chestOrganizerEnabled = loaded.chestOrganizerEnabled;
                 this.ironDoorSoundsEnabled = loaded.ironDoorSoundsEnabled;
                 this.playerLoggerEnabled = loaded.playerLoggerEnabled;
