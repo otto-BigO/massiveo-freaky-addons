@@ -54,7 +54,7 @@ public class AutoCrate {
             return;
         }
 
-        if (!CelleScannerMod.config.autoCrateEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoCrateEnabled) {
             guiWasOpen = false;
             tickCooldown = 0;
             return;
@@ -98,8 +98,8 @@ public class AutoCrate {
                 return;
             } else {
                 // No keys left! Disable Auto-Crate and notify player
-                CelleScannerMod.config.autoCrateEnabled = false;
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.autoCrateEnabled = false;
+                MassiveOsFreakyAddons.config.save();
                 mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
                         net.minecraft.util.EnumChatFormatting.RED
                                 + "[Massiveo's addons] Alle kasser åbnet / ingen nøgler fundet! Auto-Crate deaktiveret."));

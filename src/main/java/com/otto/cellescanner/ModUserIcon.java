@@ -24,7 +24,7 @@ public class ModUserIcon {
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.modIconEnabled) {
+        if (!MassiveOsFreakyAddons.config.modIconEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();

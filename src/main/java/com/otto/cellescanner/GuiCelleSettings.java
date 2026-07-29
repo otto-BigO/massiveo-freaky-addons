@@ -74,23 +74,23 @@ public class GuiCelleSettings extends GuiScreen {
     }
 
     private String secondsLabel() {
-        return "Vis sekunder: " + (CelleScannerMod.config.showSeconds ? "Til" : "Fra");
+        return "Vis sekunder: " + (MassiveOsFreakyAddons.config.showSeconds ? "Til" : "Fra");
     }
 
     private String ownerLabel() {
-        return "Vis ejernavn: " + (CelleScannerMod.config.showOwner ? "Til" : "Fra");
+        return "Vis ejernavn: " + (MassiveOsFreakyAddons.config.showOwner ? "Til" : "Fra");
     }
 
     private String statusTagLabel() {
-        return "Vis status-mærke: " + (CelleScannerMod.config.showStatusTag ? "Til" : "Fra");
+        return "Vis status-mærke: " + (MassiveOsFreakyAddons.config.showStatusTag ? "Til" : "Fra");
     }
 
     private String distanceLabel() {
-        return "Vis afstand: " + (CelleScannerMod.config.showDistance ? "Til" : "Fra");
+        return "Vis afstand: " + (MassiveOsFreakyAddons.config.showDistance ? "Til" : "Fra");
     }
 
     private String espLabelsLabel() {
-        return "ESP celle-id label: " + (CelleScannerMod.config.espLabels ? "Til" : "Fra");
+        return "ESP celle-id label: " + (MassiveOsFreakyAddons.config.espLabels ? "Til" : "Fra");
     }
 
     @Override
@@ -195,7 +195,7 @@ public class GuiCelleSettings extends GuiScreen {
 
         // Draw HUD max entries stepper label via NumericStepper
         if (hudStepper != null) {
-            hudStepper.draw(this.mc, mouseX, mouseY, "Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries);
+            hudStepper.draw(this.mc, mouseX, mouseY, "Maks HUD-linjer: " + MassiveOsFreakyAddons.config.maxHudEntries);
         }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);

@@ -31,7 +31,7 @@ public class FlipDebug {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        if (CelleScannerMod.config.debugEnabled == null || !CelleScannerMod.config.debugEnabled) {
+        if (MassiveOsFreakyAddons.config.debugEnabled == null || !MassiveOsFreakyAddons.config.debugEnabled) {
             inFlip = false;
             loggedTitle = false;
             return;

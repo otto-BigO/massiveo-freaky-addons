@@ -64,27 +64,27 @@ public class GuiAntiAfk extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Anti-AFK: " + (CelleScannerMod.config.antiAfkEnabled ? "Til" : "Fra");
+        return "Anti-AFK: " + (MassiveOsFreakyAddons.config.antiAfkEnabled ? "Til" : "Fra");
     }
 
     private String swingLabel() {
-        return "Slag med hånd: " + (CelleScannerMod.config.antiAfkSwing ? "Til" : "Fra");
+        return "Slag med hånd: " + (MassiveOsFreakyAddons.config.antiAfkSwing ? "Til" : "Fra");
     }
 
     private String rotateLabel() {
-        return "Kig frem/tilbage: " + (CelleScannerMod.config.antiAfkRotate ? "Til" : "Fra");
+        return "Kig frem/tilbage: " + (MassiveOsFreakyAddons.config.antiAfkRotate ? "Til" : "Fra");
     }
 
     private String jumpLabel() {
-        return "Hop: " + (CelleScannerMod.config.antiAfkJump ? "Til" : "Fra");
+        return "Hop: " + (MassiveOsFreakyAddons.config.antiAfkJump ? "Til" : "Fra");
     }
 
     private String strafeLabel() {
-        return "Skridt til siden: " + (CelleScannerMod.config.antiAfkStrafe ? "Til" : "Fra");
+        return "Skridt til siden: " + (MassiveOsFreakyAddons.config.antiAfkStrafe ? "Til" : "Fra");
     }
 
     private String intervalLabel() {
-        return "Interval: " + CelleScannerMod.config.antiAfkIntervalSeconds + "s";
+        return "Interval: " + MassiveOsFreakyAddons.config.antiAfkIntervalSeconds + "s";
     }
 
     @Override

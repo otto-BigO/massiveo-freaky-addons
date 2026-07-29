@@ -8,7 +8,7 @@ import java.util.List;
  *
  * The mod is a hub: the main menu (GuiAddonsHub) lists every addon registered
  * here, and each addon opens its own screen. Celle Scanner is the first addon;
- * adding another is just one {@link #register} call in CelleScannerMod.init()
+ * adding another is just one {@link #register} call in MassiveOsFreakyAddons.init()
  * plus that addon's own GuiScreen.
  *
  * The internal mod id stays "cellescanner" for config/save compatibility - this

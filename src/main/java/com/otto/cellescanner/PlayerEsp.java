@@ -21,14 +21,14 @@ import java.util.UUID;
  * Includes native support for LabyMod blue wolf head logo and VoiceChat speaker status badges.
  *
  * SHELVED: intentionally parked. Not registered on the event bus (see
- * CelleScannerMod.init) and its hub tile is commented out in AddonList. Kept
+ * MassiveOsFreakyAddons.init) and its hub tile is commented out in AddonList. Kept
  * for when the addon is picked up again - do not delete.
  */
 public class PlayerEsp {
 
     @SubscribeEvent
     public void onRenderNameplate(RenderLivingEvent.Specials.Pre event) {
-        if (!CelleScannerMod.config.playerEspEnabled) {
+        if (!MassiveOsFreakyAddons.config.playerEspEnabled) {
             return;
         }
         if (!(event.entity instanceof EntityPlayer)) {
@@ -191,7 +191,7 @@ public class PlayerEsp {
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.playerEspEnabled) {
+        if (!MassiveOsFreakyAddons.config.playerEspEnabled) {
             return;
         }
 
@@ -227,7 +227,7 @@ public class PlayerEsp {
             }
 
             // Exclude bande members so they are not double-boxed (BandeEsp renders them green)
-            if (CelleScannerMod.config.bandeEspEnabled && CelleScannerMod.config.isBandeMember(p.getName())) {
+            if (MassiveOsFreakyAddons.config.bandeEspEnabled && MassiveOsFreakyAddons.config.isBandeMember(p.getName())) {
                 continue;
             }
 

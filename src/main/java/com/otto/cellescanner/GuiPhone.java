@@ -112,11 +112,11 @@ public class GuiPhone extends GuiScreen {
 
                 btnAddFriend = new GuiButton(10, phoneX + 97, phoneY + 47, 35, 18, "Tilfoej");
                 btnToggleEsp = new GuiButton(11, phoneX + 8, phoneY + PHONE_H - 38, 124, 18,
-                        "Blaa ESP: " + (CelleScannerMod.config.friendEspEnabled ? "TIL" : "FRA"));
+                        "Blaa ESP: " + (MassiveOsFreakyAddons.config.friendEspEnabled ? "TIL" : "FRA"));
                 buttonList.add(btnAddFriend);
                 buttonList.add(btnToggleEsp);
             } else if (currentApp == AppMode.FRIENDS) {
-                List<String> friends = new ArrayList<String>(CelleScannerMod.config.friendsList);
+                List<String> friends = new ArrayList<String>(MassiveOsFreakyAddons.config.friendsList);
                 int startY = phoneY + 44;
                 for (int i = 0; i < friends.size(); i++) {
                     int rowY = startY + i * 28;
@@ -143,7 +143,7 @@ public class GuiPhone extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode == Keyboard.KEY_ESCAPE || (CelleScannerMod.phoneKey != null && keyCode == CelleScannerMod.phoneKey.getKeyCode())) {
+        if (keyCode == Keyboard.KEY_ESCAPE || (MassiveOsFreakyAddons.phoneKey != null && keyCode == MassiveOsFreakyAddons.phoneKey.getKeyCode())) {
             if (currentApp != AppMode.HOME && keyCode == Keyboard.KEY_ESCAPE) {
                 switchApp(AppMode.HOME);
                 return;
@@ -189,21 +189,21 @@ public class GuiPhone extends GuiScreen {
         } else if (button.id == 102) { // Open Crew App
             switchApp(AppMode.FRIENDS);
         } else if (button.id == 103) { // Open Chat App
-            if (selectedFriendForMsg.isEmpty() && !CelleScannerMod.config.friendsList.isEmpty()) {
-                selectedFriendForMsg = CelleScannerMod.config.friendsList.iterator().next();
+            if (selectedFriendForMsg.isEmpty() && !MassiveOsFreakyAddons.config.friendsList.isEmpty()) {
+                selectedFriendForMsg = MassiveOsFreakyAddons.config.friendsList.iterator().next();
             }
             switchApp(AppMode.MESSAGES);
         } else if (button.id == 10) { // Add Friend in Settings
             addFriendFromInput();
         } else if (button.id == 11) { // Toggle Blue ESP
-            CelleScannerMod.config.friendEspEnabled = !CelleScannerMod.config.friendEspEnabled;
-            CelleScannerMod.config.save();
-            button.displayString = "Blaa ESP: " + (CelleScannerMod.config.friendEspEnabled ? "TIL" : "FRA");
+            MassiveOsFreakyAddons.config.friendEspEnabled = !MassiveOsFreakyAddons.config.friendEspEnabled;
+            MassiveOsFreakyAddons.config.save();
+            button.displayString = "Blaa ESP: " + (MassiveOsFreakyAddons.config.friendEspEnabled ? "TIL" : "FRA");
         } else if (button.id == 20) { // Send iMessage Whisper
             sendWhisperFromInput();
         } else if (button.id >= 200 && button.id < 300) { // Quick Msg Friend button
             int idx = button.id - 200;
-            List<String> friends = new ArrayList<String>(CelleScannerMod.config.friendsList);
+            List<String> friends = new ArrayList<String>(MassiveOsFreakyAddons.config.friendsList);
             if (idx >= 0 && idx < friends.size()) {
                 selectedFriendForMsg = friends.get(idx);
                 switchApp(AppMode.MESSAGES);
@@ -215,8 +215,8 @@ public class GuiPhone extends GuiScreen {
         if (inputField != null) {
             String name = inputField.getText().trim();
             if (!name.isEmpty()) {
-                CelleScannerMod.config.friendsList.add(name);
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.friendsList.add(name);
+                MassiveOsFreakyAddons.config.save();
                 inputField.setText("");
                 initGui();
             }
@@ -248,13 +248,13 @@ public class GuiPhone extends GuiScreen {
         if (mouseButton == 0) {
             // Settings View: Delete Friend Buttons
             if (currentApp == AppMode.SETTINGS) {
-                List<String> friends = new ArrayList<String>(CelleScannerMod.config.friendsList);
+                List<String> friends = new ArrayList<String>(MassiveOsFreakyAddons.config.friendsList);
                 int startY = curPhoneY + 76;
                 for (int i = 0; i < friends.size(); i++) {
                     int rowY = startY + i * 18;
                     if (mouseX >= phoneX + 110 && mouseX <= phoneX + 130 && mouseY >= rowY && mouseY <= rowY + 14) {
-                        CelleScannerMod.config.friendsList.remove(friends.get(i));
-                        CelleScannerMod.config.save();
+                        MassiveOsFreakyAddons.config.friendsList.remove(friends.get(i));
+                        MassiveOsFreakyAddons.config.save();
                         initGui();
                         return;
                     }
@@ -402,7 +402,7 @@ public class GuiPhone extends GuiScreen {
         fontRendererObj.drawString("Tilfoej ven:", px + 8, py + 38, 0xFFAAAAAA);
         fontRendererObj.drawString("Dine Venner:", px + 8, py + 66, 0xFFFFFFFF);
 
-        List<String> friends = new ArrayList<String>(CelleScannerMod.config.friendsList);
+        List<String> friends = new ArrayList<String>(MassiveOsFreakyAddons.config.friendsList);
         int startY = py + 76;
         for (int i = 0; i < friends.size(); i++) {
             int rowY = startY + i * 18;
@@ -421,7 +421,7 @@ public class GuiPhone extends GuiScreen {
         drawRect(px, py + 16, px + PHONE_W, py + 38, 0xFF121824);
         fontRendererObj.drawStringWithShadow("CREW ONLINE", px + 48, py + 22, 0xFF00E5FF);
 
-        List<String> friends = new ArrayList<String>(CelleScannerMod.config.friendsList);
+        List<String> friends = new ArrayList<String>(MassiveOsFreakyAddons.config.friendsList);
         if (friends.isEmpty()) {
             fontRendererObj.drawString("Ingen venner endnu.", px + 10, py + 48, 0xFFAAAAAA);
             fontRendererObj.drawString("Go til SYSTEM.", px + 10, py + 62, 0xFF00E676);

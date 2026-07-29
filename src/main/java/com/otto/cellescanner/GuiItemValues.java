@@ -33,7 +33,7 @@ public class GuiItemValues extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Item værdi: " + (CelleScannerMod.config.itemValueEnabled ? "Til" : "Fra");
+        return "Item værdi: " + (MassiveOsFreakyAddons.config.itemValueEnabled ? "Til" : "Fra");
     }
 
     @Override

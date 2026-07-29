@@ -123,7 +123,7 @@ public class Freecam {
         // Handle flight motion
         if (mc.currentScreen == null) {
             GameSettings gs = mc.gameSettings;
-            float moveSpeed = (float) (CelleScannerMod.config != null ? CelleScannerMod.config.freecamSpeed : 1.5);
+            float moveSpeed = (float) (MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.freecamSpeed : 1.5);
             if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
                 moveSpeed *= 2.5f; // Fast sprint speed
             }

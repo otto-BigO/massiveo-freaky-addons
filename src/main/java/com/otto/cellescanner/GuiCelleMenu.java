@@ -81,26 +81,26 @@ public class GuiCelleMenu extends GuiScreen {
     }
 
     private String toggleLabel() {
-        boolean active = CelleScannerMod.config != null && CelleScannerMod.config.enabled;
+        boolean active = MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.enabled;
         return "Scanner Status: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String notifyLabel() {
-        boolean active = CelleScannerMod.config != null && CelleScannerMod.config.notify;
+        boolean active = MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.notify;
         return "Alarmer: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String espLabel() {
-        boolean active = CelleScannerMod.config != null && CelleScannerMod.config.espEnabled;
+        boolean active = MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.espEnabled;
         return "3D ESP: " + (active ? Style.getAccentFormatting() + "[ TIL ]" : EnumChatFormatting.DARK_GRAY + "[ FRA ]");
     }
 
     private String minLabel() {
-        return "Min Timer: " + (CelleScannerMod.config != null ? CelleScannerMod.config.minHours : 0) + "t";
+        return "Min Timer: " + (MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.minHours : 0) + "t";
     }
 
     private String maxLabel() {
-        return "Max Timer: " + (CelleScannerMod.config != null ? CelleScannerMod.config.maxHours : 0) + "t";
+        return "Max Timer: " + (MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.maxHours : 0) + "t";
     }
 
     private static int step() {

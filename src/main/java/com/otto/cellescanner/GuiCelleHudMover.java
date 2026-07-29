@@ -23,8 +23,8 @@ public class GuiCelleHudMover extends GuiScreen {
 
         if (mouseButton == 0 && isInsideHud(mouseX, mouseY)) {
             dragging = true;
-            offsetX = mouseX - CelleScannerMod.config.hudX;
-            offsetY = mouseY - CelleScannerMod.config.hudY;
+            offsetX = mouseX - MassiveOsFreakyAddons.config.hudX;
+            offsetY = mouseY - MassiveOsFreakyAddons.config.hudY;
         }
     }
 
@@ -71,8 +71,8 @@ public class GuiCelleHudMover extends GuiScreen {
                 snappedY = true;
             }
 
-            CelleScannerMod.config.hudX = newX;
-            CelleScannerMod.config.hudY = newY;
+            MassiveOsFreakyAddons.config.hudX = newX;
+            MassiveOsFreakyAddons.config.hudY = newY;
             clampToScreen();
         }
     }
@@ -82,8 +82,8 @@ public class GuiCelleHudMover extends GuiScreen {
         int boxH = CelleHud.lastBoxBottom - CelleHud.lastBoxTop;
         int maxX = this.width - boxW;
         int maxY = this.height - boxH;
-        CelleScannerMod.config.hudX = Math.max(4, Math.min(maxX + 4, CelleScannerMod.config.hudX));
-        CelleScannerMod.config.hudY = Math.max(4, Math.min(maxY + 4, CelleScannerMod.config.hudY));
+        MassiveOsFreakyAddons.config.hudX = Math.max(4, Math.min(maxX + 4, MassiveOsFreakyAddons.config.hudX));
+        MassiveOsFreakyAddons.config.hudY = Math.max(4, Math.min(maxY + 4, MassiveOsFreakyAddons.config.hudY));
     }
 
     @Override
@@ -116,7 +116,7 @@ public class GuiCelleHudMover extends GuiScreen {
     public void onGuiClosed() {
         super.onGuiClosed();
         clampToScreen();
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.save();
     }
 
     @Override

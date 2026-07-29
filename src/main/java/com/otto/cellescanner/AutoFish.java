@@ -56,7 +56,7 @@ public class AutoFish {
             return;
         }
 
-        if (!CelleScannerMod.config.autoFishEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoFishEnabled) {
             hadBobberLastTick = false;
             castDelayTicks = -1;
             return;
@@ -76,8 +76,8 @@ public class AutoFish {
             if (rodSlot != -1) {
                 mc.thePlayer.inventory.currentItem = rodSlot;
             } else {
-                CelleScannerMod.config.autoFishEnabled = false;
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.autoFishEnabled = false;
+                MassiveOsFreakyAddons.config.save();
                 mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
                         net.minecraft.util.EnumChatFormatting.RED + "[Massiveo's addons] Du har ingen fiskestang i dit hotbar! Auto-Fish deaktiveret."
                 ));
@@ -127,7 +127,7 @@ public class AutoFish {
 
     @SubscribeEvent
     public void onPlaySound(PlaySoundEvent event) {
-        if (!CelleScannerMod.config.autoFishEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoFishEnabled) {
             return;
         }
 

@@ -45,12 +45,12 @@ public class CelleHud {
             return;
         }
 
-        if (CelleScannerMod.config != null && CelleScannerMod.config.debugOverlayEnabled) {
+        if (MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.debugOverlayEnabled) {
             drawDebugOverlay(mc, mc.fontRendererObj);
         }
 
         boolean editing = mc.currentScreen instanceof GuiCelleHudMover;
-        if (!CelleScannerMod.config.enabled && !editing) {
+        if (!MassiveOsFreakyAddons.config.enabled && !editing) {
             return;
         }
 
@@ -59,11 +59,11 @@ public class CelleHud {
         List<Celle> entries = CelleFilter.collectUpcoming();
 
         FontRenderer fr = mc.fontRendererObj;
-        int x = CelleScannerMod.config.hudX;
-        int y = CelleScannerMod.config.hudY;
+        int x = MassiveOsFreakyAddons.config.hudX;
+        int y = MassiveOsFreakyAddons.config.hudY;
         int lineHeight = fr.FONT_HEIGHT + 2;
 
-        int shown = Math.min(entries.size(), Math.max(CelleScannerMod.config.maxHudEntries, 0));
+        int shown = Math.min(entries.size(), Math.max(MassiveOsFreakyAddons.config.maxHudEntries, 0));
 
         // Build the text for each row first so the box can size itself to
         // whatever optional info is currently turned on, instead of using
@@ -74,16 +74,16 @@ public class CelleHud {
             Celle c = entries.get(i);
 
             StringBuilder nameLine = new StringBuilder(c.celleId);
-            if (CelleScannerMod.config.showStatusTag) {
+            if (MassiveOsFreakyAddons.config.showStatusTag) {
                 nameLine.append(c.status == CelleStatus.TIL_SALG ? " (til salg)" : " (solgt)");
             }
-            if (CelleScannerMod.config.showOwner && c.owner != null && !c.owner.isEmpty()) {
+            if (MassiveOsFreakyAddons.config.showOwner && c.owner != null && !c.owner.isEmpty()) {
                 nameLine.append(" - ").append(c.owner);
             }
             nameLines.add(nameLine.toString());
 
             StringBuilder timeLine = new StringBuilder(formatDuration(c));
-            if (CelleScannerMod.config.showDistance) {
+            if (MassiveOsFreakyAddons.config.showDistance) {
                 timeLine.append("  ").append(String.format("%.0fm", distanceTo(mc.thePlayer, c)));
             }
             timeLines.add(timeLine.toString());
@@ -111,7 +111,7 @@ public class CelleHud {
         int lines = 2 + shown * 2 + (finderLine != null ? 1 : 0);
         int boxHeight = lines * lineHeight + 6;
 
-        float scale = CelleScannerMod.config != null ? CelleScannerMod.config.hudFontScale : 1.0f;
+        float scale = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.hudFontScale : 1.0f;
         int unscaledWidth = boxWidth + 8;
         int unscaledHeight = boxHeight + 8;
 
@@ -129,7 +129,7 @@ public class CelleHud {
         int sh = unscaledHeight;
 
         int accent = Style.getAccentColor();
-        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        float alpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
         int alphaInt = Math.max(20, Math.min(255, (int) (alpha * 255)));
 
         Style.roundedRect(sx, sy, sx + sw, sy + sh, 0xFF14151E);
@@ -171,7 +171,7 @@ public class CelleHud {
     public static String formatDuration(long seconds) {
         long h = seconds / 3600;
         long m = (seconds % 3600) / 60;
-        if (CelleScannerMod.config.showSeconds) {
+        if (MassiveOsFreakyAddons.config.showSeconds) {
             long s = seconds % 60;
             return String.format("%dh %02dm %02ds", h, m, s);
         }
@@ -189,9 +189,9 @@ public class CelleHud {
     }
 
     private void drawDebugOverlay(Minecraft mc, FontRenderer fr) {
-        float dScale = CelleScannerMod.config != null ? CelleScannerMod.config.debugScale : 1.0f;
-        int rawX = CelleScannerMod.config != null ? CelleScannerMod.config.debugX : 6;
-        int rawY = CelleScannerMod.config != null ? CelleScannerMod.config.debugY : 6;
+        float dScale = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.debugScale : 1.0f;
+        int rawX = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.debugX : 6;
+        int rawY = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.debugY : 6;
 
         org.lwjgl.opengl.GL11.glPushMatrix();
         org.lwjgl.opengl.GL11.glScalef(dScale, dScale, 1.0f);

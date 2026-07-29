@@ -42,7 +42,7 @@ public class IronDoorSounds implements IWorldAccess {
 
     @Override
     public void markBlockForUpdate(BlockPos pos) {
-        if (!CelleScannerMod.config.ironDoorSoundsEnabled) {
+        if (!MassiveOsFreakyAddons.config.ironDoorSoundsEnabled) {
             return;
         }
 

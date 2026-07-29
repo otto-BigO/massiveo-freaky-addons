@@ -34,7 +34,7 @@ public class CelleEsp {
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.enabled || !CelleScannerMod.config.espEnabled) {
+        if (!MassiveOsFreakyAddons.config.enabled || !MassiveOsFreakyAddons.config.espEnabled) {
             return;
         }
 
@@ -80,7 +80,7 @@ public class CelleEsp {
         // and labels stacked on top of each other is what makes it "unclear"
         // when several celler sit in the same area - keeping only the
         // genuinely nearby ones legible matters more than seeing all of them.
-        double maxDist = CelleScannerMod.config.espMaxDistance;
+        double maxDist = MassiveOsFreakyAddons.config.espMaxDistance;
         boolean limitDistance = maxDist > 0;
 
         // pass 1: box outlines (no texture needed)
@@ -103,7 +103,7 @@ public class CelleEsp {
         GlStateManager.enableTexture2D();
 
         // pass 2: floating celle-id labels (need texture for the font)
-        if (CelleScannerMod.config.espLabels) {
+        if (MassiveOsFreakyAddons.config.espLabels) {
             FontRenderer fr = mc.fontRendererObj;
             RenderManager rm = mc.getRenderManager();
             for (Celle c : entries) {

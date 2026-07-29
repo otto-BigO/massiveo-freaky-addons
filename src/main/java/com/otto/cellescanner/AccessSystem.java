@@ -63,10 +63,10 @@ public class AccessSystem {
             if (success) {
                 isVerified = true;
                 // Remember this good verification so a future outage can fail open.
-                CelleScannerMod.config.accessKey = cleanKey;
-                CelleScannerMod.config.verifiedKey = cleanKey;
-                CelleScannerMod.config.verifiedHwid = hwid;
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.accessKey = cleanKey;
+                MassiveOsFreakyAddons.config.verifiedKey = cleanKey;
+                MassiveOsFreakyAddons.config.verifiedHwid = hwid;
+                MassiveOsFreakyAddons.config.save();
                 return true;
             }
             // The server answered but rejected the key - genuinely not licensed.
@@ -76,8 +76,8 @@ public class AccessSystem {
             // Could not reach the server. Fail OPEN, but only for a key + machine that
             // verified successfully before.
             DebugLog.log("AccessSystem", "Licensserver ikke tilgaengelig, proever cache: " + e.getMessage());
-            if (cleanKey.equalsIgnoreCase(CelleScannerMod.config.verifiedKey)
-                    && hwid.equalsIgnoreCase(CelleScannerMod.config.verifiedHwid)) {
+            if (cleanKey.equalsIgnoreCase(MassiveOsFreakyAddons.config.verifiedKey)
+                    && hwid.equalsIgnoreCase(MassiveOsFreakyAddons.config.verifiedHwid)) {
                 isVerified = true;
                 return true;
             }

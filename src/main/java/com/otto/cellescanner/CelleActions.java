@@ -19,9 +19,9 @@ public final class CelleActions {
     }
 
     public static void toggleEnabled() {
-        CelleScannerMod.config.enabled = !CelleScannerMod.config.enabled;
-        CelleScannerMod.config.save();
-        message("Massiveo's addons er nu " + (CelleScannerMod.config.enabled ? "aktiveret" : "deaktiveret") + ".");
+        MassiveOsFreakyAddons.config.enabled = !MassiveOsFreakyAddons.config.enabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Massiveo's addons er nu " + (MassiveOsFreakyAddons.config.enabled ? "aktiveret" : "deaktiveret") + ".");
     }
 
     public static void toggleFreecam() {
@@ -29,23 +29,23 @@ public final class CelleActions {
     }
 
     public static void toggleNotify() {
-        CelleScannerMod.config.notify = !CelleScannerMod.config.notify;
-        CelleScannerMod.config.save();
-        message("Notifikationer er nu " + (CelleScannerMod.config.notify ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.notify = !MassiveOsFreakyAddons.config.notify;
+        MassiveOsFreakyAddons.config.save();
+        message("Notifikationer er nu " + (MassiveOsFreakyAddons.config.notify ? "til" : "fra") + ".");
     }
 
     public static void reloadConfig() {
-        CelleScannerMod.config.load();
+        MassiveOsFreakyAddons.config.load();
         GangRanges.load();
         PortalRouting.load();
-        message("Konfiguration genindl\u00e6st. minHours=" + CelleScannerMod.config.minHours
-                + " maxHours=" + CelleScannerMod.config.maxHours
-                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra")
+        message("Konfiguration genindl\u00e6st. minHours=" + MassiveOsFreakyAddons.config.minHours
+                + " maxHours=" + MassiveOsFreakyAddons.config.maxHours
+                + " notify=" + (MassiveOsFreakyAddons.config.notify ? "til" : "fra")
                 + ", gang-ranges=" + GangRanges.count());
     }
 
     public static void clearCache() {
-        CelleScannerMod.scanner.clear();
+        MassiveOsFreakyAddons.scanner.clear();
         message("Cache ryddet.");
     }
 
@@ -100,11 +100,11 @@ public final class CelleActions {
     }
 
     public static void debugDump() {
-        int count = CelleScannerMod.scanner.getCache().size();
-        message("Sporer " + count + " celler. minHours=" + CelleScannerMod.config.minHours
-                + " maxHours=" + CelleScannerMod.config.maxHours
-                + " notify=" + (CelleScannerMod.config.notify ? "til" : "fra"));
-        for (Celle c : CelleScannerMod.scanner.getCache().values()) {
+        int count = MassiveOsFreakyAddons.scanner.getCache().size();
+        message("Sporer " + count + " celler. minHours=" + MassiveOsFreakyAddons.config.minHours
+                + " maxHours=" + MassiveOsFreakyAddons.config.maxHours
+                + " notify=" + (MassiveOsFreakyAddons.config.notify ? "til" : "fra"));
+        for (Celle c : MassiveOsFreakyAddons.scanner.getCache().values()) {
             String ownerPart = c.owner != null ? " ejer=" + c.owner : "";
             message(" - " + c.celleId + " [" + c.status + "] "
                     + CelleHud.formatDuration(c)
@@ -112,104 +112,104 @@ public final class CelleActions {
                     + CelleHud.formatDuration(c.remainingSeconds) + ")"
                     + " bekræftet=" + c.timerConfirmed
                     + " underrettet=" + c.notified
-                    + " special=" + CelleScannerMod.config.isSpecial(c.celleId) + ownerPart);
+                    + " special=" + MassiveOsFreakyAddons.config.isSpecial(c.celleId) + ownerPart);
         }
     }
 
     public static void adjustMinHours(int delta) {
-        CelleScannerMod.config.minHours = Math.max(0, Math.min(CelleScannerMod.config.maxHours, CelleScannerMod.config.minHours + delta));
-        CelleScannerMod.config.save();
-        message("Min timer: " + CelleScannerMod.config.minHours);
+        MassiveOsFreakyAddons.config.minHours = Math.max(0, Math.min(MassiveOsFreakyAddons.config.maxHours, MassiveOsFreakyAddons.config.minHours + delta));
+        MassiveOsFreakyAddons.config.save();
+        message("Min timer: " + MassiveOsFreakyAddons.config.minHours);
     }
 
     public static void adjustMaxHours(int delta) {
-        CelleScannerMod.config.maxHours = Math.max(CelleScannerMod.config.minHours, CelleScannerMod.config.maxHours + delta);
-        CelleScannerMod.config.save();
-        message("Max timer: " + CelleScannerMod.config.maxHours);
+        MassiveOsFreakyAddons.config.maxHours = Math.max(MassiveOsFreakyAddons.config.minHours, MassiveOsFreakyAddons.config.maxHours + delta);
+        MassiveOsFreakyAddons.config.save();
+        message("Max timer: " + MassiveOsFreakyAddons.config.maxHours);
     }
 
     public static void setMinHours(int value) {
-        CelleScannerMod.config.minHours = Math.max(0, Math.min(CelleScannerMod.config.maxHours, value));
-        CelleScannerMod.config.save();
-        message("Min timer: " + CelleScannerMod.config.minHours);
+        MassiveOsFreakyAddons.config.minHours = Math.max(0, Math.min(MassiveOsFreakyAddons.config.maxHours, value));
+        MassiveOsFreakyAddons.config.save();
+        message("Min timer: " + MassiveOsFreakyAddons.config.minHours);
     }
 
     public static void setMaxHours(int value) {
-        CelleScannerMod.config.maxHours = Math.max(CelleScannerMod.config.minHours, value);
-        CelleScannerMod.config.save();
-        message("Max timer: " + CelleScannerMod.config.maxHours);
+        MassiveOsFreakyAddons.config.maxHours = Math.max(MassiveOsFreakyAddons.config.minHours, value);
+        MassiveOsFreakyAddons.config.save();
+        message("Max timer: " + MassiveOsFreakyAddons.config.maxHours);
     }
 
     public static void adjustMaxHudEntries(int delta) {
-        CelleScannerMod.config.maxHudEntries = Math.max(1, Math.min(50, CelleScannerMod.config.maxHudEntries + delta));
-        CelleScannerMod.config.save();
-        message("Maks HUD-linjer: " + CelleScannerMod.config.maxHudEntries);
+        MassiveOsFreakyAddons.config.maxHudEntries = Math.max(1, Math.min(50, MassiveOsFreakyAddons.config.maxHudEntries + delta));
+        MassiveOsFreakyAddons.config.save();
+        message("Maks HUD-linjer: " + MassiveOsFreakyAddons.config.maxHudEntries);
     }
 
     public static void toggleEsp() {
-        CelleScannerMod.config.espEnabled = !CelleScannerMod.config.espEnabled;
-        CelleScannerMod.config.save();
-        message("ESP-outline er nu " + (CelleScannerMod.config.espEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.espEnabled = !MassiveOsFreakyAddons.config.espEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("ESP-outline er nu " + (MassiveOsFreakyAddons.config.espEnabled ? "til" : "fra") + ".");
     }
 
     public static void toggleShowSeconds() {
-        CelleScannerMod.config.showSeconds = !CelleScannerMod.config.showSeconds;
-        CelleScannerMod.config.save();
-        message("Vis sekunder: " + (CelleScannerMod.config.showSeconds ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.showSeconds = !MassiveOsFreakyAddons.config.showSeconds;
+        MassiveOsFreakyAddons.config.save();
+        message("Vis sekunder: " + (MassiveOsFreakyAddons.config.showSeconds ? "til" : "fra"));
     }
 
     public static void toggleShowOwner() {
-        CelleScannerMod.config.showOwner = !CelleScannerMod.config.showOwner;
-        CelleScannerMod.config.save();
-        message("Vis ejernavn: " + (CelleScannerMod.config.showOwner ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.showOwner = !MassiveOsFreakyAddons.config.showOwner;
+        MassiveOsFreakyAddons.config.save();
+        message("Vis ejernavn: " + (MassiveOsFreakyAddons.config.showOwner ? "til" : "fra"));
     }
 
     public static void toggleShowStatusTag() {
-        CelleScannerMod.config.showStatusTag = !CelleScannerMod.config.showStatusTag;
-        CelleScannerMod.config.save();
-        message("Vis status-mærke: " + (CelleScannerMod.config.showStatusTag ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.showStatusTag = !MassiveOsFreakyAddons.config.showStatusTag;
+        MassiveOsFreakyAddons.config.save();
+        message("Vis status-mærke: " + (MassiveOsFreakyAddons.config.showStatusTag ? "til" : "fra"));
     }
 
     public static void toggleShowDistance() {
-        CelleScannerMod.config.showDistance = !CelleScannerMod.config.showDistance;
-        CelleScannerMod.config.save();
-        message("Vis afstand: " + (CelleScannerMod.config.showDistance ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.showDistance = !MassiveOsFreakyAddons.config.showDistance;
+        MassiveOsFreakyAddons.config.save();
+        message("Vis afstand: " + (MassiveOsFreakyAddons.config.showDistance ? "til" : "fra"));
     }
 
     public static void toggleEspLabels() {
-        CelleScannerMod.config.espLabels = !CelleScannerMod.config.espLabels;
-        CelleScannerMod.config.save();
-        message("ESP celle-id label: " + (CelleScannerMod.config.espLabels ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.espLabels = !MassiveOsFreakyAddons.config.espLabels;
+        MassiveOsFreakyAddons.config.save();
+        message("ESP celle-id label: " + (MassiveOsFreakyAddons.config.espLabels ? "til" : "fra"));
     }
 
     public static void toggleBotReport() {
-        CelleScannerMod.config.botReportEnabled = !CelleScannerMod.config.botReportEnabled;
-        CelleScannerMod.config.save();
-        message("Bot-rapportering er nu " + (CelleScannerMod.config.botReportEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.botReportEnabled = !MassiveOsFreakyAddons.config.botReportEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Bot-rapportering er nu " + (MassiveOsFreakyAddons.config.botReportEnabled ? "til" : "fra") + ".");
     }
 
     public static void setReportsWebhookUrl(String url) {
-        CelleScannerMod.config.reportsWebhookUrl = url;
-        CelleScannerMod.config.botReportEnabled = true;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.reportsWebhookUrl = url;
+        MassiveOsFreakyAddons.config.botReportEnabled = true;
+        MassiveOsFreakyAddons.config.save();
         message("Webhook-url gemt og aktiveret.");
     }
 
     public static void disableBotReport() {
-        CelleScannerMod.config.botReportEnabled = false;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.botReportEnabled = false;
+        MassiveOsFreakyAddons.config.save();
         message("Bot-rapportering deaktiveret.");
     }
 
     public static void clearBotReport() {
-        CelleScannerMod.config.botReportEnabled = false;
-        CelleScannerMod.config.reportsWebhookUrl = "";
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.botReportEnabled = false;
+        MassiveOsFreakyAddons.config.reportsWebhookUrl = "";
+        MassiveOsFreakyAddons.config.save();
         message("Webhook-forbindelse ryddet.");
     }
 
     public static void testBotConnection() {
-        if (CelleScannerMod.config.reportsWebhookUrl == null || CelleScannerMod.config.reportsWebhookUrl.trim().isEmpty()) {
+        if (MassiveOsFreakyAddons.config.reportsWebhookUrl == null || MassiveOsFreakyAddons.config.reportsWebhookUrl.trim().isEmpty()) {
             message("Ingen webhook-url sat. Brug /celler bot <url> først.");
             return;
         }
@@ -218,9 +218,9 @@ public final class CelleActions {
     }
 
     public static void setEspMaxDistance(double value) {
-        CelleScannerMod.config.espMaxDistance = Math.max(8.0, value);
-        CelleScannerMod.config.save();
-        message("ESP maks-afstand: " + String.format("%.0fm", CelleScannerMod.config.espMaxDistance));
+        MassiveOsFreakyAddons.config.espMaxDistance = Math.max(8.0, value);
+        MassiveOsFreakyAddons.config.save();
+        message("ESP maks-afstand: " + String.format("%.0fm", MassiveOsFreakyAddons.config.espMaxDistance));
     }
 
     public static void addSpecialCelle(String id) {
@@ -229,19 +229,19 @@ public final class CelleActions {
             message("Ugyldigt celle-id.");
             return;
         }
-        if (CelleScannerMod.config.isSpecial(trimmed)) {
+        if (MassiveOsFreakyAddons.config.isSpecial(trimmed)) {
             message("Celle " + trimmed + " er allerede på special-listen.");
             return;
         }
-        CelleScannerMod.config.specialCelleIds.add(trimmed);
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.specialCelleIds.add(trimmed);
+        MassiveOsFreakyAddons.config.save();
         message("Celle " + trimmed + " tilføjet som special.");
     }
 
     public static void removeSpecialCelle(String id) {
         String trimmed = id == null ? "" : id.trim();
         boolean removed = false;
-        Iterator<String> it = CelleScannerMod.config.specialCelleIds.iterator();
+        Iterator<String> it = MassiveOsFreakyAddons.config.specialCelleIds.iterator();
         while (it.hasNext()) {
             String existing = it.next();
             if (existing != null && existing.equalsIgnoreCase(trimmed)) {
@@ -250,7 +250,7 @@ public final class CelleActions {
             }
         }
         if (removed) {
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.save();
             message("Celle " + trimmed + " fjernet fra special-listen.");
         } else {
             message("Celle " + trimmed + " var ikke på special-listen.");
@@ -258,18 +258,18 @@ public final class CelleActions {
     }
 
     public static void clearSpecialCelles() {
-        CelleScannerMod.config.specialCelleIds.clear();
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.specialCelleIds.clear();
+        MassiveOsFreakyAddons.config.save();
         message("Special-listen er ryddet.");
     }
 
     public static void listSpecialCelles() {
-        if (CelleScannerMod.config.specialCelleIds.isEmpty()) {
+        if (MassiveOsFreakyAddons.config.specialCelleIds.isEmpty()) {
             message("Ingen special-celler sat. Brug /celler special add <id>.");
             return;
         }
-        message("Special-celler (" + CelleScannerMod.config.specialCelleIds.size() + "):");
-        for (String id : CelleScannerMod.config.specialCelleIds) {
+        message("Special-celler (" + MassiveOsFreakyAddons.config.specialCelleIds.size() + "):");
+        for (String id : MassiveOsFreakyAddons.config.specialCelleIds) {
             message(" - " + id);
         }
     }
@@ -323,9 +323,9 @@ public final class CelleActions {
     }
 
     public static void togglePlayerInfo() {
-        CelleScannerMod.config.playerInfoEnabled = !CelleScannerMod.config.playerInfoEnabled;
-        CelleScannerMod.config.save();
-        message("Spiller Info: " + (CelleScannerMod.config.playerInfoEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.playerInfoEnabled = !MassiveOsFreakyAddons.config.playerInfoEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Spiller Info: " + (MassiveOsFreakyAddons.config.playerInfoEnabled ? "til" : "fra"));
     }
 
     public static void openTroll() {
@@ -333,34 +333,34 @@ public final class CelleActions {
     }
 
     public static void toggleTroll() {
-        CelleScannerMod.config.trollEnabled = !CelleScannerMod.config.trollEnabled;
-        CelleScannerMod.config.save();
-        message("Troll Lyde: " + (CelleScannerMod.config.trollEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.trollEnabled = !MassiveOsFreakyAddons.config.trollEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Troll Lyde: " + (MassiveOsFreakyAddons.config.trollEnabled ? "til" : "fra"));
     }
 
     public static void toggleTrollDeath() {
-        CelleScannerMod.config.trollDeath = !CelleScannerMod.config.trollDeath;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.trollDeath = !MassiveOsFreakyAddons.config.trollDeath;
+        MassiveOsFreakyAddons.config.save();
     }
 
     public static void toggleTrollKill() {
-        CelleScannerMod.config.trollKill = !CelleScannerMod.config.trollKill;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.trollKill = !MassiveOsFreakyAddons.config.trollKill;
+        MassiveOsFreakyAddons.config.save();
     }
 
     public static void toggleTrollFirstHit() {
-        CelleScannerMod.config.trollFirstHit = !CelleScannerMod.config.trollFirstHit;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.trollFirstHit = !MassiveOsFreakyAddons.config.trollFirstHit;
+        MassiveOsFreakyAddons.config.save();
     }
 
     public static void toggleTrollJump() {
-        CelleScannerMod.config.trollJump = !CelleScannerMod.config.trollJump;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.trollJump = !MassiveOsFreakyAddons.config.trollJump;
+        MassiveOsFreakyAddons.config.save();
     }
 
     public static void toggleTrollAfk() {
-        CelleScannerMod.config.trollAfk = !CelleScannerMod.config.trollAfk;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.trollAfk = !MassiveOsFreakyAddons.config.trollAfk;
+        MassiveOsFreakyAddons.config.save();
     }
 
     public static void testTroll(String event) {
@@ -384,27 +384,27 @@ public final class CelleActions {
     }
 
     public static void toggleModIcon() {
-        CelleScannerMod.config.modIconEnabled = !CelleScannerMod.config.modIconEnabled;
-        CelleScannerMod.config.save();
-        message("Mod-ikon: " + (CelleScannerMod.config.modIconEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.modIconEnabled = !MassiveOsFreakyAddons.config.modIconEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Mod-ikon: " + (MassiveOsFreakyAddons.config.modIconEnabled ? "til" : "fra"));
     }
 
     public static void toggleAutoMine() {
-        CelleScannerMod.config.autoMineEnabled = !CelleScannerMod.config.autoMineEnabled;
-        CelleScannerMod.config.save();
-        message("Auto Mine: " + (CelleScannerMod.config.autoMineEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.autoMineEnabled = !MassiveOsFreakyAddons.config.autoMineEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Auto Mine: " + (MassiveOsFreakyAddons.config.autoMineEnabled ? "til" : "fra"));
     }
 
     public static void togglePvpMine() {
-        CelleScannerMod.config.pvpMineEnabled = !CelleScannerMod.config.pvpMineEnabled;
-        CelleScannerMod.config.save();
-        message("PvP Mine: " + (CelleScannerMod.config.pvpMineEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.pvpMineEnabled = !MassiveOsFreakyAddons.config.pvpMineEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("PvP Mine: " + (MassiveOsFreakyAddons.config.pvpMineEnabled ? "til" : "fra"));
     }
 
     public static void togglePvpMineAlert() {
-        CelleScannerMod.config.pvpMineAlert = !CelleScannerMod.config.pvpMineAlert;
-        CelleScannerMod.config.save();
-        message("PvP Mine alarm: " + (CelleScannerMod.config.pvpMineAlert ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.pvpMineAlert = !MassiveOsFreakyAddons.config.pvpMineAlert;
+        MassiveOsFreakyAddons.config.save();
+        message("PvP Mine alarm: " + (MassiveOsFreakyAddons.config.pvpMineAlert ? "til" : "fra"));
     }
 
     /**
@@ -509,15 +509,15 @@ public final class CelleActions {
     }
 
     public static void toggleItemPickup() {
-        CelleScannerMod.config.itemPickupEnabled = !CelleScannerMod.config.itemPickupEnabled;
-        CelleScannerMod.config.save();
-        message("Item-log: " + (CelleScannerMod.config.itemPickupEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.itemPickupEnabled = !MassiveOsFreakyAddons.config.itemPickupEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Item-log: " + (MassiveOsFreakyAddons.config.itemPickupEnabled ? "til" : "fra"));
     }
 
     public static void toggleGangAutoQuery() {
-        CelleScannerMod.config.gangAutoQuery = !CelleScannerMod.config.gangAutoQuery;
-        CelleScannerMod.config.save();
-        message("Gange auto-hentning: " + (CelleScannerMod.config.gangAutoQuery ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.gangAutoQuery = !MassiveOsFreakyAddons.config.gangAutoQuery;
+        MassiveOsFreakyAddons.config.save();
+        message("Gange auto-hentning: " + (MassiveOsFreakyAddons.config.gangAutoQuery ? "til" : "fra"));
     }
 
     public static void openItemValues() {
@@ -533,15 +533,15 @@ public final class CelleActions {
     }
 
     public static void toggleAutoUpdate() {
-        CelleScannerMod.config.autoUpdateEnabled = !CelleScannerMod.config.autoUpdateEnabled;
-        CelleScannerMod.config.save();
-        message("Auto-opdatering er nu " + (CelleScannerMod.config.autoUpdateEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.autoUpdateEnabled = !MassiveOsFreakyAddons.config.autoUpdateEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Auto-opdatering er nu " + (MassiveOsFreakyAddons.config.autoUpdateEnabled ? "til" : "fra") + ".");
     }
 
     public static void toggleUpdatePreRelease() {
-        CelleScannerMod.config.autoUpdatePreRelease = !CelleScannerMod.config.autoUpdatePreRelease;
-        CelleScannerMod.config.save();
-        message("Opdater til pre-releases (test): " + (CelleScannerMod.config.autoUpdatePreRelease ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.autoUpdatePreRelease = !MassiveOsFreakyAddons.config.autoUpdatePreRelease;
+        MassiveOsFreakyAddons.config.save();
+        message("Opdater til pre-releases (test): " + (MassiveOsFreakyAddons.config.autoUpdatePreRelease ? "til" : "fra"));
     }
 
     public static void checkForUpdateNow() {
@@ -550,9 +550,9 @@ public final class CelleActions {
     }
 
     public static void toggleItemValues() {
-        CelleScannerMod.config.itemValueEnabled = !CelleScannerMod.config.itemValueEnabled;
-        CelleScannerMod.config.save();
-        message("Item værdi i tooltip: " + (CelleScannerMod.config.itemValueEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.itemValueEnabled = !MassiveOsFreakyAddons.config.itemValueEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Item værdi i tooltip: " + (MassiveOsFreakyAddons.config.itemValueEnabled ? "til" : "fra"));
     }
 
     public static void reloadItemValues() {
@@ -565,9 +565,9 @@ public final class CelleActions {
     }
 
     public static void toggleMineCellerEsp() {
-        CelleScannerMod.config.mineCellerEspEnabled = !CelleScannerMod.config.mineCellerEspEnabled;
-        CelleScannerMod.config.save();
-        message("Mine celler ESP: " + (CelleScannerMod.config.mineCellerEspEnabled ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.mineCellerEspEnabled = !MassiveOsFreakyAddons.config.mineCellerEspEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Mine celler ESP: " + (MassiveOsFreakyAddons.config.mineCellerEspEnabled ? "til" : "fra"));
     }
 
     public static void addMyCelle(String id) {
@@ -576,25 +576,25 @@ public final class CelleActions {
             message("Ugyldigt celle-id.");
             return;
         }
-        if (CelleScannerMod.config.isMyCelle(trimmed)) {
+        if (MassiveOsFreakyAddons.config.isMyCelle(trimmed)) {
             message("Celle " + trimmed + " er allerede på listen.");
             return;
         }
-        CelleScannerMod.config.myCelleIds.add(trimmed);
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.myCelleIds.add(trimmed);
+        MassiveOsFreakyAddons.config.save();
         message("Celle " + trimmed + " tilføjet til mine celler.");
     }
 
     public static void clearMyCeller() {
-        CelleScannerMod.config.myCelleIds.clear();
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.myCelleIds.clear();
+        MassiveOsFreakyAddons.config.save();
         message("Mine celler-listen er ryddet.");
     }
 
     public static void toggleArmorSkins() {
-        CelleScannerMod.config.armorSkinsEnabled = !CelleScannerMod.config.armorSkinsEnabled;
-        CelleScannerMod.config.save();
-        message("Rustnings-skins er nu " + (CelleScannerMod.config.armorSkinsEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.armorSkinsEnabled = !MassiveOsFreakyAddons.config.armorSkinsEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Rustnings-skins er nu " + (MassiveOsFreakyAddons.config.armorSkinsEnabled ? "til" : "fra") + ".");
     }
 
     public static void openArmorHud() {
@@ -602,33 +602,33 @@ public final class CelleActions {
     }
 
     public static void toggleArmorHud() {
-        CelleScannerMod.config.armorHudEnabled = !CelleScannerMod.config.armorHudEnabled;
-        CelleScannerMod.config.save();
-        message("Rustnings-HUD er nu " + (CelleScannerMod.config.armorHudEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.armorHudEnabled = !MassiveOsFreakyAddons.config.armorHudEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Rustnings-HUD er nu " + (MassiveOsFreakyAddons.config.armorHudEnabled ? "til" : "fra") + ".");
     }
 
     public static void adjustArmorHudWarn(int delta) {
-        CelleScannerMod.config.armorHudWarnPercent = Math.max(1, Math.min(90, CelleScannerMod.config.armorHudWarnPercent + delta));
-        CelleScannerMod.config.save();
-        message("Rustnings-HUD advarsel: under " + CelleScannerMod.config.armorHudWarnPercent + "%");
+        MassiveOsFreakyAddons.config.armorHudWarnPercent = Math.max(1, Math.min(90, MassiveOsFreakyAddons.config.armorHudWarnPercent + delta));
+        MassiveOsFreakyAddons.config.save();
+        message("Rustnings-HUD advarsel: under " + MassiveOsFreakyAddons.config.armorHudWarnPercent + "%");
     }
 
     public static void toggleChestAlarm() {
-        CelleScannerMod.config.chestAlarmEnabled = !CelleScannerMod.config.chestAlarmEnabled;
-        CelleScannerMod.config.save();
-        message("Chest Alarm er nu " + (CelleScannerMod.config.chestAlarmEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.chestAlarmEnabled = !MassiveOsFreakyAddons.config.chestAlarmEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Chest Alarm er nu " + (MassiveOsFreakyAddons.config.chestAlarmEnabled ? "til" : "fra") + ".");
     }
 
     public static void toggleChestAlarmToast() {
-        CelleScannerMod.config.chestAlarmToast = !CelleScannerMod.config.chestAlarmToast;
-        CelleScannerMod.config.save();
-        message("Chest Alarm notifikation: " + (CelleScannerMod.config.chestAlarmToast ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.chestAlarmToast = !MassiveOsFreakyAddons.config.chestAlarmToast;
+        MassiveOsFreakyAddons.config.save();
+        message("Chest Alarm notifikation: " + (MassiveOsFreakyAddons.config.chestAlarmToast ? "til" : "fra"));
     }
 
     public static void toggleChestAlarmSound() {
-        CelleScannerMod.config.chestAlarmSound = !CelleScannerMod.config.chestAlarmSound;
-        CelleScannerMod.config.save();
-        message("Chest Alarm lyd: " + (CelleScannerMod.config.chestAlarmSound ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.chestAlarmSound = !MassiveOsFreakyAddons.config.chestAlarmSound;
+        MassiveOsFreakyAddons.config.save();
+        message("Chest Alarm lyd: " + (MassiveOsFreakyAddons.config.chestAlarmSound ? "til" : "fra"));
     }
 
     public static void setChestAlarmKeyword(String keyword) {
@@ -637,8 +637,8 @@ public final class CelleActions {
             message("Ugyldigt nøgleord.");
             return;
         }
-        CelleScannerMod.config.chestAlarmKeyword = trimmed;
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.chestAlarmKeyword = trimmed;
+        MassiveOsFreakyAddons.config.save();
         message("Chest Alarm nøgleord sat til \"" + trimmed + "\".");
     }
 
@@ -651,21 +651,21 @@ public final class CelleActions {
     }
 
     public static void toggleBandeEsp() {
-        CelleScannerMod.config.bandeEspEnabled = !CelleScannerMod.config.bandeEspEnabled;
-        CelleScannerMod.config.save();
-        message("Bande ESP er nu " + (CelleScannerMod.config.bandeEspEnabled ? "til" : "fra") + ".");
+        MassiveOsFreakyAddons.config.bandeEspEnabled = !MassiveOsFreakyAddons.config.bandeEspEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Bande ESP er nu " + (MassiveOsFreakyAddons.config.bandeEspEnabled ? "til" : "fra") + ".");
     }
 
     public static void toggleBandeAutoTeam() {
-        CelleScannerMod.config.bandeAutoTeam = !CelleScannerMod.config.bandeAutoTeam;
-        CelleScannerMod.config.save();
-        message("Bande auto (samme hold): " + (CelleScannerMod.config.bandeAutoTeam ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.bandeAutoTeam = !MassiveOsFreakyAddons.config.bandeAutoTeam;
+        MassiveOsFreakyAddons.config.save();
+        message("Bande auto (samme hold): " + (MassiveOsFreakyAddons.config.bandeAutoTeam ? "til" : "fra"));
     }
 
     public static void toggleBandeEspAll() {
-        CelleScannerMod.config.bandeEspAll = !CelleScannerMod.config.bandeEspAll;
-        CelleScannerMod.config.save();
-        message("ESP på alle spillere: " + (CelleScannerMod.config.bandeEspAll ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.bandeEspAll = !MassiveOsFreakyAddons.config.bandeEspAll;
+        MassiveOsFreakyAddons.config.save();
+        message("ESP på alle spillere: " + (MassiveOsFreakyAddons.config.bandeEspAll ? "til" : "fra"));
     }
 
     public static void addBandeMember(String name) {
@@ -674,19 +674,19 @@ public final class CelleActions {
             message("Ugyldigt spillernavn.");
             return;
         }
-        if (CelleScannerMod.config.isBandeMember(trimmed)) {
+        if (MassiveOsFreakyAddons.config.isBandeMember(trimmed)) {
             message(trimmed + " er allerede på bande-listen.");
             return;
         }
-        CelleScannerMod.config.bandeMembers.add(trimmed);
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.bandeMembers.add(trimmed);
+        MassiveOsFreakyAddons.config.save();
         message(trimmed + " tilføjet til banden.");
     }
 
     public static void removeBandeMember(String name) {
         String trimmed = name == null ? "" : name.trim();
         boolean removed = false;
-        Iterator<String> it = CelleScannerMod.config.bandeMembers.iterator();
+        Iterator<String> it = MassiveOsFreakyAddons.config.bandeMembers.iterator();
         while (it.hasNext()) {
             String existing = it.next();
             if (existing != null && existing.equalsIgnoreCase(trimmed)) {
@@ -695,7 +695,7 @@ public final class CelleActions {
             }
         }
         if (removed) {
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.save();
             message(trimmed + " fjernet fra banden.");
         } else {
             message(trimmed + " var ikke på bande-listen.");
@@ -703,45 +703,45 @@ public final class CelleActions {
     }
 
     public static void clearBandeMembers() {
-        CelleScannerMod.config.bandeMembers.clear();
-        CelleScannerMod.config.save();
+        MassiveOsFreakyAddons.config.bandeMembers.clear();
+        MassiveOsFreakyAddons.config.save();
         message("Bande-listen er ryddet.");
     }
 
     public static void toggleAntiAfk() {
-        CelleScannerMod.config.antiAfkEnabled = !CelleScannerMod.config.antiAfkEnabled;
-        CelleScannerMod.config.save();
-        message("Anti-AFK er nu " + (CelleScannerMod.config.antiAfkEnabled ? "aktiveret" : "deaktiveret") + ".");
+        MassiveOsFreakyAddons.config.antiAfkEnabled = !MassiveOsFreakyAddons.config.antiAfkEnabled;
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK er nu " + (MassiveOsFreakyAddons.config.antiAfkEnabled ? "aktiveret" : "deaktiveret") + ".");
     }
 
     public static void toggleAntiAfkSwing() {
-        CelleScannerMod.config.antiAfkSwing = !CelleScannerMod.config.antiAfkSwing;
-        CelleScannerMod.config.save();
-        message("Anti-AFK slag: " + (CelleScannerMod.config.antiAfkSwing ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.antiAfkSwing = !MassiveOsFreakyAddons.config.antiAfkSwing;
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK slag: " + (MassiveOsFreakyAddons.config.antiAfkSwing ? "til" : "fra"));
     }
 
     public static void toggleAntiAfkRotate() {
-        CelleScannerMod.config.antiAfkRotate = !CelleScannerMod.config.antiAfkRotate;
-        CelleScannerMod.config.save();
-        message("Anti-AFK kig: " + (CelleScannerMod.config.antiAfkRotate ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.antiAfkRotate = !MassiveOsFreakyAddons.config.antiAfkRotate;
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK kig: " + (MassiveOsFreakyAddons.config.antiAfkRotate ? "til" : "fra"));
     }
 
     public static void toggleAntiAfkJump() {
-        CelleScannerMod.config.antiAfkJump = !CelleScannerMod.config.antiAfkJump;
-        CelleScannerMod.config.save();
-        message("Anti-AFK hop: " + (CelleScannerMod.config.antiAfkJump ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.antiAfkJump = !MassiveOsFreakyAddons.config.antiAfkJump;
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK hop: " + (MassiveOsFreakyAddons.config.antiAfkJump ? "til" : "fra"));
     }
 
     public static void toggleAntiAfkStrafe() {
-        CelleScannerMod.config.antiAfkStrafe = !CelleScannerMod.config.antiAfkStrafe;
-        CelleScannerMod.config.save();
-        message("Anti-AFK skridt til siden: " + (CelleScannerMod.config.antiAfkStrafe ? "til" : "fra"));
+        MassiveOsFreakyAddons.config.antiAfkStrafe = !MassiveOsFreakyAddons.config.antiAfkStrafe;
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK skridt til siden: " + (MassiveOsFreakyAddons.config.antiAfkStrafe ? "til" : "fra"));
     }
 
     public static void adjustAntiAfkInterval(int delta) {
-        CelleScannerMod.config.antiAfkIntervalSeconds = Math.max(5, Math.min(300, CelleScannerMod.config.antiAfkIntervalSeconds + delta));
-        CelleScannerMod.config.save();
-        message("Anti-AFK interval: " + CelleScannerMod.config.antiAfkIntervalSeconds + "s");
+        MassiveOsFreakyAddons.config.antiAfkIntervalSeconds = Math.max(5, Math.min(300, MassiveOsFreakyAddons.config.antiAfkIntervalSeconds + delta));
+        MassiveOsFreakyAddons.config.save();
+        message("Anti-AFK interval: " + MassiveOsFreakyAddons.config.antiAfkIntervalSeconds + "s");
     }
 
     public static void openMenu() {

@@ -58,7 +58,7 @@ public class FlipWatcher {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        if (CelleScannerMod.config == null || !CelleScannerMod.config.flipCaseEnabled) {
+        if (MassiveOsFreakyAddons.config == null || !MassiveOsFreakyAddons.config.flipCaseEnabled) {
             return;
         }
 
@@ -139,7 +139,7 @@ public class FlipWatcher {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChat(ClientChatReceivedEvent event) {
-        if (CelleScannerMod.config == null || !CelleScannerMod.config.flipCaseEnabled) {
+        if (MassiveOsFreakyAddons.config == null || !MassiveOsFreakyAddons.config.flipCaseEnabled) {
             return;
         }
 
@@ -191,7 +191,7 @@ public class FlipWatcher {
 
     @SubscribeEvent
     public void onPlaySound(net.minecraftforge.client.event.sound.PlaySoundEvent event) {
-        if (CelleScannerMod.config == null || !CelleScannerMod.config.flipCaseEnabled) {
+        if (MassiveOsFreakyAddons.config == null || !MassiveOsFreakyAddons.config.flipCaseEnabled) {
             return;
         }
         if (!(Minecraft.getMinecraft().currentScreen instanceof FlipCaseGui)) {

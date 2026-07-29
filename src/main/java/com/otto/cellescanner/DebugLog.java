@@ -47,12 +47,12 @@ public final class DebugLog {
         if (sessionOpened || logFile == null) {
             return;
         }
-        if (CelleScannerMod.config == null || !isEnabled()) {
+        if (MassiveOsFreakyAddons.config == null || !isEnabled()) {
             return;
         }
         sessionOpened = true;
         writeRaw("=== Massiveo debug session opened at " + DATE_FMT.format(new Date())
-                + " (v" + CelleScannerMod.VERSION + ") ===");
+                + " (v" + MassiveOsFreakyAddons.VERSION + ") ===");
     }
 
     /**
@@ -90,7 +90,7 @@ public final class DebugLog {
      * True when both debugEnabled AND debugLogEnabled are set.
      */
     public static boolean isEnabled() {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         return cfg != null
                 && Boolean.TRUE.equals(cfg.debugEnabled)
                 && Boolean.TRUE.equals(cfg.debugLogEnabled);

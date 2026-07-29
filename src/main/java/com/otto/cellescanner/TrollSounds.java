@@ -41,7 +41,7 @@ public class TrollSounds {
 
     @SubscribeEvent
     public void onAttack(AttackEntityEvent event) {
-        if (!CelleScannerMod.config.trollEnabled) {
+        if (!MassiveOsFreakyAddons.config.trollEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -49,7 +49,7 @@ public class TrollSounds {
             return;
         }
         long now = System.currentTimeMillis();
-        if (CelleScannerMod.config.trollFirstHit && now - lastPlayerHitAt > COMBAT_GAP_MS) {
+        if (MassiveOsFreakyAddons.config.trollFirstHit && now - lastPlayerHitAt > COMBAT_GAP_MS) {
             play("cellescanner:troll.firsthit");
         }
         lastPlayerHitAt = now;
@@ -58,7 +58,7 @@ public class TrollSounds {
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !CelleScannerMod.config.trollEnabled) {
+        if (event.phase != TickEvent.Phase.END || !MassiveOsFreakyAddons.config.trollEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -72,7 +72,7 @@ public class TrollSounds {
         if (p.getHealth() <= 0.0F || p.isDead) {
             if (!deathHandled) {
                 deathHandled = true;
-                if (CelleScannerMod.config.trollDeath) {
+                if (MassiveOsFreakyAddons.config.trollDeath) {
                     play("cellescanner:troll.death");
                 }
             }
@@ -82,7 +82,7 @@ public class TrollSounds {
 
         // Jump (a random chance).
         boolean onGround = p.onGround;
-        if (CelleScannerMod.config.trollJump && prevOnGround && !onGround && p.motionY > 0.0
+        if (MassiveOsFreakyAddons.config.trollJump && prevOnGround && !onGround && p.motionY > 0.0
                 && RNG.nextFloat() < JUMP_CHANCE) {
             play("cellescanner:troll.jump");
         }
@@ -99,7 +99,7 @@ public class TrollSounds {
                 continue;
             }
             if (e.getKey().getHealth() <= 0.0F) {
-                if (CelleScannerMod.config.trollKill) {
+                if (MassiveOsFreakyAddons.config.trollKill) {
                     play("cellescanner:troll.kill");
                 }
                 it.remove();
@@ -118,7 +118,7 @@ public class TrollSounds {
         if (moved) {
             lastActivityAt = now;
         }
-        if (CelleScannerMod.config.trollAfk && lastActivityAt > 0
+        if (MassiveOsFreakyAddons.config.trollAfk && lastActivityAt > 0
                 && now - lastActivityAt > AFK_AFTER_MS && now - lastAfkPlayAt > AFK_EVERY_MS) {
             lastAfkPlayAt = now;
             play("cellescanner:troll.afk");

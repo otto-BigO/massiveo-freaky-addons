@@ -26,7 +26,7 @@ public class GuiItemLog extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Item-log: " + (CelleScannerMod.config.itemPickupEnabled ? "Til" : "Fra");
+        return "Item-log: " + (MassiveOsFreakyAddons.config.itemPickupEnabled ? "Til" : "Fra");
     }
 
     @Override

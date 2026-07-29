@@ -39,7 +39,7 @@ public class GuiAutoMine extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Auto Mine: " + (CelleScannerMod.config.autoMineEnabled ? "Til" : "Fra");
+        return "Auto Mine: " + (MassiveOsFreakyAddons.config.autoMineEnabled ? "Til" : "Fra");
     }
 
     @Override
@@ -67,7 +67,7 @@ public class GuiAutoMine extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Automatisering - brug kun hvor serveren tillader det.",
                 cx, titleY + 26, 0xFF8888);
 
-        CelleConfig c = CelleScannerMod.config;
+        CelleConfig c = MassiveOsFreakyAddons.config;
         String area = c.mineAreaSet
                 ? "Område: " + c.mineAreaX1 + " " + c.mineAreaY1 + " " + c.mineAreaZ1
                         + "  til  " + c.mineAreaX2 + " " + c.mineAreaY2 + " " + c.mineAreaZ2

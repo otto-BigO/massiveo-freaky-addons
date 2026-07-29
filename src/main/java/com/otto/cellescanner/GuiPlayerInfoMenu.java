@@ -56,7 +56,7 @@ public class GuiPlayerInfoMenu extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Spiller Info: " + (CelleScannerMod.config.playerInfoEnabled ? "Til" : "Fra");
+        return "Spiller Info: " + (MassiveOsFreakyAddons.config.playerInfoEnabled ? "Til" : "Fra");
     }
 
     @Override

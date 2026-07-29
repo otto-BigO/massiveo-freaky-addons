@@ -69,7 +69,7 @@ public class GuiMineCeller extends GuiScreen {
         listHintY = y;
         y += this.fontRendererObj.FONT_HEIGHT + 4;
 
-        List<String> ids = CelleScannerMod.config.myCelleIds;
+        List<String> ids = MassiveOsFreakyAddons.config.myCelleIds;
         shownCount = ids.size();
         int shown = Math.min(ids.size(), MAX_ROWS);
         for (int i = 0; i < shown; i++) {
@@ -88,7 +88,7 @@ public class GuiMineCeller extends GuiScreen {
     }
 
     private String espLabel() {
-        return "ESP: " + (CelleScannerMod.config.mineCellerEspEnabled ? "Til" : "Fra");
+        return "ESP: " + (MassiveOsFreakyAddons.config.mineCellerEspEnabled ? "Til" : "Fra");
     }
 
     @Override
@@ -165,7 +165,7 @@ public class GuiMineCeller extends GuiScreen {
     @Override
     public void updateScreen() {
         idField.updateCursorCounter();
-        if (shownCount != CelleScannerMod.config.myCelleIds.size()) {
+        if (shownCount != MassiveOsFreakyAddons.config.myCelleIds.size()) {
             this.initGui();
         }
     }
@@ -182,7 +182,7 @@ public class GuiMineCeller extends GuiScreen {
         drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Mine Celler", cx, titleY, Style.getAccentColor());
 
         idField.drawTextBox();
-        List<String> ids = CelleScannerMod.config.myCelleIds;
+        List<String> ids = MassiveOsFreakyAddons.config.myCelleIds;
 
         // The 2D radar/minimap that used to sit here was removed - a new one
         // may come back later. For now Mine Celler is just the list below.

@@ -26,7 +26,7 @@ public class GuiModIcon extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Mod-ikon: " + (CelleScannerMod.config.modIconEnabled ? "Til" : "Fra");
+        return "Mod-ikon: " + (MassiveOsFreakyAddons.config.modIconEnabled ? "Til" : "Fra");
     }
 
     @Override

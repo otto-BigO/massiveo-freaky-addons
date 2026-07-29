@@ -39,7 +39,7 @@ public class CustomArmorLayer extends LayerBipedArmor {
     }
 
     private ResourceLocation customFor(ItemStack stack, int slot, String type) {
-        if (!CelleScannerMod.config.armorSkinsEnabled || type != null || stack == null) {
+        if (!MassiveOsFreakyAddons.config.armorSkinsEnabled || type != null || stack == null) {
             return null;
         }
         String material = materialKey(stack.getItem());
@@ -53,7 +53,7 @@ public class CustomArmorLayer extends LayerBipedArmor {
         // Vanilla uses layer_2 for leggings (slot 2), layer_1 for the rest.
         int layer = (slot == 2) ? 2 : 1;
         String pack = previewPackOverride != null ? previewPackOverride 
-                : ("hypixel".equals(CelleScannerMod.config.armorSkinPack) ? "hypixel" : "mesterholm");
+                : ("hypixel".equals(MassiveOsFreakyAddons.config.armorSkinPack) ? "hypixel" : "mesterholm");
         
         String targetPack = pack;
         String targetMaterial = material;

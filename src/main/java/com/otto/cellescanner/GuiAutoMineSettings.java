@@ -36,7 +36,7 @@ public class GuiAutoMineSettings extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_SET_AREA, left, y, PANEL_W, BTN_H, "Sæt mine-område"));
         y += BTN_H + GAP;
         this.buttonList.add(clearAreaButton = new StyledButton(ID_CLEAR_AREA, left, y, PANEL_W, BTN_H, clearLabel()));
-        clearAreaButton.enabled = CelleScannerMod.config.mineAreaSet;
+        clearAreaButton.enabled = MassiveOsFreakyAddons.config.mineAreaSet;
         y += BTN_H + GAP;
         this.buttonList.add(new StyledButton(ID_TRASH, left, y, PANEL_W, BTN_H, "Skralde Filter"));
         y += BTN_H + GAP;
@@ -48,11 +48,11 @@ public class GuiAutoMineSettings extends GuiScreen {
     }
 
     private String clearLabel() {
-        return CelleScannerMod.config.mineAreaSet ? "Ryd mine-område (brug standard)" : "Ryd mine-område";
+        return MassiveOsFreakyAddons.config.mineAreaSet ? "Ryd mine-område (brug standard)" : "Ryd mine-område";
     }
 
     private String crazyLabel() {
-        return "Crazy mode: " + (CelleScannerMod.config.autoMineCrazy ? "Til" : "Fra");
+        return "Crazy mode: " + (MassiveOsFreakyAddons.config.autoMineCrazy ? "Til" : "Fra");
     }
 
     @Override
@@ -62,14 +62,14 @@ public class GuiAutoMineSettings extends GuiScreen {
             AutoMine.beginSetArea();
             this.mc.displayGuiScreen(null);
         } else if (button.id == ID_CLEAR_AREA) {
-            CelleScannerMod.config.mineAreaSet = false;
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.mineAreaSet = false;
+            MassiveOsFreakyAddons.config.save();
             this.initGui();
         } else if (button.id == ID_TRASH) {
             this.mc.displayGuiScreen(new GuiAutoMineTrash());
         } else if (button.id == ID_CRAZY) {
-            CelleScannerMod.config.autoMineCrazy = !CelleScannerMod.config.autoMineCrazy;
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.autoMineCrazy = !MassiveOsFreakyAddons.config.autoMineCrazy;
+            MassiveOsFreakyAddons.config.save();
             crazyButton.displayString = crazyLabel();
         } else if (button.id == ID_TUNING) {
             this.mc.displayGuiScreen(new GuiAutoMineTuning());
@@ -87,7 +87,7 @@ public class GuiAutoMineSettings extends GuiScreen {
         int titleY = this.height / 2 + TITLE_Y_OFF;
         drawCenteredString(this.fontRendererObj, "Auto Mine - Indstillinger", cx, titleY, 0xFFD24B);
 
-        CelleConfig c = CelleScannerMod.config;
+        CelleConfig c = MassiveOsFreakyAddons.config;
         String area = c.mineAreaSet
                 ? "Område: " + c.mineAreaX1 + " " + c.mineAreaY1 + " " + c.mineAreaZ1
                         + "  til  " + c.mineAreaX2 + " " + c.mineAreaY2 + " " + c.mineAreaZ2

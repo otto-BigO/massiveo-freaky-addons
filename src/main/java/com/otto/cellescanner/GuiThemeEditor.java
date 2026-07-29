@@ -26,7 +26,8 @@ public class GuiThemeEditor extends GuiScreen {
     private static final int ID_ALPHA_UP = 7;
     private static final int ID_TITLE_STYLE = 8;
     private static final int ID_SOUND_STYLE = 9;
-    private static final int ID_BACK = 10;
+    private static final int ID_HUD_EDITOR = 10;
+    private static final int ID_BACK = 11;
 
     private static final int PANEL_W = 230;
     private static final int BTN_H = 18;
@@ -66,7 +67,7 @@ public class GuiThemeEditor extends GuiScreen {
         }
 
         // Initialize HSV state from config color
-        int currentColor = CelleScannerMod.config != null ? CelleScannerMod.config.themeAccentColor : 0x00FF88;
+        int currentColor = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeAccentColor : 0x00FF88;
         int r = (currentColor >> 16) & 0xFF;
         int g = (currentColor >> 8) & 0xFF;
         int b = currentColor & 0xFF;
@@ -101,16 +102,20 @@ public class GuiThemeEditor extends GuiScreen {
         // Row 4: Title Effect & Countdown Chime Sound
         this.buttonList.add(titleStyleBtn = new StyledButton(ID_TITLE_STYLE, left, y, halfW, BTN_H, titleStyleLabel()));
         this.buttonList.add(soundStyleBtn = new StyledButton(ID_SOUND_STYLE, left + halfW + 4, y, halfW, BTN_H, soundStyleLabel()));
-        y += 50;
+        y += 24;
 
-        // Row 5: Back to Hub
+        // Row 5: Flyt & Skaler HUD'er button
+        this.buttonList.add(new StyledButton(ID_HUD_EDITOR, left, y, PANEL_W, BTN_H, "Flyt & Skaler HUD'er >"));
+        y += 28;
+
+        // Row 6: Back to Hub
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
     }
 
     private void updatePickerFromPreset(int hexColor) {
-        if (CelleScannerMod.config != null) {
-            CelleScannerMod.config.themeAccentColor = hexColor;
-            CelleScannerMod.config.save();
+        if (MassiveOsFreakyAddons.config != null) {
+            MassiveOsFreakyAddons.config.themeAccentColor = hexColor;
+            MassiveOsFreakyAddons.config.save();
         }
         int r = (hexColor >> 16) & 0xFF;
         int g = (hexColor >> 8) & 0xFF;
@@ -123,25 +128,25 @@ public class GuiThemeEditor extends GuiScreen {
 
     private void applyColour() {
         int argb = Color.HSBtoRGB(hue, sat, val) | 0xFF000000;
-        if (CelleScannerMod.config != null) {
-            CelleScannerMod.config.themeAccentColor = argb;
-            CelleScannerMod.config.save();
+        if (MassiveOsFreakyAddons.config != null) {
+            MassiveOsFreakyAddons.config.themeAccentColor = argb;
+            MassiveOsFreakyAddons.config.save();
         }
     }
 
     private String alphaLabel() {
-        int percent = Math.round((CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f) * 100f);
+        int percent = Math.round((MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f) * 100f);
         return "Synlighed: " + percent + "%";
     }
 
     private String titleStyleLabel() {
-        int s = CelleScannerMod.config != null ? CelleScannerMod.config.themeTitleStyle : 0;
+        int s = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeTitleStyle : 0;
         String name = s == 0 ? "Regnbue" : (s == 1 ? "Pulserende" : "Statisk");
         return "Titel: " + name;
     }
 
     private String soundStyleLabel() {
-        String s = CelleScannerMod.config != null ? CelleScannerMod.config.alertSound : "note.pling";
+        String s = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.alertSound : "note.pling";
         String name = s.contains("pling") ? "Pling" : (s.contains("levelup") ? "Level Up" : (s.contains("orb") ? "Orb" : "Klik"));
         return "Lyd: " + name;
     }
@@ -168,27 +173,30 @@ public class GuiThemeEditor extends GuiScreen {
                 updatePickerFromPreset(0x505868);
                 break;
             case ID_ALPHA_DOWN:
-                CelleScannerMod.config.themeBgAlpha = Math.max(0.20f, CelleScannerMod.config.themeBgAlpha - 0.05f);
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.themeBgAlpha = Math.max(0.20f, MassiveOsFreakyAddons.config.themeBgAlpha - 0.05f);
+                MassiveOsFreakyAddons.config.save();
                 break;
             case ID_ALPHA_UP:
-                CelleScannerMod.config.themeBgAlpha = Math.min(0.95f, CelleScannerMod.config.themeBgAlpha + 0.05f);
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.themeBgAlpha = Math.min(0.95f, MassiveOsFreakyAddons.config.themeBgAlpha + 0.05f);
+                MassiveOsFreakyAddons.config.save();
                 break;
             case ID_TITLE_STYLE:
-                CelleScannerMod.config.themeTitleStyle = (CelleScannerMod.config.themeTitleStyle + 1) % 3;
+                MassiveOsFreakyAddons.config.themeTitleStyle = (MassiveOsFreakyAddons.config.themeTitleStyle + 1) % 3;
                 titleStyleBtn.displayString = titleStyleLabel();
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.save();
                 break;
             case ID_SOUND_STYLE:
-                String s = CelleScannerMod.config.alertSound;
-                if (s.contains("pling")) CelleScannerMod.config.alertSound = "random.levelup";
-                else if (s.contains("levelup")) CelleScannerMod.config.alertSound = "random.orb";
-                else if (s.contains("orb")) CelleScannerMod.config.alertSound = "random.click";
-                else CelleScannerMod.config.alertSound = "note.pling";
+                String s = MassiveOsFreakyAddons.config.alertSound;
+                if (s.contains("pling")) MassiveOsFreakyAddons.config.alertSound = "random.levelup";
+                else if (s.contains("levelup")) MassiveOsFreakyAddons.config.alertSound = "random.orb";
+                else if (s.contains("orb")) MassiveOsFreakyAddons.config.alertSound = "random.click";
+                else MassiveOsFreakyAddons.config.alertSound = "note.pling";
                 soundStyleBtn.displayString = soundStyleLabel();
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.save();
                 break;
+            case ID_HUD_EDITOR:
+                CelleActions.openHudEditor();
+                return;
             case ID_BACK:
                 CelleActions.openHub();
                 return;
@@ -285,9 +293,9 @@ public class GuiThemeEditor extends GuiScreen {
         float a = (float) (mouseX - alphaX) / (float) alphaW;
         if (a < 0.20f) a = 0.20f;
         if (a > 1.00f) a = 1.00f;
-        if (CelleScannerMod.config != null) {
-            CelleScannerMod.config.themeBgAlpha = a;
-            CelleScannerMod.config.save();
+        if (MassiveOsFreakyAddons.config != null) {
+            MassiveOsFreakyAddons.config.themeBgAlpha = a;
+            MassiveOsFreakyAddons.config.save();
         }
     }
 
@@ -372,7 +380,7 @@ public class GuiThemeEditor extends GuiScreen {
         drawOpacityBar(alphaX, alphaY, alphaW, alphaH);
 
         // Draw Opacity indicator cursor line
-        float currentAlpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        float currentAlpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
         int cursorAlphaX = alphaX + (int) (currentAlpha * alphaW);
         drawRect(cursorAlphaX - 1, alphaY - 1, cursorAlphaX + 1, alphaY + alphaH + 1, 0xFFFFFFFF);
 
@@ -427,7 +435,7 @@ public class GuiThemeEditor extends GuiScreen {
         int y2 = y1 + h;
 
         int accent = Style.getAccentColor();
-        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        float alpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
         int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255)));
 
         // Outer & Inner border with dynamic accent

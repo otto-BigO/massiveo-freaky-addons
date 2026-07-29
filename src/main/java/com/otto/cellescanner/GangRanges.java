@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * server for that specific celle.
  *
  * SHELVED: the Gange addon is intentionally parked. init() is not called from
- * CelleScannerMod.preInit and the hub tile is commented out in AddonList. Kept
+ * MassiveOsFreakyAddons.preInit and the hub tile is commented out in AddonList. Kept
  * for when the addon is picked up again - do not delete.
  */
 public final class GangRanges {

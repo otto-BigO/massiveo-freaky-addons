@@ -32,7 +32,7 @@ public class GuiAccessKey extends GuiScreen {
 
         keyField = new GuiTextField(0, this.fontRendererObj, fieldX, y, FIELD_W, FIELD_H);
         keyField.setMaxStringLength(64);
-        keyField.setText(CelleScannerMod.config.accessKey == null ? "" : CelleScannerMod.config.accessKey);
+        keyField.setText(MassiveOsFreakyAddons.config.accessKey == null ? "" : MassiveOsFreakyAddons.config.accessKey);
         keyField.setFocused(true);
         
         y += FIELD_H + ROW_GAP + 4;
@@ -69,8 +69,8 @@ public class GuiAccessKey extends GuiScreen {
 
         // Run validation check
         if (AccessSystem.verifyKey(key)) {
-            CelleScannerMod.config.accessKey = key;
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.accessKey = key;
+            MassiveOsFreakyAddons.config.save();
             statusLine = "Licens godkendt!";
             statusColor = 0x55FF55;
             

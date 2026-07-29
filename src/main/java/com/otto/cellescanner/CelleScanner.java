@@ -80,7 +80,7 @@ public class CelleScanner {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        if (!CelleScannerMod.config.enabled) {
+        if (!MassiveOsFreakyAddons.config.enabled) {
             return;
         }
 
@@ -90,13 +90,13 @@ public class CelleScanner {
         }
 
         // Live expiry alerts checker
-        if (CelleScannerMod.config.celleExpiryAlertsEnabled) {
+        if (MassiveOsFreakyAddons.config.celleExpiryAlertsEnabled) {
             for (Celle c : cache.values()) {
                 if (c.status != CelleStatus.SOLGT) {
                     continue;
                 }
                 // Only alert for followed/tracked celler
-                if (!CelleScannerMod.config.myCelleIds.contains(c.celleId) && !CelleScannerMod.config.specialCelleIds.contains(c.celleId)) {
+                if (!MassiveOsFreakyAddons.config.myCelleIds.contains(c.celleId) && !MassiveOsFreakyAddons.config.specialCelleIds.contains(c.celleId)) {
                     continue;
                 }
                 long seconds = c.liveRemainingSeconds();
@@ -131,28 +131,28 @@ public class CelleScanner {
 
     private void checkExpiryAlerts(Celle c, long seconds) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null || CelleScannerMod.config == null) {
+        if (mc.thePlayer == null || MassiveOsFreakyAddons.config == null) {
             return;
         }
 
         // 1. One-off threshold alerts (lag-proof)
         if (seconds <= 120 && seconds > 60 && !c.alert120Fired) {
             c.alert120Fired = true;
-            if (CelleScannerMod.config.alert2mEnabled) {
+            if (MassiveOsFreakyAddons.config.alert2mEnabled) {
                 mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.YELLOW + "Ledig om 2 minutter!", 10, 40, 10);
             }
         } else if (seconds <= 60 && seconds > 30 && !c.alert60Fired) {
             c.alert60Fired = true;
-            if (CelleScannerMod.config.alert1mEnabled) {
+            if (MassiveOsFreakyAddons.config.alert1mEnabled) {
                 mc.thePlayer.playSound("note.pling", 1.0F, 1.2F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.YELLOW + "Ledig om 1 minut!", 10, 40, 10);
             }
         } else if (seconds <= 30 && seconds > 10 && !c.alert30Fired) {
             c.alert30Fired = true;
-            if (CelleScannerMod.config.alert30sEnabled) {
+            if (MassiveOsFreakyAddons.config.alert30sEnabled) {
                 mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.RED + "Ledig om 30 sekunder!", 10, 40, 10);
@@ -165,7 +165,7 @@ public class CelleScanner {
         }
 
         // 2. Second-by-second countdown for the final 10 seconds
-        if (CelleScannerMod.config.alert10sEnabled && seconds > 0 && seconds <= 10 && seconds != c.lastAlertSeconds) {
+        if (MassiveOsFreakyAddons.config.alert10sEnabled && seconds > 0 && seconds <= 10 && seconds != c.lastAlertSeconds) {
             c.lastAlertSeconds = seconds;
             mc.thePlayer.playSound("random.click", 0.5F, 1.0F);
             showTitle(mc, EnumChatFormatting.RED + c.celleId,
@@ -383,7 +383,7 @@ public class CelleScanner {
             }
             // SOLGT - only shown once it's about to become available
             double hours = c.liveRemainingHours();
-            if (hours < CelleScannerMod.config.minHours || hours > CelleScannerMod.config.maxHours) {
+            if (hours < MassiveOsFreakyAddons.config.minHours || hours > MassiveOsFreakyAddons.config.maxHours) {
                 continue;
             }
             result.add(c);
@@ -428,7 +428,7 @@ public class CelleScanner {
                 continue;
             }
             double hours = c.liveRemainingHours();
-            if (hours < CelleScannerMod.config.minHours || hours > CelleScannerMod.config.maxHours) {
+            if (hours < MassiveOsFreakyAddons.config.minHours || hours > MassiveOsFreakyAddons.config.maxHours) {
                 continue;
             }
             result.add(c);
@@ -442,7 +442,7 @@ public class CelleScanner {
         // timer is running low is exactly the "will become available soon"
         // case from the spec, and is the main real-world use case (most
         // celler are sold most of the time).
-        if (!CelleScannerMod.config.notify) {
+        if (!MassiveOsFreakyAddons.config.notify) {
             return;
         }
         if (celle.notified) {
@@ -450,7 +450,7 @@ public class CelleScanner {
         }
 
         double hours = celle.liveRemainingHours();
-        if (hours >= CelleScannerMod.config.minHours && hours <= CelleScannerMod.config.maxHours) {
+        if (hours >= MassiveOsFreakyAddons.config.minHours && hours <= MassiveOsFreakyAddons.config.maxHours) {
             celle.notified = true;
         }
     }
@@ -465,7 +465,7 @@ public class CelleScanner {
      * once-a-second scan loop doesn't hammer the bot.
      */
     private void maybeReportToBot() {
-        if (!CelleScannerMod.config.botReportEnabled) {
+        if (!MassiveOsFreakyAddons.config.botReportEnabled) {
             return;
         }
         if (System.currentTimeMillis() - lastReportPushMillis < REPORT_COOLDOWN_MS) {
@@ -484,7 +484,7 @@ public class CelleScanner {
         // live from the GUI (add/remove/clear) and iterating the shared
         // instance off-thread would throw ConcurrentModificationException.
         ReportWebhookClient.report(new ArrayList<Celle>(cache.values()),
-                new ArrayList<String>(CelleScannerMod.config.specialCelleIds));
+                new ArrayList<String>(MassiveOsFreakyAddons.config.specialCelleIds));
     }
 
     /**

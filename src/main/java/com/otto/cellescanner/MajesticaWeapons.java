@@ -235,7 +235,7 @@ public class MajesticaWeapons {
         if (stack == null || stack.getItem() == null) {
             return null;
         }
-        boolean enabled = CelleScannerMod.config.majesticaEnabled == null || CelleScannerMod.config.majesticaEnabled;
+        boolean enabled = MassiveOsFreakyAddons.config.majesticaEnabled == null || MassiveOsFreakyAddons.config.majesticaEnabled;
         if (!enabled) {
             return null;
         }
@@ -253,7 +253,7 @@ public class MajesticaWeapons {
         }
 
         // 2. Check GUI manual selection
-        String selId = CelleScannerMod.config.majesticaSelectedWeaponId;
+        String selId = MassiveOsFreakyAddons.config.majesticaSelectedWeaponId;
         if (selId != null && !selId.isEmpty()) {
             Weapon w = weaponMap.get(selId);
             if (w != null && (w.itemTypes.isEmpty() || w.itemTypes.contains(itemName) || itemName.contains("sword") || itemName.contains("axe"))) {

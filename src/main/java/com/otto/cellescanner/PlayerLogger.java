@@ -195,7 +195,7 @@ public class PlayerLogger {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !CelleScannerMod.config.playerLoggerEnabled) {
+        if (event.phase != TickEvent.Phase.END || !MassiveOsFreakyAddons.config.playerLoggerEnabled) {
             return;
         }
 
@@ -308,7 +308,7 @@ public class PlayerLogger {
 
     @SubscribeEvent
     public void onRenderWorld(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.playerLoggerEnabled) {
+        if (!MassiveOsFreakyAddons.config.playerLoggerEnabled) {
             return;
         }
 

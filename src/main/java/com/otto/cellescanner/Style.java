@@ -25,8 +25,8 @@ public final class Style {
     }
 
     public static int getAccentColor() {
-        if (CelleScannerMod.config != null) {
-            return 0xFF000000 | (CelleScannerMod.config.themeAccentColor & 0xFFFFFF);
+        if (MassiveOsFreakyAddons.config != null) {
+            return 0xFF000000 | (MassiveOsFreakyAddons.config.themeAccentColor & 0xFFFFFF);
         }
         return ACCENT;
     }
@@ -66,7 +66,7 @@ public final class Style {
     /** A panel: a dark rounded body with glowing theme borders. */
     public static void panel(int x1, int y1, int x2, int y2) {
         int accent = getAccentColor();
-        float alpha = CelleScannerMod.config != null ? CelleScannerMod.config.themeBgAlpha : 0.65f;
+        float alpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
         int alphaInt = Math.max(20, Math.min(255, (int) (alpha * 255)));
         int borderAlpha = Math.max(30, Math.min(255, (int) (alpha * 255)));
         int glowAlpha = Math.max(20, Math.min(255, (int) (alpha * 0.5f * 255)));

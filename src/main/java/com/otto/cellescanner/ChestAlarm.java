@@ -27,7 +27,7 @@ public class ChestAlarm {
 
     /** Shows the toast + plays the sound now, honoring the toast/sound toggles. Used by the chat trigger and the GUI test button. */
     public static void fire(String message) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg.chestAlarmToast) {
             activeMessage = message;
             activeUntil = System.currentTimeMillis() + DISPLAY_MS;
@@ -42,7 +42,7 @@ public class ChestAlarm {
 
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (!cfg.chestAlarmEnabled || event.message == null) {
             return;
         }

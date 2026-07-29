@@ -27,7 +27,7 @@ public class ArmorHud {
 
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !CelleScannerMod.config.armorHudEnabled) {
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !MassiveOsFreakyAddons.config.armorHudEnabled) {
             return;
         }
         // A thrown exception in a render handler crashes the whole game, so it's
@@ -43,7 +43,7 @@ public class ArmorHud {
     }
 
     private void render(RenderGameOverlayEvent.Post event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.thePlayer.inventory == null) {
             return;

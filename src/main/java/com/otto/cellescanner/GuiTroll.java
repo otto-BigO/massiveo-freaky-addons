@@ -50,7 +50,7 @@ public class GuiTroll extends GuiScreen {
     }
 
     private String masterLabel() {
-        return "Troll Lyde: " + (CelleScannerMod.config.trollEnabled ? "Til" : "Fra");
+        return "Troll Lyde: " + (MassiveOsFreakyAddons.config.trollEnabled ? "Til" : "Fra");
     }
 
     private String evLabel(int i) {
@@ -59,11 +59,11 @@ public class GuiTroll extends GuiScreen {
 
     private boolean evEnabled(int i) {
         switch (i) {
-            case 0: return CelleScannerMod.config.trollDeath;
-            case 1: return CelleScannerMod.config.trollKill;
-            case 2: return CelleScannerMod.config.trollFirstHit;
-            case 3: return CelleScannerMod.config.trollJump;
-            default: return CelleScannerMod.config.trollAfk;
+            case 0: return MassiveOsFreakyAddons.config.trollDeath;
+            case 1: return MassiveOsFreakyAddons.config.trollKill;
+            case 2: return MassiveOsFreakyAddons.config.trollFirstHit;
+            case 3: return MassiveOsFreakyAddons.config.trollJump;
+            default: return MassiveOsFreakyAddons.config.trollAfk;
         }
     }
 

@@ -114,7 +114,7 @@ public final class PriceGuide {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod("GET");
         conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("User-Agent", "CelleScannerMod/1.0 (Forge 1.8.9 client mod)");
+        conn.setRequestProperty("User-Agent", "MassiveOsFreakyAddons/1.0 (Forge 1.8.9 client mod)");
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(15000);
         int code = conn.getResponseCode();

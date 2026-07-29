@@ -83,7 +83,7 @@ public class GuiWeaponSelector extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_RESET, panelLeft + 345, panelTop + panelH - 30, 60, 20, "Nulstil"));
 
         // Initial selection setup
-        String curSel = CelleScannerMod.config.majesticaSelectedWeaponId;
+        String curSel = MassiveOsFreakyAddons.config.majesticaSelectedWeaponId;
         if (curSel != null && !curSel.isEmpty()) {
             selectedWeapon = MajesticaWeapons.INSTANCE.getWeaponById(curSel);
         }
@@ -103,7 +103,7 @@ public class GuiWeaponSelector extends GuiScreen {
             } else if (currentCategory == 2) { // Axes
                 catMatch = w.id.contains("axe") || w.id.contains("scythe") || w.id.contains("halberd") || w.id.contains("cleaver");
             } else if (currentCategory == 3) { // Selected
-                catMatch = w.id.equals(CelleScannerMod.config.majesticaSelectedWeaponId);
+                catMatch = w.id.equals(MassiveOsFreakyAddons.config.majesticaSelectedWeaponId);
             }
 
             boolean qMatch = query.isEmpty() || w.id.toLowerCase().contains(query) || w.namePattern.toLowerCase().contains(query);
@@ -191,15 +191,15 @@ public class GuiWeaponSelector extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         int id = button.id;
         if (id == ID_RESET) {
-            CelleScannerMod.config.majesticaSelectedWeaponId = "";
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.majesticaSelectedWeaponId = "";
+            MassiveOsFreakyAddons.config.save();
             selectedWeapon = null;
             if (mc.thePlayer != null) {
                 mc.thePlayer.playSound("random.pop", 1f, 1f);
             }
         } else if (id == ID_EQUIP_SEL && selectedWeapon != null) {
-            CelleScannerMod.config.majesticaSelectedWeaponId = selectedWeapon.id;
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.majesticaSelectedWeaponId = selectedWeapon.id;
+            MassiveOsFreakyAddons.config.save();
             if (mc.thePlayer != null) {
                 mc.thePlayer.playSound("random.orb", 1f, 1f);
             }
@@ -292,7 +292,7 @@ public class GuiWeaponSelector extends GuiScreen {
             drawRect(barX, barY, barX + fillW, barY + barH, 0xFFFFAA00);
             drawCenteredString(this.fontRendererObj, pct + "%", cx, barY + 3, 0xFFFFFF);
         } else {
-            String activeEq = CelleScannerMod.config.majesticaSelectedWeaponId;
+            String activeEq = MassiveOsFreakyAddons.config.majesticaSelectedWeaponId;
             if (selectedWeapon != null) {
                 // Live 3D Spinning Weapon Model Render
                 WeaponModelRenderer.renderSpinningWeapon(this.mc, selectedWeapon, previewCenterX, previewCenterY + 10, 48.0F, 1.0F);

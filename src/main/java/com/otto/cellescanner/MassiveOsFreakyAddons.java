@@ -13,21 +13,21 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Keyboard;
 
-@Mod(modid = CelleScannerMod.MODID, name = CelleScannerMod.NAME, version = CelleScannerMod.VERSION, clientSideOnly = true)
-public class CelleScannerMod {
+@Mod(modid = MassiveOsFreakyAddons.MODID, name = MassiveOsFreakyAddons.NAME, version = MassiveOsFreakyAddons.VERSION, clientSideOnly = true)
+public class MassiveOsFreakyAddons {
 
     // Mod id stays "cellescanner" so existing config/save files keep loading;
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
-    public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "3.8.0-test";
+    public static final String NAME = "Massiveo's Freaky Addons 2.0";
+    public static final String VERSION = "2.0.0";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
     public static CelleHud hud;
     public static CelleEsp esp;
 
-    /** True once the feature addons have been put on the event bus (after licence verify). */
+    /** True once the feature addons have been put on the event bus. */
     private static boolean addonsEnabled = false;
     public static KeyBinding openMenuKey;
     public static KeyBinding autoMineKey;
@@ -44,7 +44,6 @@ public class CelleScannerMod {
         CellePositions.init(event.getSuggestedConfigurationFile().getParentFile());
         ItemValues.init(event.getSuggestedConfigurationFile().getParentFile());
         ChestOrganizerPositions.init(event.getSuggestedConfigurationFile().getParentFile());
-        // Gange feature shelved - GangRanges.init(...) left out for now.
         ArmorSkins.registerVariants();
         MajesticaWeapons.INSTANCE.init();
     }
@@ -58,18 +57,11 @@ public class CelleScannerMod {
         // The hub keybind and the auto-updater. The addons themselves are put on
         // the bus by enableAddons() at the end of init().
         MinecraftForge.EVENT_BUS.register(new KeyHandler());
-        // The update check is NOT started here. Doing network + class loading
-        // during startup can contend with (Laby)Mod's own startup on the shared
-        // classloader and trip its render-thread watchdog. AutoUpdater kicks the
-        // check off a few seconds into the first client ticks instead.
         MinecraftForge.EVENT_BUS.register(new AutoUpdater());
 
         ClientCommandHandler.instance.registerCommand(new CommandCeller());
         ClientCommandHandler.instance.registerCommand(new CommandClearLogouts());
         ClientCommandHandler.instance.registerCommand(new CommandFollow());
-
-        // Addons are registered lazily (AddonList.ensureRegistered, called
-        // when the hub first opens) to keep startup class loading minimal.
 
         openMenuKey = new KeyBinding("key.cellescanner.menu", Keyboard.KEY_B, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(openMenuKey);
@@ -83,20 +75,6 @@ public class CelleScannerMod {
         debugOverlayKey = new KeyBinding("key.cellescanner.debug", Keyboard.KEY_F12, "key.categories.cellescanner");
         ClientRegistry.registerKeyBinding(debugOverlayKey);
 
-        // majesticaKey = new KeyBinding("key.cellescanner.majestica", Keyboard.KEY_V, "key.categories.cellescanner");
-        // ClientRegistry.registerKeyBinding(majesticaKey);
-
-        // freecamKey = new KeyBinding("key.cellescanner.freecam", Keyboard.KEY_U, "key.categories.cellescanner");
-        // ClientRegistry.registerKeyBinding(freecamKey);
-
-        // phoneKey shelved for now - code stays in repo for later.
-        // phoneKey = new KeyBinding("key.cellescanner.phone", Keyboard.KEY_P, "key.categories.cellescanner");
-        // ClientRegistry.registerKeyBinding(phoneKey);
-
-        // Licence gate shelved: it was only half-wired (no key-entry screen) and
-        // blocked every addon from registering, so the mod loaded but did nothing.
-        // Register all addons directly so everything just works. The gate code
-        // (AccessGate, AccessSystem, GuiAccessKey) stays in the repo for later.
         enableAddons();
     }
 
@@ -120,8 +98,8 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new ArmorSkins());
         MinecraftForge.EVENT_BUS.register(AutoTrash.INSTANCE);
         MinecraftForge.EVENT_BUS.register(MineTracker.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(new AutoUpdater());
         MinecraftForge.EVENT_BUS.register(new MineCeller());
-        // GangInfo (passive gang detection) shelved - not registered for now.
         MinecraftForge.EVENT_BUS.register(new PlayerInfo());
         MinecraftForge.EVENT_BUS.register(new TrollSounds());
         MinecraftForge.EVENT_BUS.register(new ItemPickupNotify());
@@ -134,18 +112,10 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new ChestOrganizer());
         MinecraftForge.EVENT_BUS.register(new IronDoorSounds());
         MinecraftForge.EVENT_BUS.register(PlayerLogger.INSTANCE);
-        // PhoneNotification (Venne Telefon) shelved for now - code stays in repo.
-        // MinecraftForge.EVENT_BUS.register(new PhoneNotification());
         MinecraftForge.EVENT_BUS.register(new FarmBot());
-        // MinecraftForge.EVENT_BUS.register(new PlayerEsp()); // Shelved: replaced by BandeEsp
         MinecraftForge.EVENT_BUS.register(new PathWalker());
         MinecraftForge.EVENT_BUS.register(new AutoFollow());
         MinecraftForge.EVENT_BUS.register(new FlipDebug());
-        // Mod-brugere (ModUserIcon) shelved for now - see AddonList. Not
-        // registered so it does nothing until we pick it back up.
-        // MinecraftForge.EVENT_BUS.register(new ItemValues()); // Shelved for now
         MinecraftForge.EVENT_BUS.register(new ArmorHud());
-        // MinecraftForge.EVENT_BUS.register(MajesticaWeapons.INSTANCE); // Shelved
-        // MinecraftForge.EVENT_BUS.register(Freecam.INSTANCE); // Shelved
     }
 }

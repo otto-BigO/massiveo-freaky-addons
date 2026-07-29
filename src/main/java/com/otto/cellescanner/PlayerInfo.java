@@ -103,7 +103,7 @@ public class PlayerInfo {
 
     @SubscribeEvent
     public void onEntityInteract(EntityInteractEvent event) {
-        if (!CelleScannerMod.config.playerInfoEnabled) {
+        if (!MassiveOsFreakyAddons.config.playerInfoEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();

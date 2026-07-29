@@ -83,7 +83,7 @@ public class GuiBande extends GuiScreen {
         listHintY = y;
         y += this.fontRendererObj.FONT_HEIGHT + 4;
 
-        List<String> members = CelleScannerMod.config.bandeMembers;
+        List<String> members = MassiveOsFreakyAddons.config.bandeMembers;
         int maxOffset = Math.max(0, members.size() - MAX_REMOVE_ROWS);
         if (scrollOffset > maxOffset) {
             scrollOffset = maxOffset;
@@ -107,7 +107,7 @@ public class GuiBande extends GuiScreen {
         if (wheel == 0) {
             return;
         }
-        int maxOffset = Math.max(0, CelleScannerMod.config.bandeMembers.size() - MAX_REMOVE_ROWS);
+        int maxOffset = Math.max(0, MassiveOsFreakyAddons.config.bandeMembers.size() - MAX_REMOVE_ROWS);
         if (wheel < 0 && scrollOffset < maxOffset) {
             scrollOffset++;
             this.initGui();
@@ -123,19 +123,19 @@ public class GuiBande extends GuiScreen {
     }
 
     private String espLabel() {
-        return "ESP: " + (CelleScannerMod.config.bandeEspEnabled ? "Til" : "Fra");
+        return "ESP: " + (MassiveOsFreakyAddons.config.bandeEspEnabled ? "Til" : "Fra");
     }
 
     private String autoLabel() {
-        return "Auto-hold: " + (CelleScannerMod.config.bandeAutoTeam ? "Til" : "Fra");
+        return "Auto-hold: " + (MassiveOsFreakyAddons.config.bandeAutoTeam ? "Til" : "Fra");
     }
 
     private String allLabel() {
-        return "ESP på alle: " + (CelleScannerMod.config.bandeEspAll ? "Til" : "Fra");
+        return "ESP på alle: " + (MassiveOsFreakyAddons.config.bandeEspAll ? "Til" : "Fra");
     }
 
     private String modeLabel() {
-        String m = CelleScannerMod.config.bandeEspMode != null ? CelleScannerMod.config.bandeEspMode : "2D";
+        String m = MassiveOsFreakyAddons.config.bandeEspMode != null ? MassiveOsFreakyAddons.config.bandeEspMode : "2D";
         return "Tilstand: " + m;
     }
 
@@ -176,17 +176,17 @@ public class GuiBande extends GuiScreen {
                 allButton.displayString = allLabel();
                 break;
             case ID_MODE:
-                String curr = CelleScannerMod.config.bandeEspMode != null ? CelleScannerMod.config.bandeEspMode : "2D";
+                String curr = MassiveOsFreakyAddons.config.bandeEspMode != null ? MassiveOsFreakyAddons.config.bandeEspMode : "2D";
                 if (curr.equalsIgnoreCase("2D")) {
-                    CelleScannerMod.config.bandeEspMode = "Corners";
+                    MassiveOsFreakyAddons.config.bandeEspMode = "Corners";
                 } else if (curr.equalsIgnoreCase("Corners")) {
-                    CelleScannerMod.config.bandeEspMode = "3D";
+                    MassiveOsFreakyAddons.config.bandeEspMode = "3D";
                 } else if (curr.equalsIgnoreCase("3D")) {
-                    CelleScannerMod.config.bandeEspMode = "Outline";
+                    MassiveOsFreakyAddons.config.bandeEspMode = "Outline";
                 } else {
-                    CelleScannerMod.config.bandeEspMode = "2D";
+                    MassiveOsFreakyAddons.config.bandeEspMode = "2D";
                 }
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.save();
                 modeButton.displayString = modeLabel();
                 break;
             case ID_BACK:
@@ -246,7 +246,7 @@ public class GuiBande extends GuiScreen {
 
         nameField.drawTextBox();
 
-        List<String> members = CelleScannerMod.config.bandeMembers;
+        List<String> members = MassiveOsFreakyAddons.config.bandeMembers;
         if (members.isEmpty()) {
             drawCenteredString(this.fontRendererObj, "(ingen bande-medlemmer sat)", this.width / 2, listHintY, 0xAAAAAA);
         } else {

@@ -52,7 +52,7 @@ public class GuiChestAlarm extends GuiScreen {
 
         keywordField = new GuiTextField(0, this.fontRendererObj, left, y, FIELD_W - 64, FIELD_H);
         keywordField.setMaxStringLength(48);
-        keywordField.setText(CelleScannerMod.config.chestAlarmKeyword);
+        keywordField.setText(MassiveOsFreakyAddons.config.chestAlarmKeyword);
         this.buttonList.add(new StyledButton(ID_SAVE_KEYWORD, left + FIELD_W - 60, y - 1, 60, FIELD_H + 2, "Gem ord"));
         y += FIELD_H + ROW_GAP + 10;
 
@@ -66,15 +66,15 @@ public class GuiChestAlarm extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Chest Alarm: " + (CelleScannerMod.config.chestAlarmEnabled ? "Til" : "Fra");
+        return "Chest Alarm: " + (MassiveOsFreakyAddons.config.chestAlarmEnabled ? "Til" : "Fra");
     }
 
     private String toastLabel() {
-        return "Notifikation: " + (CelleScannerMod.config.chestAlarmToast ? "Til" : "Fra");
+        return "Notifikation: " + (MassiveOsFreakyAddons.config.chestAlarmToast ? "Til" : "Fra");
     }
 
     private String soundLabel() {
-        return "Lyd: " + (CelleScannerMod.config.chestAlarmSound ? "Til" : "Fra");
+        return "Lyd: " + (MassiveOsFreakyAddons.config.chestAlarmSound ? "Til" : "Fra");
     }
 
     @Override

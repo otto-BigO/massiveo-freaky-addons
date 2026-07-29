@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * be turned off entirely from the Gange screen.
  *
  * SHELVED: the Gange addon is intentionally parked. This class is not registered
- * on the event bus (see CelleScannerMod.init) and the hub tile is commented out
+ * on the event bus (see MassiveOsFreakyAddons.init) and the hub tile is commented out
  * in AddonList. Kept for when the addon is picked up again - do not delete.
  */
 public class GangInfo {
@@ -46,7 +46,7 @@ public class GangInfo {
 
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        if (!CelleScannerMod.config.gangAutoQuery || event.message == null) {
+        if (!MassiveOsFreakyAddons.config.gangAutoQuery || event.message == null) {
             return;
         }
         String text = EnumChatFormatting.getTextWithoutFormattingCodes(event.message.getUnformattedText());

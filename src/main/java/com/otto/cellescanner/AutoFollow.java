@@ -83,7 +83,7 @@ public class AutoFollow {
             return;
         }
         // Don't fight the Auto Mine bot
-        if (CelleScannerMod.config.autoMineEnabled) {
+        if (MassiveOsFreakyAddons.config.autoMineEnabled) {
             stop();
             return;
         }

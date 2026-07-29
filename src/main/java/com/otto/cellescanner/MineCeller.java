@@ -59,19 +59,19 @@ public class MineCeller {
         Matcher m = CELLE_ID.matcher(text);
         while (m.find()) {
             String id = m.group();
-            if (!CelleScannerMod.config.isMyCelle(id)) {
-                CelleScannerMod.config.myCelleIds.add(id);
+            if (!MassiveOsFreakyAddons.config.isMyCelle(id)) {
+                MassiveOsFreakyAddons.config.myCelleIds.add(id);
                 added = true;
             }
         }
         if (added) {
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.save();
         }
     }
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (!cfg.mineCellerEspEnabled || cfg.myCelleIds.isEmpty()) {
             return;
         }

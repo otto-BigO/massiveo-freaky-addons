@@ -46,7 +46,7 @@ public class FarmBot {
             return;
         }
 
-        if (!CelleScannerMod.config.farmBotEnabled) {
+        if (!MassiveOsFreakyAddons.config.farmBotEnabled) {
             cleanup();
             return;
         }

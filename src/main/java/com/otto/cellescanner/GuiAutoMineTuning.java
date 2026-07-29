@@ -74,47 +74,47 @@ public class GuiAutoMineTuning extends GuiScreen {
     }
 
     private String approachLabel() {
-        return "Mine-afstand: " + String.format("%.1f", CelleScannerMod.config.autoMineApproachDist);
+        return "Mine-afstand: " + String.format("%.1f", MassiveOsFreakyAddons.config.autoMineApproachDist);
     }
 
     private String reachLabel() {
-        return "Ræk-vidde: " + String.format("%.1f", CelleScannerMod.config.autoMineReach);
+        return "Ræk-vidde: " + String.format("%.1f", MassiveOsFreakyAddons.config.autoMineReach);
     }
 
     private String pickLabel() {
-        int v = CelleScannerMod.config.autoMinePickaxeMin;
+        int v = MassiveOsFreakyAddons.config.autoMinePickaxeMin;
         return "Skift hakke ved: " + (v == 0 ? "0 (til den knækker)" : v + " holdbarhed");
     }
 
     private String collectLabel() {
-        boolean on = CelleScannerMod.config.autoMineCollectDrops == null || CelleScannerMod.config.autoMineCollectDrops;
+        boolean on = MassiveOsFreakyAddons.config.autoMineCollectDrops == null || MassiveOsFreakyAddons.config.autoMineCollectDrops;
         return "Saml drops (jern): " + (on ? "Til" : "Fra");
     }
 
     private String humanLabel() {
-        boolean on = CelleScannerMod.config.autoMineHumanizedDelays == null || CelleScannerMod.config.autoMineHumanizedDelays;
+        boolean on = MassiveOsFreakyAddons.config.autoMineHumanizedDelays == null || MassiveOsFreakyAddons.config.autoMineHumanizedDelays;
         return "Humaniserede pauses: " + (on ? "Til (40-110ms)" : "Fra");
     }
 
     private String jitterLabel() {
-        boolean on = CelleScannerMod.config.autoMineAimJitter == null || CelleScannerMod.config.autoMineAimJitter;
+        boolean on = MassiveOsFreakyAddons.config.autoMineAimJitter == null || MassiveOsFreakyAddons.config.autoMineAimJitter;
         return "Naturlig sigte-drift (Anti-Cheat): " + (on ? "Til" : "Fra");
     }
 
     private String staffLabel() {
-        boolean alert = CelleScannerMod.config.autoMineStaffAlert == null || CelleScannerMod.config.autoMineStaffAlert;
-        boolean dc = CelleScannerMod.config.autoMineStaffDisconnect != null && CelleScannerMod.config.autoMineStaffDisconnect;
+        boolean alert = MassiveOsFreakyAddons.config.autoMineStaffAlert == null || MassiveOsFreakyAddons.config.autoMineStaffAlert;
+        boolean dc = MassiveOsFreakyAddons.config.autoMineStaffDisconnect != null && MassiveOsFreakyAddons.config.autoMineStaffDisconnect;
         return "Staff-sikring: " + (dc ? "Auto-Disconnect" : (alert ? "Advarsel Lyd" : "Fra"));
     }
 
     private String scaffoldLabel() {
-        boolean on = CelleScannerMod.config.autoMineSmartScaffold == null || CelleScannerMod.config.autoMineSmartScaffold;
+        boolean on = MassiveOsFreakyAddons.config.autoMineSmartScaffold == null || MassiveOsFreakyAddons.config.autoMineSmartScaffold;
         return "Smart Scaffold / Hul-Udbrud: " + (on ? "Til" : "Fra");
     }
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
-        CelleConfig c = CelleScannerMod.config;
+        CelleConfig c = MassiveOsFreakyAddons.config;
         int id = button.id;
         if (id == APPROACH || id == APPROACH + 1) {
             c.autoMineApproachDist = clampD(c.autoMineApproachDist + (id == APPROACH ? -APPROACH_STEP : APPROACH_STEP),

@@ -28,7 +28,7 @@ public class ChestOrganizer {
 
     @SubscribeEvent
     public void onMouseClick(MouseEvent event) {
-        if (!CelleScannerMod.config.chestOrganizerEnabled) {
+        if (!MassiveOsFreakyAddons.config.chestOrganizerEnabled) {
             return;
         }
         // Button 0 is left-click, buttonstate true means key pressed
@@ -55,7 +55,7 @@ public class ChestOrganizer {
 
     @SubscribeEvent
     public void onRenderWorld(RenderWorldLastEvent event) {
-        if (!CelleScannerMod.config.chestOrganizerEnabled) {
+        if (!MassiveOsFreakyAddons.config.chestOrganizerEnabled) {
             return;
         }
 

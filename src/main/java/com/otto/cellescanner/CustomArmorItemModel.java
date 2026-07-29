@@ -31,7 +31,7 @@ public class CustomArmorItemModel implements ISmartItemModel {
 
     @Override
     public IBakedModel handleItemState(ItemStack stack) {
-        if (!CelleScannerMod.config.armorSkinsEnabled || stack == null) {
+        if (!MassiveOsFreakyAddons.config.armorSkinsEnabled || stack == null) {
             return baseModel;
         }
         String material = materialKey(item);

@@ -45,7 +45,7 @@ public class GuiCelleBot extends GuiScreen {
         int fieldX = centerX - FIELD_W / 2;
         int y = this.height / 2 - 68;
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
 
         urlField = new GuiTextField(0, this.fontRendererObj, fieldX, y, FIELD_W - SMALL_BTN_W - 4, FIELD_H);
         urlField.setMaxStringLength(512);
@@ -72,7 +72,7 @@ public class GuiCelleBot extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Rapportering: " + (CelleScannerMod.config.botReportEnabled ? "Til" : "Fra");
+        return "Rapportering: " + (MassiveOsFreakyAddons.config.botReportEnabled ? "Til" : "Fra");
     }
 
     @Override

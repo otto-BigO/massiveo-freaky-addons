@@ -102,7 +102,7 @@ public class PathWalker {
             return;
         }
         // Don't fight the Auto Mine bot for the controls.
-        if (CelleScannerMod.config.autoMineEnabled) {
+        if (MassiveOsFreakyAddons.config.autoMineEnabled) {
             stop();
             return;
         }

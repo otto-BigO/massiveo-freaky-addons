@@ -30,7 +30,7 @@ public class AutoTrash {
         if (event.phase != TickEvent.Phase.START)
             return;
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg == null || !cfg.autoTrashEnabled)
             return;
 

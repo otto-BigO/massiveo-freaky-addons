@@ -48,11 +48,11 @@ public class GuiUpdate extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Auto-opdatering: " + (CelleScannerMod.config.autoUpdateEnabled ? "Til" : "Fra");
+        return "Auto-opdatering: " + (MassiveOsFreakyAddons.config.autoUpdateEnabled ? "Til" : "Fra");
     }
 
     private String preReleaseLabel() {
-        return "Pre-releases (test): " + (CelleScannerMod.config.autoUpdatePreRelease ? "Til" : "Fra");
+        return "Pre-releases (test): " + (MassiveOsFreakyAddons.config.autoUpdatePreRelease ? "Til" : "Fra");
     }
 
     @Override
@@ -89,7 +89,7 @@ public class GuiUpdate extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Opdatering", cx, titleY, 0x55FFFF);
 
         String latest = AutoUpdater.getLatestVersion();
-        drawCenteredString(this.fontRendererObj, "Nuværende version: " + CelleScannerMod.VERSION, cx, titleY + 16, 0xAAAAAA);
+        drawCenteredString(this.fontRendererObj, "Nuværende version: " + MassiveOsFreakyAddons.VERSION, cx, titleY + 16, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "Nyeste version: " + (latest != null ? latest : "?"), cx, titleY + 28, 0xAAAAAA);
         drawCenteredString(this.fontRendererObj, "Status: " + AutoUpdater.getStatus(), cx, titleY + 40, 0x888888);
 

@@ -70,7 +70,7 @@ public class GuiCelleSpecial extends GuiScreen {
         listHintY = y;
         y += this.fontRendererObj.FONT_HEIGHT + 4;
 
-        List<String> ids = CelleScannerMod.config.specialCelleIds;
+        List<String> ids = MassiveOsFreakyAddons.config.specialCelleIds;
         int shown = Math.min(ids.size(), MAX_REMOVE_ROWS);
         for (int i = 0; i < shown; i++) {
             String id = ids.get(i);
@@ -166,7 +166,7 @@ public class GuiCelleSpecial extends GuiScreen {
 
         idField.drawTextBox();
 
-        List<String> ids = CelleScannerMod.config.specialCelleIds;
+        List<String> ids = MassiveOsFreakyAddons.config.specialCelleIds;
         if (ids.isEmpty()) {
             drawCenteredString(this.fontRendererObj, "(ingen special-celler sat)", this.width / 2, listHintY, 0xAAAAAA);
         } else {

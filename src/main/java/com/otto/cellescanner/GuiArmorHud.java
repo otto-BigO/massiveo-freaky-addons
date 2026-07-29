@@ -42,11 +42,11 @@ public class GuiArmorHud extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Rustnings-HUD: " + (CelleScannerMod.config.armorHudEnabled ? "Til" : "Fra");
+        return "Rustnings-HUD: " + (MassiveOsFreakyAddons.config.armorHudEnabled ? "Til" : "Fra");
     }
 
     private String warnLabel() {
-        return "Advarsel under: " + CelleScannerMod.config.armorHudWarnPercent + "%";
+        return "Advarsel under: " + MassiveOsFreakyAddons.config.armorHudWarnPercent + "%";
     }
 
     @Override

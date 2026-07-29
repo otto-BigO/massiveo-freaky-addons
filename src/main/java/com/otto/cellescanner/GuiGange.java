@@ -72,7 +72,7 @@ public class GuiGange extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Gang-detektor: " + (CelleScannerMod.config.gangAutoQuery ? "Til" : "Fra");
+        return "Gang-detektor: " + (MassiveOsFreakyAddons.config.gangAutoQuery ? "Til" : "Fra");
     }
 
     @Override
@@ -247,7 +247,7 @@ public class GuiGange extends GuiScreen {
             case ID_TOGGLE:
                 CelleActions.toggleGangAutoQuery();
                 toggleButton.displayString = toggleLabel();
-                flash = CelleScannerMod.config.gangAutoQuery
+                flash = MassiveOsFreakyAddons.config.gangAutoQuery
                         ? "Gang-detektor til - højreklik celle-skilte for at hente gang."
                         : "Gang-detektor slået fra.";
                 break;

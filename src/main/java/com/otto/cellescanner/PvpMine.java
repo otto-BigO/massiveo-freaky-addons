@@ -57,7 +57,7 @@ public class PvpMine {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !CelleScannerMod.config.pvpMineEnabled) {
+        if (event.phase != TickEvent.Phase.END || !MassiveOsFreakyAddons.config.pvpMineEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -109,7 +109,7 @@ public class PvpMine {
             list.add(p.getName());
         }
 
-        if (CelleScannerMod.config.pvpMineAlert) {
+        if (MassiveOsFreakyAddons.config.pvpMineAlert) {
             for (String n : now) {
                 if (!inMine.contains(n)) {
                     mc.thePlayer.addChatMessage(new ChatComponentText(
@@ -131,7 +131,7 @@ public class PvpMine {
 
     @SubscribeEvent
     public void onRender(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !CelleScannerMod.config.pvpMineEnabled) {
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL || !MassiveOsFreakyAddons.config.pvpMineEnabled) {
             return;
         }
         try {
@@ -180,8 +180,8 @@ public class PvpMine {
         lastHeight = Math.max(20, boxH);
 
         ScaledResolution sr = new ScaledResolution(mc);
-        int x = CelleScannerMod.config.pvpMineX != null ? CelleScannerMod.config.pvpMineX : 4;
-        int y = CelleScannerMod.config.pvpMineY != null ? CelleScannerMod.config.pvpMineY : sr.getScaledHeight() - boxH - 4;
+        int x = MassiveOsFreakyAddons.config.pvpMineX != null ? MassiveOsFreakyAddons.config.pvpMineX : 4;
+        int y = MassiveOsFreakyAddons.config.pvpMineY != null ? MassiveOsFreakyAddons.config.pvpMineY : sr.getScaledHeight() - boxH - 4;
 
         Gui.drawRect(x - 3, y - 3, x + w + 3, y + boxH - 3, 0x88000000);
         int dy = y;

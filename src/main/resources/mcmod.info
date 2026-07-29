@@ -1,8 +1,8 @@
 [
 {
   "modid": "cellescanner",
-  "name": "Massiveo's Freaky Addons",
-  "description": "Mod lavet til freaks af en freak",
+  "name": "Massiveo's Freaky Addons 2.0",
+  "description": "Det ultimative Prison & SuperServer mod-pack med 2D HSV Farvevælger, 4-hjørners vindues-skalering, Anti-Cheat Auto Armour, Mine Profit Tracker og Skralde-Filter.",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

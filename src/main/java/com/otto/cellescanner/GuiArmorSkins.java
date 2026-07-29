@@ -49,7 +49,7 @@ public class GuiArmorSkins extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Rustnings-skins: " + (CelleScannerMod.config.armorSkinsEnabled ? "Til" : "Fra");
+        return "Rustnings-skins: " + (MassiveOsFreakyAddons.config.armorSkinsEnabled ? "Til" : "Fra");
     }
 
     private String materialLabel() {
@@ -99,14 +99,14 @@ public class GuiArmorSkins extends GuiScreen {
             // Card boundaries (y: cy - 75 to cy + 85, w: 105)
             // Left Card: MesterHolm
             if (mouseX >= cx - 115 && mouseX <= cx - 10 && mouseY >= cy - 75 && mouseY <= cy + 85) {
-                CelleScannerMod.config.armorSkinPack = "mesterholm";
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.armorSkinPack = "mesterholm";
+                MassiveOsFreakyAddons.config.save();
                 this.mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("gui.button.press"), 1.0F));
             }
             // Right Card: Hypixel+
             else if (mouseX >= cx + 10 && mouseX <= cx + 115 && mouseY >= cy - 75 && mouseY <= cy + 85) {
-                CelleScannerMod.config.armorSkinPack = "hypixel";
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.armorSkinPack = "hypixel";
+                MassiveOsFreakyAddons.config.save();
                 this.mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("gui.button.press"), 1.0F));
             }
         }
@@ -148,7 +148,7 @@ public class GuiArmorSkins extends GuiScreen {
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Vælg din foretrukne tekstur-pakke nedenfor.", cx, cy - 92, 0xCCCCCC);
 
         // Draw selection cards
-        String activePack = CelleScannerMod.config.armorSkinPack;
+        String activePack = MassiveOsFreakyAddons.config.armorSkinPack;
 
         // MesterHolm Card (Left)
         boolean hoveredA = mouseX >= cx - 115 && mouseX <= cx - 10 && mouseY >= cy - 75 && mouseY <= cy + 85;

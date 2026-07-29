@@ -48,7 +48,7 @@ public class ItemPickupNotify {
 
     @SubscribeEvent
     public void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !CelleScannerMod.config.itemPickupEnabled) {
+        if (event.phase != TickEvent.Phase.END || !MassiveOsFreakyAddons.config.itemPickupEnabled) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -200,7 +200,7 @@ public class ItemPickupNotify {
     @SubscribeEvent
     public void onRender(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL
-                || !CelleScannerMod.config.itemPickupEnabled || entries.isEmpty()) {
+                || !MassiveOsFreakyAddons.config.itemPickupEnabled || entries.isEmpty()) {
             return;
         }
         try {
@@ -237,8 +237,8 @@ public class ItemPickupNotify {
         lastHeight = Math.max(20, boxH);
         int sw = sr.getScaledWidth();
         int sh = sr.getScaledHeight();
-        int x = CelleScannerMod.config.itemPickupX != null ? CelleScannerMod.config.itemPickupX : sw - maxW - 4;
-        int y = CelleScannerMod.config.itemPickupY != null ? CelleScannerMod.config.itemPickupY : sh - boxH - 4;
+        int x = MassiveOsFreakyAddons.config.itemPickupX != null ? MassiveOsFreakyAddons.config.itemPickupX : sw - maxW - 4;
+        int y = MassiveOsFreakyAddons.config.itemPickupY != null ? MassiveOsFreakyAddons.config.itemPickupY : sh - boxH - 4;
 
         // Newest first, from the anchor downward.
         for (int i = entries.size() - 1; i >= 0; i--) {

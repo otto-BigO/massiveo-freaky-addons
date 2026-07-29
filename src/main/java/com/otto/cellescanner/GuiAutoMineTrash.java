@@ -42,12 +42,12 @@ public class GuiAutoMineTrash extends GuiScreen {
                 // Checkbox bounding box (width/height: ~150x12)
                 if (mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos - 2 && mouseY <= yPos + 12) {
                     String item = ITEMS[i];
-                    if (CelleScannerMod.config.trashItems.contains(item)) {
-                        CelleScannerMod.config.trashItems.remove(item);
+                    if (MassiveOsFreakyAddons.config.trashItems.contains(item)) {
+                        MassiveOsFreakyAddons.config.trashItems.remove(item);
                     } else {
-                        CelleScannerMod.config.trashItems.add(item);
+                        MassiveOsFreakyAddons.config.trashItems.add(item);
                     }
-                    CelleScannerMod.config.save();
+                    MassiveOsFreakyAddons.config.save();
                     this.mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("gui.button.press"), 1.0F));
                     break;
                 }
@@ -79,7 +79,7 @@ public class GuiAutoMineTrash extends GuiScreen {
             String item = ITEMS[i];
             int yPos = startY + i * 18;
 
-            boolean checked = CelleScannerMod.config.trashItems.contains(item);
+            boolean checked = MassiveOsFreakyAddons.config.trashItems.contains(item);
             boolean hovered = mouseX >= cx - 75 && mouseX <= cx + 75 && mouseY >= yPos - 2 && mouseY <= yPos + 12;
 
             // Draw Checkbox box

@@ -242,7 +242,7 @@ public class AutoMine {
             toggleKeyWasDown = false;
         }
 
-        if (!CelleScannerMod.config.autoMineEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoMineEnabled) {
             if (holding) {
                 stopAll(mc);
             }
@@ -393,14 +393,14 @@ public class AutoMine {
         }
 
         // Existing: the travel path while mining.
-        if (CelleScannerMod.config.autoMineEnabled && path != null) {
+        if (MassiveOsFreakyAddons.config.autoMineEnabled && path != null) {
             Pathfinder.renderPath(path, mc.thePlayer, event.partialTicks, 0.35f, 0.9f, 1.0f);
         }
 
         // The mine-area box: shown while picking it, or while the bot is enabled
         // (whether using a custom area in its dimension or the default box) - so it
         // disappears when Auto Mine is disabled.
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         boolean customHere = cfg.mineAreaSet && mc.thePlayer.dimension == cfg.mineAreaDim;
         boolean showBox = setAreaMode || (cfg.autoMineEnabled && (customHere || !cfg.mineAreaSet));
         if (!showBox) {
@@ -499,7 +499,7 @@ public class AutoMine {
 
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        if (!CelleScannerMod.config.autoMineEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoMineEnabled) {
             return;
         }
         // If the window loses focus (becomes inactive) and Minecraft tries to open
@@ -516,7 +516,7 @@ public class AutoMine {
      */
     @SubscribeEvent
     public void onChat(ClientChatReceivedEvent event) {
-        if (!CelleScannerMod.config.autoMineEnabled || event.message == null) {
+        if (!MassiveOsFreakyAddons.config.autoMineEnabled || event.message == null) {
             return;
         }
         String msg = event.message.getUnformattedText();
@@ -587,7 +587,7 @@ public class AutoMine {
         }
 
         // Second corner - save the area and rebuild the plan against it.
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         cfg.mineAreaX1 = pendingCorner1.getX();
         cfg.mineAreaY1 = pendingCorner1.getY();
         cfg.mineAreaZ1 = pendingCorner1.getZ();
@@ -864,7 +864,7 @@ public class AutoMine {
         // the stuck-timer kicked it. The path is cleared on entering MINING.
         double distToTarget = closestDist(mc, target);
         boolean verticalOff = (target.getY() > feet.getY() + 1) || (target.getY() < feet.getY() - 1);
-        double reach = CelleScannerMod.config.autoMineReach;
+        double reach = MassiveOsFreakyAddons.config.autoMineReach;
         if (!verticalOff && distToTarget <= reach) {
             phase = Phase.MINING;
         } else {
@@ -878,8 +878,8 @@ public class AutoMine {
                 || (phase == Phase.DESTINATION && !straightWalkSafe(mc, feet, target));
 
         // Sweep up OUR dropped items if nearby (setting-gated or aggressively in Crazy Mode)
-        boolean crazy = CelleScannerMod.config.autoMineCrazy;
-        boolean collect = crazy || (CelleScannerMod.config.autoMineCollectDrops == null || CelleScannerMod.config.autoMineCollectDrops);
+        boolean crazy = MassiveOsFreakyAddons.config.autoMineCrazy;
+        boolean collect = crazy || (MassiveOsFreakyAddons.config.autoMineCollectDrops == null || MassiveOsFreakyAddons.config.autoMineCollectDrops);
         EntityItem drop = (!collect || System.currentTimeMillis() < skipDropsUntil) ? null : currentDrop(mc);
 
         if (drop != null && (crazy || phase == Phase.DESTINATION)) {
@@ -921,7 +921,7 @@ public class AutoMine {
         
         // Mine-afstand: walk closer to the target block if farther than autoMineApproachDist,
         // otherwise halt movement keys and remain stationed at the configured distance.
-        double approachDist = CelleScannerMod.config.autoMineApproachDist;
+        double approachDist = MassiveOsFreakyAddons.config.autoMineApproachDist;
         if (distToTarget > approachDist) {
             approach(mc, target.getX() + 0.5, target.getZ() + 0.5);
         } else {
@@ -999,7 +999,7 @@ public class AutoMine {
         double dx = x - mc.thePlayer.posX;
         double dz = z - mc.thePlayer.posZ;
         float wantYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        if (CelleScannerMod.config.autoMineCrazy) {
+        if (MassiveOsFreakyAddons.config.autoMineCrazy) {
             mc.thePlayer.rotationYaw = wantYaw; // crazy mode: snap and go
         }
         float diff = Math.abs(MathHelper.wrapAngleTo180_float(wantYaw - mc.thePlayer.rotationYaw));
@@ -1033,7 +1033,7 @@ public class AutoMine {
         double dx = x - mc.thePlayer.posX;
         double dz = z - mc.thePlayer.posZ;
         float wantYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
-        if (CelleScannerMod.config.autoMineCrazy) {
+        if (MassiveOsFreakyAddons.config.autoMineCrazy) {
             mc.thePlayer.rotationYaw = wantYaw; // crazy mode: snap and go
         }
         float diff = Math.abs(MathHelper.wrapAngleTo180_float(wantYaw - mc.thePlayer.rotationYaw));
@@ -1286,8 +1286,8 @@ public class AutoMine {
                 || mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) {
             return;
         }
-        boolean humanDelays = !CelleScannerMod.config.autoMineCrazy
-                && (CelleScannerMod.config.autoMineHumanizedDelays == null || CelleScannerMod.config.autoMineHumanizedDelays);
+        boolean humanDelays = !MassiveOsFreakyAddons.config.autoMineCrazy
+                && (MassiveOsFreakyAddons.config.autoMineHumanizedDelays == null || MassiveOsFreakyAddons.config.autoMineHumanizedDelays);
         if (humanDelays && System.currentTimeMillis() < nextBlockDelayUntil) {
             return;
         }
@@ -1340,7 +1340,7 @@ public class AutoMine {
         int maxDur = stack.getMaxDamage();
         int curDamage = stack.getItemDamage();
         int left = maxDur - curDamage;
-        return left > CelleScannerMod.config.autoMinePickaxeMin;
+        return left > MassiveOsFreakyAddons.config.autoMinePickaxeMin;
     }
 
     /**
@@ -1411,10 +1411,10 @@ public class AutoMine {
      * there.
      */
     private void pollToggleKey() {
-        if (CelleScannerMod.autoMineKey == null) {
+        if (MassiveOsFreakyAddons.autoMineKey == null) {
             return;
         }
-        int kc = CelleScannerMod.autoMineKey.getKeyCode();
+        int kc = MassiveOsFreakyAddons.autoMineKey.getKeyCode();
         boolean down = kc != 0 && Keyboard.isKeyDown(kc);
         if (down && !toggleKeyWasDown) {
             CelleActions.toggleAutoMine();
@@ -1435,8 +1435,8 @@ public class AutoMine {
         if (System.currentTimeMillis() - buyStart > 60000) {
             buying = false;
             stopAll(mc);
-            CelleScannerMod.config.autoMineEnabled = false;
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.autoMineEnabled = false;
+            MassiveOsFreakyAddons.config.save();
             mc.thePlayer.addChatMessage(new ChatComponentText(
                     "§cAuto Mine: kunne ikke købe en ny hakke - slukket."));
             return;
@@ -1550,7 +1550,7 @@ public class AutoMine {
     private void notifyIron(Minecraft mc) {
         if (!notifiedIron) {
             notifiedIron = true;
-            CelleScannerMod.config.autoMineEnabled = false;
+            MassiveOsFreakyAddons.config.autoMineEnabled = false;
             storingIron = false;
             storeIronStart = 0;
             stopMining(mc);
@@ -1585,7 +1585,7 @@ public class AutoMine {
      * is kept.
      */
     private boolean isJunk(ItemStack s) {
-        return CelleScannerMod.config.isTrash(s);
+        return MassiveOsFreakyAddons.config.isTrash(s);
     }
 
     private boolean hasJunk(Minecraft mc) {
@@ -1608,7 +1608,7 @@ public class AutoMine {
      * default.
      */
     private static int[] boxBounds() {
-        CelleConfig c = CelleScannerMod.config;
+        CelleConfig c = MassiveOsFreakyAddons.config;
         if (c.mineAreaSet) {
             return new int[] {
                     Math.min(c.mineAreaX1, c.mineAreaX2), Math.max(c.mineAreaX1, c.mineAreaX2),
@@ -1925,7 +1925,7 @@ public class AutoMine {
     }
 
     private boolean bornFromOurBreak(EntityItem it, long now) {
-        boolean crazy = CelleScannerMod.config.autoMineCrazy;
+        boolean crazy = MassiveOsFreakyAddons.config.autoMineCrazy;
         long window = crazy ? 4000L : CLAIM_WINDOW;
         double match = crazy ? 2.8 : CLAIM_MATCH;
         for (long[] b : broken) {
@@ -1959,7 +1959,7 @@ public class AutoMine {
         if (ourIron.isEmpty()) {
             return null;
         }
-        boolean crazy = CelleScannerMod.config.autoMineCrazy;
+        boolean crazy = MassiveOsFreakyAddons.config.autoMineCrazy;
         double maxR = crazy ? 12.0 : COLLECT_R;
         double ignoreNear = crazy ? 0.4 : IGNORE_NEAR;
         double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
@@ -2042,7 +2042,7 @@ public class AutoMine {
     private void applyRotation(Minecraft mc) {
         // Crazy mode: 100% lock-on - snap straight to the target angles, no
         // humanized easing at all.
-        if (CelleScannerMod.config.autoMineCrazy) {
+        if (MassiveOsFreakyAddons.config.autoMineCrazy) {
             mc.thePlayer.rotationYaw = tYaw;
             mc.thePlayer.rotationPitch = clamp(tPitch, -90f, 90f);
             return;
@@ -2052,7 +2052,7 @@ public class AutoMine {
         float stepY = dy * (0.28f + rng.nextFloat() * 0.12f);
         float stepP = dp * (0.28f + rng.nextFloat() * 0.12f);
 
-        boolean jitterOn = CelleScannerMod.config.autoMineAimJitter == null || CelleScannerMod.config.autoMineAimJitter;
+        boolean jitterOn = MassiveOsFreakyAddons.config.autoMineAimJitter == null || MassiveOsFreakyAddons.config.autoMineAimJitter;
         if (jitterOn && Math.abs(dy) < 3.0f && Math.abs(dp) < 3.0f) {
             float jitterY = (float) Math.sin(tick * 0.45) * 0.35f + (rng.nextFloat() - 0.5f) * 0.15f;
             float jitterP = (float) Math.cos(tick * 0.35) * 0.25f + (rng.nextFloat() - 0.5f) * 0.15f;
@@ -2183,8 +2183,8 @@ public class AutoMine {
         if (mc.theWorld == null || mc.thePlayer == null) {
             return;
         }
-        boolean alertOn = CelleScannerMod.config.autoMineStaffAlert == null || CelleScannerMod.config.autoMineStaffAlert;
-        boolean dcOn = CelleScannerMod.config.autoMineStaffDisconnect != null && CelleScannerMod.config.autoMineStaffDisconnect;
+        boolean alertOn = MassiveOsFreakyAddons.config.autoMineStaffAlert == null || MassiveOsFreakyAddons.config.autoMineStaffAlert;
+        boolean dcOn = MassiveOsFreakyAddons.config.autoMineStaffDisconnect != null && MassiveOsFreakyAddons.config.autoMineStaffDisconnect;
         if (!alertOn && !dcOn) {
             return;
         }
@@ -2200,8 +2200,8 @@ public class AutoMine {
             String name = other.getName();
             String displayName = other.getDisplayName() != null ? other.getDisplayName().getUnformattedText() : name;
             boolean isStaff = false;
-            if (CelleScannerMod.config.staffList != null) {
-                for (String tag : CelleScannerMod.config.staffList) {
+            if (MassiveOsFreakyAddons.config.staffList != null) {
+                for (String tag : MassiveOsFreakyAddons.config.staffList) {
                     if (tag != null && !tag.isEmpty()) {
                         if (name.equalsIgnoreCase(tag) || displayName.toLowerCase().contains(tag.toLowerCase())) {
                             isStaff = true;
@@ -2237,7 +2237,7 @@ public class AutoMine {
         if (mc.thePlayer == null || mc.theWorld == null || phase != Phase.MINING) {
             return;
         }
-        boolean scaffold = CelleScannerMod.config.autoMineSmartScaffold == null || CelleScannerMod.config.autoMineSmartScaffold;
+        boolean scaffold = MassiveOsFreakyAddons.config.autoMineSmartScaffold == null || MassiveOsFreakyAddons.config.autoMineSmartScaffold;
         if (!scaffold) {
             return;
         }

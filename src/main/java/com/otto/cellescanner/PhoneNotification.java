@@ -75,7 +75,7 @@ public class PhoneNotification {
         if (event.message == null) return;
         String unformatted = EnumChatFormatting.getTextWithoutFormattingCodes(event.message.getUnformattedText());
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg.friendsList.isEmpty()) return;
 
         // Check for whisper formats: "Fra <Friend>: <msg>", "<Friend> whispers: <msg>", "[<Friend> -> Mig] <msg>"
@@ -114,7 +114,7 @@ public class PhoneNotification {
             return;
         }
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg.friendsList.isEmpty()) return;
 
         Set<String> currentOnline = new HashSet<String>();

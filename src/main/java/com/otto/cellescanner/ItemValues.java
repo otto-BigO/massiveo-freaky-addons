@@ -199,7 +199,7 @@ public class ItemValues {
 
     @SubscribeEvent
     public void onItemTooltip(ItemTooltipEvent event) {
-        if (!CelleScannerMod.config.itemValueEnabled || event.itemStack == null || event.toolTip == null) {
+        if (!MassiveOsFreakyAddons.config.itemValueEnabled || event.itemStack == null || event.toolTip == null) {
             return;
         }
         String value = valueFor(event.itemStack);

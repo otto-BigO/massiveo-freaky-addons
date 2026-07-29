@@ -45,7 +45,7 @@ public class AntiAfk {
 
         Minecraft mc = Minecraft.getMinecraft();
 
-        if (!CelleScannerMod.config.antiAfkEnabled) {
+        if (!MassiveOsFreakyAddons.config.antiAfkEnabled) {
             tickCounter = 0;
             if (strafePhase != 0) {
                 cancelStrafe(mc);
@@ -66,25 +66,25 @@ public class AntiAfk {
         }
 
         tickCounter++;
-        int intervalTicks = Math.max(1, CelleScannerMod.config.antiAfkIntervalSeconds) * 20;
+        int intervalTicks = Math.max(1, MassiveOsFreakyAddons.config.antiAfkIntervalSeconds) * 20;
         if (tickCounter < intervalTicks) {
             return;
         }
         tickCounter = 0;
 
-        if (CelleScannerMod.config.antiAfkSwing) {
+        if (MassiveOsFreakyAddons.config.antiAfkSwing) {
             mc.thePlayer.swingItem();
         }
-        if (CelleScannerMod.config.antiAfkRotate) {
+        if (MassiveOsFreakyAddons.config.antiAfkRotate) {
             // Alternate direction each time so repeated nudges cancel out rather
             // than accumulating into a full spin.
             mc.thePlayer.rotationYaw += flip ? 12.0F : -12.0F;
             flip = !flip;
         }
-        if (CelleScannerMod.config.antiAfkJump && mc.currentScreen == null && mc.thePlayer.onGround) {
+        if (MassiveOsFreakyAddons.config.antiAfkJump && mc.currentScreen == null && mc.thePlayer.onGround) {
             mc.thePlayer.jump();
         }
-        if (CelleScannerMod.config.antiAfkStrafe && mc.currentScreen == null && mc.thePlayer.onGround) {
+        if (MassiveOsFreakyAddons.config.antiAfkStrafe && mc.currentScreen == null && mc.thePlayer.onGround) {
             startStrafe(mc);
         }
     }

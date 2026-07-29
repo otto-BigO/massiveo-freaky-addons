@@ -70,7 +70,7 @@ public class GuiHudEditor extends GuiScreen {
     public void initGui() {
         this.buttonList.clear();
         huds.clear();
-        final CelleConfig cfg = CelleScannerMod.config;
+        final CelleConfig cfg = MassiveOsFreakyAddons.config;
 
         huds.add(new Hud("Celle HUD") {
             int baseW() { return Math.max(90, CelleHud.lastBoxRight - CelleHud.lastBoxLeft); }
@@ -165,7 +165,7 @@ public class GuiHudEditor extends GuiScreen {
                 float newScale = wheel > 0 ? curScale + 0.1f : curScale - 0.1f;
                 newScale = Math.max(0.4f, Math.min(3.0f, Math.round(newScale * 10f) / 10f));
                 hud.setScale(newScale);
-                CelleScannerMod.config.save();
+                MassiveOsFreakyAddons.config.save();
             }
         }
     }
@@ -204,9 +204,9 @@ public class GuiHudEditor extends GuiScreen {
             for (Hud hud : huds) {
                 hud.resetPosAndScale();
             }
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.save();
         } else if (button.id == ID_BACK) {
-            CelleActions.openGuiSettings();
+            CelleActions.openThemeEditor();
         }
     }
 
@@ -245,7 +245,7 @@ public class GuiHudEditor extends GuiScreen {
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
         if (draggingHud >= 0 || resizingHud >= 0) {
-            CelleScannerMod.config.save();
+            MassiveOsFreakyAddons.config.save();
             draggingHud = -1;
             resizingHud = -1;
             resizingCorner = -1;

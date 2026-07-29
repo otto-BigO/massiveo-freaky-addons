@@ -17,34 +17,34 @@ public class KeyHandler {
             return;
         }
 
-        if (CelleScannerMod.openMenuKey.isPressed()) {
+        if (MassiveOsFreakyAddons.openMenuKey.isPressed()) {
             mc.displayGuiScreen(new GuiAddonsHub());
         }
-        if (CelleScannerMod.autoMineKey != null && CelleScannerMod.autoMineKey.isPressed()) {
+        if (MassiveOsFreakyAddons.autoMineKey != null && MassiveOsFreakyAddons.autoMineKey.isPressed()) {
             CelleActions.toggleAutoMine();
         }
-        if (CelleScannerMod.armorKey != null && CelleScannerMod.armorKey.isPressed()) {
-            if (CelleScannerMod.config != null && CelleScannerMod.config.autoArmorEnabled) {
+        if (MassiveOsFreakyAddons.armorKey != null && MassiveOsFreakyAddons.armorKey.isPressed()) {
+            if (MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.autoArmorEnabled) {
                 AutoArmor.toggleArmor();
             }
         }
-        if (CelleScannerMod.debugOverlayKey != null && CelleScannerMod.debugOverlayKey.isPressed()) {
-            if (CelleScannerMod.config != null) {
-                CelleScannerMod.config.debugOverlayEnabled = !CelleScannerMod.config.debugOverlayEnabled;
-                CelleScannerMod.config.save();
+        if (MassiveOsFreakyAddons.debugOverlayKey != null && MassiveOsFreakyAddons.debugOverlayKey.isPressed()) {
+            if (MassiveOsFreakyAddons.config != null) {
+                MassiveOsFreakyAddons.config.debugOverlayEnabled = !MassiveOsFreakyAddons.config.debugOverlayEnabled;
+                MassiveOsFreakyAddons.config.save();
                 if (mc.thePlayer != null) {
                     mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
-                            net.minecraft.util.EnumChatFormatting.AQUA + "[Debug Overlay] " + (CelleScannerMod.config.debugOverlayEnabled ? "TIL" : "FRA")));
+                            net.minecraft.util.EnumChatFormatting.AQUA + "[Debug Overlay] " + (MassiveOsFreakyAddons.config.debugOverlayEnabled ? "TIL" : "FRA")));
                 }
             }
         }
-        if (CelleScannerMod.phoneKey != null && CelleScannerMod.phoneKey.isPressed()) {
+        if (MassiveOsFreakyAddons.phoneKey != null && MassiveOsFreakyAddons.phoneKey.isPressed()) {
             CelleActions.openPhoneGui();
         }
-        // if (CelleScannerMod.majesticaKey != null && CelleScannerMod.majesticaKey.isPressed()) {
+        // if (MassiveOsFreakyAddons.majesticaKey != null && MassiveOsFreakyAddons.majesticaKey.isPressed()) {
         //     mc.displayGuiScreen(new GuiWeaponSelector());
         // }
-        // if (CelleScannerMod.freecamKey != null && CelleScannerMod.freecamKey.isPressed()) {
+        // if (MassiveOsFreakyAddons.freecamKey != null && MassiveOsFreakyAddons.freecamKey.isPressed()) {
         //     Freecam.INSTANCE.toggle();
         // }
     }

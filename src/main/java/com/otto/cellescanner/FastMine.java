@@ -18,7 +18,7 @@ public class FastMine {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        CelleConfig config = CelleScannerMod.config;
+        CelleConfig config = MassiveOsFreakyAddons.config;
         if (config == null || !config.fastMineEnabled) {
             return;
         }

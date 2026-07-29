@@ -68,7 +68,7 @@ public class MineTracker {
             mineTimestamps.remove(0);
         }
 
-        int ratio = CelleScannerMod.config != null ? CelleScannerMod.config.ironPerDbRatio : 64;
+        int ratio = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.ironPerDbRatio : 64;
         ratio = Math.max(1, ratio);
         estimatedDbs = currentIronOre / ratio;
     }
@@ -77,7 +77,7 @@ public class MineTracker {
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg == null || !cfg.mineTrackerEnabled) return;
 
         Minecraft mc = Minecraft.getMinecraft();
@@ -91,7 +91,7 @@ public class MineTracker {
         int jernPerMin = mineTimestamps.size();
 
         String lineTitle = "§lMine Tracker";
-        String lineIron = "Jernmalm: " + currentIronOre + "  (" + jernPerMin + "/min)";
+        String lineIron = "Iron Ore: " + currentIronOre + "  (" + jernPerMin + "/min)";
         String lineDb = "DB Estimat: " + estimatedDbs + " DBs";
 
         int textW = Math.max(fr.getStringWidth("Mine Tracker"), Math.max(fr.getStringWidth(lineIron), fr.getStringWidth(lineDb)));

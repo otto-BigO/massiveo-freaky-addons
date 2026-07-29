@@ -31,11 +31,11 @@ public class GuiPvpMine extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "PvP Mine: " + (CelleScannerMod.config.pvpMineEnabled ? "Til" : "Fra");
+        return "PvP Mine: " + (MassiveOsFreakyAddons.config.pvpMineEnabled ? "Til" : "Fra");
     }
 
     private String alertLabel() {
-        return "Alarm når nogen er i minen: " + (CelleScannerMod.config.pvpMineAlert ? "Til" : "Fra");
+        return "Alarm når nogen er i minen: " + (MassiveOsFreakyAddons.config.pvpMineAlert ? "Til" : "Fra");
     }
 
     @Override

@@ -64,12 +64,12 @@ public class GuiGuiSettings extends GuiScreen {
     // ------------------------------------------------------------------
 
     private String debugLabel() {
-        boolean on = CelleScannerMod.config.debugEnabled != null && CelleScannerMod.config.debugEnabled;
+        boolean on = MassiveOsFreakyAddons.config.debugEnabled != null && MassiveOsFreakyAddons.config.debugEnabled;
         return "Debug: " + (on ? "Til" : "Fra");
     }
 
     private String debugLogLabel() {
-        boolean on = Boolean.TRUE.equals(CelleScannerMod.config.debugLogEnabled);
+        boolean on = Boolean.TRUE.equals(MassiveOsFreakyAddons.config.debugLogEnabled);
         return "Debug \u2192 Fil: " + (on ? "Til" : "Fra");
     }
 
@@ -85,9 +85,9 @@ public class GuiGuiSettings extends GuiScreen {
                 break;
 
             case ID_DEBUG: {
-                boolean on = CelleScannerMod.config.debugEnabled != null && CelleScannerMod.config.debugEnabled;
-                CelleScannerMod.config.debugEnabled = !on;
-                CelleScannerMod.config.save();
+                boolean on = MassiveOsFreakyAddons.config.debugEnabled != null && MassiveOsFreakyAddons.config.debugEnabled;
+                MassiveOsFreakyAddons.config.debugEnabled = !on;
+                MassiveOsFreakyAddons.config.save();
                 debugButton.displayString = debugLabel();
                 if (!on) {
                     DebugLog.openSession();
@@ -96,9 +96,9 @@ public class GuiGuiSettings extends GuiScreen {
             }
 
             case ID_DEBUG_LOG: {
-                boolean on = Boolean.TRUE.equals(CelleScannerMod.config.debugLogEnabled);
-                CelleScannerMod.config.debugLogEnabled = !on;
-                CelleScannerMod.config.save();
+                boolean on = Boolean.TRUE.equals(MassiveOsFreakyAddons.config.debugLogEnabled);
+                MassiveOsFreakyAddons.config.debugLogEnabled = !on;
+                MassiveOsFreakyAddons.config.save();
                 debugLogButton.displayString = debugLogLabel();
                 if (!on) {
                     DebugLog.openSession();
@@ -180,7 +180,7 @@ public class GuiGuiSettings extends GuiScreen {
             drawCenteredString(this.fontRendererObj, copyFeedback, cx, this.height / 2 + 90, 0xFFFFFF);
         } else {
             copyFeedback = null;
-            if (Boolean.TRUE.equals(CelleScannerMod.config.debugLogEnabled)) {
+            if (Boolean.TRUE.equals(MassiveOsFreakyAddons.config.debugLogEnabled)) {
                 String path = DebugLog.getFilePath();
                 String label = path.length() > 50 ? "..." + path.substring(path.length() - 47) : path;
                 drawCenteredString(this.fontRendererObj, "\u00a77" + label, cx, this.height / 2 + 90, 0x888888);

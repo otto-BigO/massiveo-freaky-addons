@@ -88,7 +88,7 @@ public class AutoUpdater {
             return;
         }
         latestVersion = release.get("tag_name").getAsString();
-        String current = CelleScannerMod.VERSION;
+        String current = MassiveOsFreakyAddons.VERSION;
 
         if (compareVersions(latestVersion, current) <= 0) {
             status = "opdateret (" + current + ")";
@@ -96,7 +96,7 @@ public class AutoUpdater {
         }
         status = "ny version: " + latestVersion;
 
-        if (!CelleScannerMod.config.autoUpdateEnabled) {
+        if (!MassiveOsFreakyAddons.config.autoUpdateEnabled) {
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
                     + "Ny version " + latestVersion + " findes. Auto-opdatering er slået fra.";
             return;
@@ -245,7 +245,7 @@ public class AutoUpdater {
      * tie against a pre-release of the same base (see compareVersions).
      */
     private static JsonObject fetchBestRelease() throws Exception {
-        if (!CelleScannerMod.config.autoUpdatePreRelease) {
+        if (!MassiveOsFreakyAddons.config.autoUpdatePreRelease) {
             return fetchLatestRelease();
         }
         JsonElement el = fetchJson(RELEASES_URL);
@@ -496,16 +496,38 @@ public class AutoUpdater {
         return out;
     }
 
+    private boolean initialCheckTriggered = false;
+    private boolean notifierOpened = false;
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || posted || pendingMessage == null) {
+        if (event.phase != TickEvent.Phase.END) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null) {
+            initialCheckTriggered = false;
+            notifierOpened = false;
             return;
         }
-        posted = true;
-        mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
+
+        // Trigger background update check on world/server join
+        if (!initialCheckTriggered) {
+            initialCheckTriggered = true;
+            checkAsync();
+        }
+
+        if (!posted && pendingMessage != null) {
+            posted = true;
+            mc.thePlayer.addChatMessage(new ChatComponentText(pendingMessage));
+        }
+
+        // Show update notification screen if a newer version exists
+        if (!notifierOpened && latestVersion != null && compareVersions(latestVersion, MassiveOsFreakyAddons.VERSION) > 0) {
+            if (mc.currentScreen == null) {
+                notifierOpened = true;
+                mc.displayGuiScreen(new GuiUpdateNotifier());
+            }
+        }
     }
 }

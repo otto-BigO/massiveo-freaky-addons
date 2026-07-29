@@ -112,7 +112,7 @@ public final class ReportWebhookClient {
 
     /** Fire-and-forget: hands the newest report to the background worker. */
     public static void report(final List<Celle> celler, final List<String> specialIds) {
-        final String url = CelleScannerMod.config.reportsWebhookUrl;
+        final String url = MassiveOsFreakyAddons.config.reportsWebhookUrl;
         if (url == null || url.trim().isEmpty()) {
             return;
         }
@@ -137,7 +137,7 @@ public final class ReportWebhookClient {
 
     /** Used by /celler bot test - a small report with no celler, just to verify the webhook url works. */
     public static void testConnection() {
-        final String url = CelleScannerMod.config.reportsWebhookUrl;
+        final String url = MassiveOsFreakyAddons.config.reportsWebhookUrl;
         if (url == null || url.trim().isEmpty()) {
             return;
         }
@@ -271,7 +271,7 @@ public final class ReportWebhookClient {
         HttpURLConnection conn = (HttpURLConnection) new URL(webhookUrl).openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("User-Agent", "CelleScannerMod/1.0 (Forge 1.8.9 client mod)");
+        conn.setRequestProperty("User-Agent", "MassiveOsFreakyAddons/1.0 (Forge 1.8.9 client mod)");
         conn.setDoOutput(true);
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);

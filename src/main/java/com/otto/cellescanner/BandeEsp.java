@@ -41,7 +41,7 @@ public class BandeEsp {
 
     @SubscribeEvent
     public void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg == null || !cfg.bandeEspEnabled) return;
 
         String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
@@ -83,7 +83,7 @@ public class BandeEsp {
 
     @SubscribeEvent
     public void onRenderPlayerPost(RenderPlayerEvent.Post event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg == null || !cfg.bandeEspEnabled) return;
 
         String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
@@ -102,7 +102,7 @@ public class BandeEsp {
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg == null || !cfg.bandeEspEnabled) return;
 
         Minecraft mc = Minecraft.getMinecraft();
@@ -389,7 +389,7 @@ public class BandeEsp {
             return false;
         }
 
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (cfg != null && cfg.staffList != null) {
             for (String staff : cfg.staffList) {
                 if (staff != null && !staff.isEmpty()) {
@@ -416,7 +416,7 @@ public class BandeEsp {
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {
-        return CelleScannerMod.config.isBandeMember(p.getName());
+        return MassiveOsFreakyAddons.config.isBandeMember(p.getName());
     }
 
     public static String bandeTag(EntityPlayer target) {
@@ -462,7 +462,7 @@ public class BandeEsp {
 
     private boolean isFriend(Minecraft mc, EntityPlayer p) {
         if (p == null || p.getName() == null) return false;
-        CelleConfig cfg = CelleScannerMod.config;
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
         if (!cfg.friendEspEnabled) return false;
         for (String friend : cfg.friendsList) {
             if (friend != null && friend.equalsIgnoreCase(p.getName())) {

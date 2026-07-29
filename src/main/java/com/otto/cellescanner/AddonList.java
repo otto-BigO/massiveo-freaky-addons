@@ -21,7 +21,7 @@ public final class AddonList {
         }
         registered = true;
 
-        final CelleConfig config = CelleScannerMod.config;
+        final CelleConfig config = MassiveOsFreakyAddons.config;
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
@@ -106,7 +106,7 @@ public final class AddonList {
         // Gange addon shelved for now - the code (GuiGange, GangInfo,
         // GangRanges) is kept so it can be picked back up later. To re-enable,
         // restore this registration, the GangInfo event registration and the
-        // GangRanges.init call in CelleScannerMod.
+        // GangRanges.init call in MassiveOsFreakyAddons.
         // MassiveoAddons.register(new MassiveoAddons.Addon() {
         //     public String name() { return "Gange"; }
         //     public String description() { return "Alle gange og deres celle-timere (højreklik skilte)"; }
@@ -418,7 +418,7 @@ public final class AddonList {
         // Mod-brugere addon shelved for now - good idea, saved for later. The
         // code (GuiModIcon, ModUserIcon) is kept; to re-enable, restore this
         // registration and the ModUserIcon event registration in
-        // CelleScannerMod.enableAddons().
+        // MassiveOsFreakyAddons.enableAddons().
         // MassiveoAddons.register(new MassiveoAddons.Addon() {
         //     public String name() { return "Mod-brugere"; }
         //     public String description() { return "Lilla ikon foran andre mod-brugeres navn (test)"; }
@@ -860,7 +860,7 @@ public final class AddonList {
             }
 
             public String description() {
-                return "Hold øje med Jernmalm/min og estimerede Diamantblokke (DBs)";
+                return "Hold øje med Iron Ore/min og estimerede Diamantblokke (DBs)";
             }
 
             public String category() {
@@ -887,7 +887,7 @@ public final class AddonList {
             }
 
             public String description() {
-                return "Smid automatisk skrald og dårlige hakker (Cobble, Træ/Sten redskaber) ud";
+                return "Smid automatisk skrald ud (Cobblestone, Dirt, Træ/Sten redskaber)";
             }
 
             public String category() {
