@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A unified HUD editor: drag every on-screen HUD (Celle HUD, Rustnings-HUD,
- * Item-log, PvP Mine, Debug Overlay) to reposition it, and scroll the mouse wheel
- * to scale any HUD bigger or smaller (0.5x to 2.5x).
+ * A unified HUD editor with interactive 4-corner desktop window resizing!
+ * Drag any HUD box to move it, or drag any of the 4 corner handles (⌜ ⌝ ⌞ ⌟)
+ * or scroll the mouse wheel to scale HUD size smoothly (0.4x - 3.0x).
  */
 public class GuiHudEditor extends GuiScreen {
 
@@ -19,10 +19,17 @@ public class GuiHudEditor extends GuiScreen {
     private static final int ID_BACK = 1;
 
     private final List<Hud> huds = new ArrayList<Hud>();
-    private int dragging = -1;
+    private int draggingHud = -1;
     private int dragOffX, dragOffY;
 
-    /** A movable HUD: its config position, default spot, box size, and scaling factor. */
+    // Resizing state
+    private int resizingHud = -1;
+    private int resizingCorner = -1; // 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight
+    private int initialMouseX, initialMouseY;
+    private float initialScale;
+    private int initialW, initialH;
+
+    /** A movable and scalable HUD. */
     private abstract class Hud {
         final String name;
 
@@ -36,10 +43,10 @@ public class GuiHudEditor extends GuiScreen {
         abstract float getScale();
         abstract void setScale(float s);
 
-        int w() { return (int) Math.max(20, baseW() * getScale()); }
-        int h() { return (int) Math.max(16, baseH() * getScale()); }
+        int w() { return (int) Math.max(24, baseW() * getScale()); }
+        int h() { return (int) Math.max(18, baseH() * getScale()); }
 
-        abstract int cfgX();       // -1 when unset
+        abstract int cfgX();
         abstract int cfgY();
 
         abstract void setPos(int x, int y);
@@ -77,6 +84,18 @@ public class GuiHudEditor extends GuiScreen {
             int defX(int sw) { return 10; }
             int defY(int sh) { return 10; }
         });
+        huds.add(new Hud("Mine Tracker") {
+            int baseW() { return Math.max(130, MineTracker.lastWidth); }
+            int baseH() { return Math.max(46, MineTracker.lastHeight); }
+            float getScale() { return cfg.mineTrackerScale; }
+            void setScale(float s) { cfg.mineTrackerScale = s; }
+            int cfgX() { return cfg.mineTrackerX; }
+            int cfgY() { return cfg.mineTrackerY; }
+            void setPos(int x, int y) { cfg.mineTrackerX = x; cfg.mineTrackerY = y; }
+            void resetPosAndScale() { cfg.mineTrackerX = 10; cfg.mineTrackerY = 120; cfg.mineTrackerScale = 1.0f; }
+            int defX(int sw) { return 10; }
+            int defY(int sh) { return 120; }
+        });
         huds.add(new Hud("Rustnings-HUD") {
             int baseW() { return Math.max(60, ArmorHud.lastWidth); }
             int baseH() { return Math.max(30, ArmorHud.lastHeight); }
@@ -85,9 +104,9 @@ public class GuiHudEditor extends GuiScreen {
             int cfgX() { return cfg.armorHudX; }
             int cfgY() { return cfg.armorHudY; }
             void setPos(int x, int y) { cfg.armorHudX = x; cfg.armorHudY = y; }
-            void resetPosAndScale() { cfg.armorHudX = 5; cfg.armorHudY = 140; cfg.armorHudScale = 1.0f; }
+            void resetPosAndScale() { cfg.armorHudX = 5; cfg.armorHudY = 180; cfg.armorHudScale = 1.0f; }
             int defX(int sw) { return 5; }
-            int defY(int sh) { return 140; }
+            int defY(int sh) { return 180; }
         });
         huds.add(new Hud("Item-log") {
             int baseW() { return Math.max(80, ItemPickupNotify.lastWidth); }
@@ -139,12 +158,12 @@ public class GuiHudEditor extends GuiScreen {
             int mouseX = Mouse.getEventX() * this.width / this.mc.displayWidth;
             int mouseY = this.height - Mouse.getEventY() * this.height / this.mc.displayHeight - 1;
 
-            int targetIdx = dragging >= 0 ? dragging : getHoveredHud(mouseX, mouseY);
+            int targetIdx = draggingHud >= 0 ? draggingHud : getHoveredHud(mouseX, mouseY);
             if (targetIdx >= 0) {
                 Hud hud = huds.get(targetIdx);
                 float curScale = hud.getScale();
                 float newScale = wheel > 0 ? curScale + 0.1f : curScale - 0.1f;
-                newScale = Math.max(0.5f, Math.min(2.5f, Math.round(newScale * 10f) / 10f));
+                newScale = Math.max(0.4f, Math.min(3.0f, Math.round(newScale * 10f) / 10f));
                 hud.setScale(newScale);
                 CelleScannerMod.config.save();
             }
@@ -163,6 +182,22 @@ public class GuiHudEditor extends GuiScreen {
         return -1;
     }
 
+    /** Returns 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight, or -1 if no corner hit. */
+    private int getHoveredCorner(Hud hud, int mouseX, int mouseY) {
+        int hx = hud.x();
+        int hy = hud.y();
+        int hw = hud.w();
+        int hh = hud.h();
+        int r = 8; // corner hit radius
+
+        if (mouseX >= hx && mouseX <= hx + r && mouseY >= hy && mouseY <= hy + r) return 0; // Top-Left
+        if (mouseX >= hx + hw - r && mouseX <= hx + hw && mouseY >= hy && mouseY <= hy + r) return 1; // Top-Right
+        if (mouseX >= hx && mouseX <= hx + r && mouseY >= hy + hh - r && mouseY <= hy + hh) return 2; // Bottom-Left
+        if (mouseX >= hx + hw - r && mouseX <= hx + hw && mouseY >= hy + hh - r && mouseY <= hy + hh) return 3; // Bottom-Right
+
+        return -1;
+    }
+
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id == ID_RESET) {
@@ -178,13 +213,29 @@ public class GuiHudEditor extends GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
-        if (mouseButton != 0) {
-            return;
+        if (mouseButton != 0) return;
+
+        // Check corner handle hits first
+        for (int i = 0; i < huds.size(); i++) {
+            Hud hud = huds.get(i);
+            int corner = getHoveredCorner(hud, mouseX, mouseY);
+            if (corner >= 0) {
+                resizingHud = i;
+                resizingCorner = corner;
+                initialMouseX = mouseX;
+                initialMouseY = mouseY;
+                initialScale = hud.getScale();
+                initialW = hud.w();
+                initialH = hud.h();
+                return;
+            }
         }
+
+        // Check HUD box drag hits
         int targetIdx = getHoveredHud(mouseX, mouseY);
         if (targetIdx >= 0) {
             Hud hud = huds.get(targetIdx);
-            dragging = targetIdx;
+            draggingHud = targetIdx;
             dragOffX = mouseX - hud.x();
             dragOffY = mouseY - hud.y();
         }
@@ -193,9 +244,11 @@ public class GuiHudEditor extends GuiScreen {
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         super.mouseReleased(mouseX, mouseY, state);
-        if (dragging >= 0) {
+        if (draggingHud >= 0 || resizingHud >= 0) {
             CelleScannerMod.config.save();
-            dragging = -1;
+            draggingHud = -1;
+            resizingHud = -1;
+            resizingCorner = -1;
         }
     }
 
@@ -203,11 +256,30 @@ public class GuiHudEditor extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
+        // Handle active corner resizing drag
+        if (resizingHud >= 0 && Mouse.isButtonDown(0)) {
+            Hud hud = huds.get(resizingHud);
+            int dx = mouseX - initialMouseX;
+            int dy = mouseY - initialMouseY;
+
+            int delta = 0;
+            switch (resizingCorner) {
+                case 0: delta = -dx - dy; break; // TopLeft
+                case 1: delta = dx - dy; break;  // TopRight
+                case 2: delta = -dx + dy; break; // BottomLeft
+                case 3: delta = dx + dy; break;  // BottomRight
+            }
+
+            float newScale = initialScale + ((float) delta / (float) Math.max(initialW, initialH));
+            newScale = Math.max(0.4f, Math.min(3.0f, Math.round(newScale * 20f) / 20f));
+            hud.setScale(newScale);
+        }
+
         int guideX = -1;
         int guideY = -1;
 
-        if (dragging >= 0) {
-            Hud hud = huds.get(dragging);
+        if (draggingHud >= 0) {
+            Hud hud = huds.get(draggingHud);
             int nx = mouseX - dragOffX;
             int ny = mouseY - dragOffY;
             int w = hud.w();
@@ -217,82 +289,18 @@ public class GuiHudEditor extends GuiScreen {
             boolean snappedY = false;
 
             // Snap to screen edges (4px padding)
-            if (Math.abs(nx - 4) <= 6) {
-                nx = 4;
-                snappedX = true;
-            } else if (Math.abs(nx - (this.width - w - 4)) <= 6) {
-                nx = this.width - w - 4;
-                snappedX = true;
-            }
+            if (Math.abs(nx - 4) <= 6) { nx = 4; snappedX = true; }
+            else if (Math.abs(nx - (this.width - w - 4)) <= 6) { nx = this.width - w - 4; snappedX = true; }
 
-            if (Math.abs(ny - 4) <= 6) {
-                ny = 4;
-                snappedY = true;
-            } else if (Math.abs(ny - (this.height - h - 4)) <= 6) {
-                ny = this.height - h - 4;
-                snappedY = true;
-            }
+            if (Math.abs(ny - 4) <= 6) { ny = 4; snappedY = true; }
+            else if (Math.abs(ny - (this.height - h - 4)) <= 6) { ny = this.height - h - 4; snappedY = true; }
 
             // Snap to screen centers
             int centerX = this.width / 2 - w / 2;
-            if (!snappedX && Math.abs(nx - centerX) <= 6) {
-                nx = centerX;
-                snappedX = true;
-                guideX = this.width / 2;
-            }
+            if (!snappedX && Math.abs(nx - centerX) <= 6) { nx = centerX; snappedX = true; guideX = this.width / 2; }
 
             int centerY = this.height / 2 - h / 2;
-            if (!snappedY && Math.abs(ny - centerY) <= 6) {
-                ny = centerY;
-                snappedY = true;
-                guideY = this.height / 2;
-            }
-
-            // Snap to other HUDs
-            for (int j = 0; j < huds.size(); j++) {
-                if (j == dragging) continue;
-                Hud other = huds.get(j);
-                int ox = other.x();
-                int oy = other.y();
-                int ow = other.w();
-                int oh = other.h();
-
-                if (!snappedX) {
-                    if (Math.abs(nx - ox) <= 6) {
-                        nx = ox;
-                        snappedX = true;
-                        guideX = ox;
-                    } else if (Math.abs((nx + w) - (ox + ow)) <= 6) {
-                        nx = ox + ow - w;
-                        snappedX = true;
-                        guideX = ox + ow;
-                    } else if (Math.abs(nx - (ox + ow + 4)) <= 6) {
-                        nx = ox + ow + 4;
-                        snappedX = true;
-                    } else if (Math.abs((nx + w) - (ox - 4)) <= 6) {
-                        nx = ox - 4 - w;
-                        snappedX = true;
-                    }
-                }
-
-                if (!snappedY) {
-                    if (Math.abs(ny - oy) <= 6) {
-                        ny = oy;
-                        snappedY = true;
-                        guideY = oy;
-                    } else if (Math.abs((ny + h) - (oy + oh)) <= 6) {
-                        ny = oy + oh - h;
-                        snappedY = true;
-                        guideY = oy + oh;
-                    } else if (Math.abs(ny - (oy + oh + 4)) <= 6) {
-                        ny = oy + oh + 4;
-                        snappedY = true;
-                    } else if (Math.abs((ny + h) - (oy - 4)) <= 6) {
-                        ny = oy - 4 - h;
-                        snappedY = true;
-                    }
-                }
-            }
+            if (!snappedY && Math.abs(ny - centerY) <= 6) { ny = centerY; snappedY = true; guideY = this.height / 2; }
 
             nx = clamp(nx, 0, this.width - w);
             ny = clamp(ny, 0, this.height - h);
@@ -300,15 +308,11 @@ public class GuiHudEditor extends GuiScreen {
         }
 
         // Draw guide lines
-        if (guideX >= 0) {
-            drawRect(guideX, 0, guideX + 1, this.height, 0x554BE08C);
-        }
-        if (guideY >= 0) {
-            drawRect(0, guideY, this.width, guideY + 1, 0x554BE08C);
-        }
+        if (guideX >= 0) drawRect(guideX, 0, guideX + 1, this.height, 0x554BE08C);
+        if (guideY >= 0) drawRect(0, guideY, this.width, guideY + 1, 0x554BE08C);
 
         drawCenteredString(this.fontRendererObj, "Flyt & Skaler HUD'er", this.width / 2, 6, Style.getAccentColor());
-        drawCenteredString(this.fontRendererObj, "Træk for at flytte. Scroll musen over en HUD for at ændre størrelse (0.5x - 2.5x).", this.width / 2, 18, 0xAAAAAA);
+        drawCenteredString(this.fontRendererObj, "Træk for at flytte. Træk i et hjørne (⌜ ⌝ ⌞ ⌟) for at ændre størrelse.", this.width / 2, 18, 0xAAAAAA);
 
         for (int i = 0; i < huds.size(); i++) {
             Hud hud = huds.get(i);
@@ -316,17 +320,41 @@ public class GuiHudEditor extends GuiScreen {
             int hy = hud.y();
             int hw = hud.w();
             int hh = hud.h();
-            boolean active = dragging == i
-                    || (dragging < 0 && mouseX >= hx && mouseX <= hx + hw && mouseY >= hy && mouseY <= hy + hh);
+
+            boolean active = draggingHud == i || resizingHud == i
+                    || (draggingHud < 0 && resizingHud < 0 && mouseX >= hx && mouseX <= hx + hw && mouseY >= hy && mouseY <= hy + hh);
 
             drawRect(hx, hy, hx + hw, hy + hh, active ? 0x304BE08C : 0x15FFFFFF);
             Style.roundedRect(hx, hy, hx + hw, hy + hh, active ? Style.getAccentColor() : 0x55FFFFFF);
+
+            // Draw 4 Corner Bracket Handles (⌜ ⌝ ⌞ ⌟)
+            int accent = Style.getAccentColor();
+            drawCornerBracket(hx, hy, hx + hw, hy + hh, active ? accent : 0x88FFFFFF);
 
             String label = hud.name + " (" + String.format("%.1fx", hud.getScale()) + ")";
             drawCenteredString(this.fontRendererObj, label, hx + hw / 2, hy + hh / 2 - 4, active ? Style.getAccentColor() : 0xDDFFFFFF);
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+    }
+
+    private void drawCornerBracket(int x1, int y1, int x2, int y2, int color) {
+        int l = 6; // Bracket leg length
+        // Top-Left ⌜
+        drawRect(x1, y1, x1 + l, y1 + 1, color);
+        drawRect(x1, y1, x1 + 1, y1 + l, color);
+
+        // Top-Right ⌝
+        drawRect(x2 - l, y1, x2, y1 + 1, color);
+        drawRect(x2 - 1, y1, x2, y1 + l, color);
+
+        // Bottom-Left ⌞
+        drawRect(x1, y2 - 1, x1 + l, y2, color);
+        drawRect(x1, y2 - l, x1 + 1, y2, color);
+
+        // Bottom-Right ⌟
+        drawRect(x2 - l, y2 - 1, x2, y2, color);
+        drawRect(x2 - 1, y2 - l, x2, y2, color);
     }
 
     private static int clamp(int v, int lo, int hi) {

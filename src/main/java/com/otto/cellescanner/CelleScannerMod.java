@@ -20,7 +20,7 @@ public class CelleScannerMod {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons";
-    public static final String VERSION = "3.6.0-test";
+    public static final String VERSION = "3.7.0-test";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -118,6 +118,8 @@ public class CelleScannerMod {
         MinecraftForge.EVENT_BUS.register(new BandeEsp());
         MinecraftForge.EVENT_BUS.register(new ChestAlarm());
         MinecraftForge.EVENT_BUS.register(new ArmorSkins());
+        MinecraftForge.EVENT_BUS.register(AutoTrash.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(MineTracker.INSTANCE);
         MinecraftForge.EVENT_BUS.register(new MineCeller());
         // GangInfo (passive gang detection) shelved - not registered for now.
         MinecraftForge.EVENT_BUS.register(new PlayerInfo());

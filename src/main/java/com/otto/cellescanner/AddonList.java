@@ -853,5 +853,59 @@ public final class AddonList {
                 }
             }
         });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Mine Tracker";
+            }
+
+            public String description() {
+                return "Hold øje med Jernmalm/min og estimerede Diamantblokke (DBs)";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            public boolean isActive() {
+                return config.mineTrackerEnabled;
+            }
+
+            public void open() {
+                config.mineTrackerEnabled = !config.mineTrackerEnabled; config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub("Quality of life"));
+            }
+
+            public void toggle() {
+                config.mineTrackerEnabled = !config.mineTrackerEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
+                return "Skralde-Filter";
+            }
+
+            public String description() {
+                return "Smid automatisk skrald og dårlige hakker (Cobble, Træ/Sten redskaber) ud";
+            }
+
+            public String category() {
+                return "Automation";
+            }
+
+            public boolean isActive() {
+                return config.autoTrashEnabled;
+            }
+
+            public void open() {
+                config.autoTrashEnabled = !config.autoTrashEnabled; config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub("Automation"));
+            }
+
+            public void toggle() {
+                config.autoTrashEnabled = !config.autoTrashEnabled; config.save();
+            }
+        });
     }
 }

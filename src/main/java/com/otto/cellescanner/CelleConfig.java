@@ -243,6 +243,16 @@ public class CelleConfig {
     public float armorHudScale = 1.0f;
     public float itemPickupScale = 1.0f;
     public float pvpMineScale = 1.0f;
+    public float mineTrackerScale = 1.0f;
+    public boolean mineTrackerEnabled = true;
+    public int mineTrackerX = 10;
+    public int mineTrackerY = 120;
+    public int ironPerDbRatio = 64;
+
+    public boolean autoTrashEnabled = true;
+    public boolean trashWoodTools = true;
+    public boolean trashStoneTools = true;
+    public boolean trashBlocks = true;
     public float hudBgAlpha = 0.6f;
     public boolean alert10mEnabled = true;
     public boolean alert5mEnabled = true;

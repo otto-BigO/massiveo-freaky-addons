@@ -378,13 +378,22 @@ public class BandeEsp {
     private boolean isVagt(Minecraft mc, EntityPlayer p) {
         if (p == null) return false;
         String name = p.getName() != null ? p.getName().toLowerCase() : "";
-        if (name.contains("vagt")) return true;
+        
+        // Exclude holograms and NPC text stands like "vagt kills", "top vagt", "vagt shop"
+        if (name.contains("kills") || name.contains("top") || name.contains("shop") || name.contains("stats") || name.contains("npc")) {
+            return false;
+        }
 
         String displayName = p.getDisplayName() != null ? p.getDisplayName().getUnformattedText().toLowerCase() : "";
+        if (displayName.contains("kills") || displayName.contains("top") || displayName.contains("shop")) {
+            return false;
+        }
+
+        if (name.contains("vagt") || name.contains("guard") || name.contains("officer")) return true;
         if (displayName.contains("vagt") || displayName.contains("guard") || displayName.contains("officer")) return true;
 
         String tag = bandeTag(p);
-        if (tag != null && tag.toLowerCase().contains("vagt")) return true;
+        if (tag != null && tag.toLowerCase().contains("vagt") && !tag.toLowerCase().contains("kills")) return true;
 
         return false;
     }
