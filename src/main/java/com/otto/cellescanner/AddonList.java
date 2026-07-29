@@ -864,7 +864,7 @@ public final class AddonList {
             }
 
             public String category() {
-                return "Quality of life";
+                return "Automation";
             }
 
             public boolean isActive() {
@@ -873,7 +873,7 @@ public final class AddonList {
 
             public void open() {
                 config.mineTrackerEnabled = !config.mineTrackerEnabled; config.save();
-                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub("Quality of life"));
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub("Automation"));
             }
 
             public void toggle() {

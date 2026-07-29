@@ -37,10 +37,8 @@ public class GuiUpdate extends GuiScreen {
         }
 
         int left = this.width / 2 - PANEL_W / 2;
-        int y = this.height / 2 - 18;
+        int y = this.height / 2 - 12;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
-        y += BTN_H + 6;
-        this.buttonList.add(preReleaseButton = new StyledButton(ID_PRERELEASE, left, y, PANEL_W, BTN_H, preReleaseLabel()));
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_CHECK, left, y, PANEL_W, BTN_H, "Tjek for opdatering nu"));
         y += BTN_H + 6;
@@ -51,22 +49,12 @@ public class GuiUpdate extends GuiScreen {
         return "Auto-opdatering: " + (MassiveOsFreakyAddons.config.autoUpdateEnabled ? "Til" : "Fra");
     }
 
-    private String preReleaseLabel() {
-        return "Pre-releases (test): " + (MassiveOsFreakyAddons.config.autoUpdatePreRelease ? "Til" : "Fra");
-    }
-
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case ID_TOGGLE:
                 CelleActions.toggleAutoUpdate();
                 toggleButton.displayString = toggleLabel();
-                break;
-            case ID_PRERELEASE:
-                CelleActions.toggleUpdatePreRelease();
-                preReleaseButton.displayString = preReleaseLabel();
-                // Re-check so the "newest version" line reflects the new channel.
-                AutoUpdater.checkAsync();
                 break;
             case ID_CHECK:
                 CelleActions.checkForUpdateNow();
