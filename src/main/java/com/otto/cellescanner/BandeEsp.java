@@ -378,7 +378,7 @@ public class BandeEsp {
     private boolean isVagt(Minecraft mc, EntityPlayer p) {
         if (p == null) return false;
         String name = p.getName() != null ? p.getName().toLowerCase() : "";
-        
+
         // Exclude holograms and NPC text stands like "vagt kills", "top vagt", "vagt shop"
         if (name.contains("kills") || name.contains("top") || name.contains("shop") || name.contains("stats") || name.contains("npc")) {
             return false;
@@ -389,11 +389,28 @@ public class BandeEsp {
             return false;
         }
 
-        if (name.contains("vagt") || name.contains("guard") || name.contains("officer")) return true;
-        if (displayName.contains("vagt") || displayName.contains("guard") || displayName.contains("officer")) return true;
+        CelleConfig cfg = CelleScannerMod.config;
+        if (cfg != null && cfg.staffList != null) {
+            for (String staff : cfg.staffList) {
+                if (staff != null && !staff.isEmpty()) {
+                    String sLower = staff.toLowerCase();
+                    if (name.equals(sLower) || displayName.contains(sLower)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (name.contains("vagt") || name.contains("guard") || name.contains("officer") || name.contains("mod") || name.contains("admin")) return true;
+        if (displayName.contains("vagt") || displayName.contains("guard") || displayName.contains("officer") || displayName.contains("mod") || displayName.contains("admin")) return true;
 
         String tag = bandeTag(p);
-        if (tag != null && tag.toLowerCase().contains("vagt") && !tag.toLowerCase().contains("kills")) return true;
+        if (tag != null) {
+            String tLower = tag.toLowerCase();
+            if (tLower.contains("vagt") || tLower.contains("guard") || tLower.contains("officer") || tLower.contains("mod") || tLower.contains("admin")) {
+                if (!tLower.contains("kills") && !tLower.contains("top")) return true;
+            }
+        }
 
         return false;
     }
