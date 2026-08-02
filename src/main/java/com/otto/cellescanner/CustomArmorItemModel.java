@@ -55,9 +55,14 @@ public class CustomArmorItemModel implements ISmartItemModel {
             return baseModel;
         }
 
-        String key = "cellescanner:" + material + "_p" + level + "_" + type;
+        String key = "cellescanner:" + activePack() + "_" + material + "_p" + level + "_" + type;
         IBakedModel custom = MODELS.get(key);
         return custom != null ? custom : baseModel;
+    }
+
+    /** Inventory icons follow the same texture pack as the worn armor. */
+    private static String activePack() {
+        return "hypixel".equals(MassiveOsFreakyAddons.config.armorSkinPack) ? "hypixel" : "mesterholm";
     }
 
     private static String materialKey(Item item) {

@@ -20,6 +20,9 @@ import java.util.Map;
  */
 public class ArmorSkins {
 
+    /** Texture packs that get their own set of baked inventory models. */
+    static final String[] PACKS = {"hypixel", "mesterholm"};
+
     public static void registerVariants() {
         try {
             register(net.minecraft.init.Items.diamond_helmet, "diamond", 1, 4, "helmet");
@@ -42,12 +45,15 @@ public class ArmorSkins {
         try {
             net.minecraft.util.ResourceLocation vanillaLoc = net.minecraft.item.Item.itemRegistry.getNameForObject(item);
             if (vanillaLoc == null) return;
-            int count = maxLevel - minLevel + 2;
+            int count = (maxLevel - minLevel + 1) * PACKS.length + 1;
             net.minecraft.util.ResourceLocation[] locs = new net.minecraft.util.ResourceLocation[count];
             locs[0] = vanillaLoc;
             int idx = 1;
-            for (int lvl = minLevel; lvl <= maxLevel; lvl++) {
-                locs[idx++] = new net.minecraft.util.ResourceLocation("cellescanner", material + "_p" + lvl + "_" + type);
+            for (String pack : PACKS) {
+                for (int lvl = minLevel; lvl <= maxLevel; lvl++) {
+                    locs[idx++] = new net.minecraft.util.ResourceLocation(
+                            "cellescanner", pack + "_" + material + "_p" + lvl + "_" + type);
+                }
             }
             net.minecraft.client.resources.model.ModelBakery.registerItemVariants(item, locs);
         } catch (Throwable t) {
@@ -64,17 +70,19 @@ public class ArmorSkins {
             String[] materials = {"diamond", "iron"};
 
             int found = 0;
-            for (String material : materials) {
-                int minLevel = "iron".equals(material) ? 2 : 1;
-                int maxLevel = 4;
-                for (int lvl = minLevel; lvl <= maxLevel; lvl++) {
-                    for (String type : items) {
-                        String key = "cellescanner:" + material + "_p" + lvl + "_" + type;
-                        ModelResourceLocation loc = new ModelResourceLocation(key, "inventory");
-                        IBakedModel model = event.modelRegistry.getObject(loc);
-                        if (model != null) {
-                            CustomArmorItemModel.MODELS.put(key, model);
-                            found++;
+            for (String pack : PACKS) {
+                for (String material : materials) {
+                    int minLevel = "iron".equals(material) ? 2 : 1;
+                    int maxLevel = 4;
+                    for (int lvl = minLevel; lvl <= maxLevel; lvl++) {
+                        for (String type : items) {
+                            String key = "cellescanner:" + pack + "_" + material + "_p" + lvl + "_" + type;
+                            ModelResourceLocation loc = new ModelResourceLocation(key, "inventory");
+                            IBakedModel model = event.modelRegistry.getObject(loc);
+                            if (model != null) {
+                                CustomArmorItemModel.MODELS.put(key, model);
+                                found++;
+                            }
                         }
                     }
                 }
