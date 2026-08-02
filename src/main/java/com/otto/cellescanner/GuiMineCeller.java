@@ -1,19 +1,17 @@
 package com.otto.cellescanner;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Control screen for the Mine Celler addon. Fetch your celler from the server
- * with "/ce find", toggle their gold ESP, add/clear ids, and click a celle in
- * the list to point the Finder compass at it and walk there.
+ * Control screen for the Mine Celler addon - Apple Motion Physics.
  */
 public class GuiMineCeller extends GuiScreen {
 
@@ -39,14 +37,19 @@ public class GuiMineCeller extends GuiScreen {
     private int shownCount = -1;
     private int listHintY;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
         this.shownIds.clear();
 
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
+
         int centerX = this.width / 2;
-        int left = centerX - 146; // Left aligned controls
+        int left = centerX - 146;
         int y = this.height / 2 - 102;
 
         this.buttonList.add(new StyledButton(ID_FETCH, left, y, FIELD_W, BTN_H, "Hent mine celler (/ce find)"));
@@ -63,7 +66,7 @@ public class GuiMineCeller extends GuiScreen {
 
         int halfW = (FIELD_W - 4) / 2;
         this.buttonList.add(new StyledButton(ID_CLEAR, left, y, halfW, BTN_H, "Ryd alle"));
-        this.buttonList.add(new StyledButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left + halfW + 4, y, halfW, BTN_H, "< Tilbage"));
         y += BTN_H + ROW_GAP + 2;
 
         listHintY = y;
@@ -173,6 +176,13 @@ public class GuiMineCeller extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -184,10 +194,6 @@ public class GuiMineCeller extends GuiScreen {
         idField.drawTextBox();
         List<String> ids = MassiveOsFreakyAddons.config.myCelleIds;
 
-        // The 2D radar/minimap that used to sit here was removed - a new one
-        // may come back later. For now Mine Celler is just the list below.
-
-        // Left list hints
         int leftC = cx - 146;
         int listLeft = leftC + FIELD_W / 2;
         if (ids.isEmpty()) {
@@ -204,6 +210,10 @@ public class GuiMineCeller extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

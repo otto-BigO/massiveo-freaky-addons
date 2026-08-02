@@ -208,6 +208,12 @@ public final class CelleActions {
         message("Webhook-forbindelse ryddet.");
     }
 
+    public static void toggleHideBuyableCeller() {
+        MassiveOsFreakyAddons.config.hideBuyableCeller = !MassiveOsFreakyAddons.config.hideBuyableCeller;
+        MassiveOsFreakyAddons.config.save();
+        message("Købelige celler " + (MassiveOsFreakyAddons.config.hideBuyableCeller ? "skjules nu." : "vises nu."));
+    }
+
     public static void testBotConnection() {
         if (MassiveOsFreakyAddons.config.reportsWebhookUrl == null || MassiveOsFreakyAddons.config.reportsWebhookUrl.trim().isEmpty()) {
             message("Ingen webhook-url sat. Brug /celler bot <url> først.");

@@ -12,14 +12,14 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * GUI for searching and assigning an item icon to a chest.
- * Supports selecting placement direction (Front, Back, Left, Right, Top, Bottom).
+ * GUI for searching and assigning an item icon to a chest - Apple Motion Physics.
  */
 public class GuiChestOrganizer extends GuiScreen {
 
@@ -41,6 +41,8 @@ public class GuiChestOrganizer extends GuiScreen {
     private GuiButton deleteButton;
     private GuiButton placementButton;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     public GuiChestOrganizer(BlockPos targetPos) {
         this.targetPos = targetPos;
     }
@@ -48,29 +50,29 @@ public class GuiChestOrganizer extends GuiScreen {
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
+
         this.startX = (this.width - this.guiWidth) / 2;
         this.startY = (this.height - this.guiHeight) / 2;
 
-        // Initialize Search Field
         this.searchField = new GuiTextField(0, this.fontRendererObj, startX + 15, startY + 35, 190, 20);
         this.searchField.setMaxStringLength(32);
         this.searchField.setFocused(true);
         this.searchField.setText("");
 
-        // Add Buttons
         this.buttonList.clear();
-        this.saveButton = new GuiButton(1, startX + 15, startY + 175, 60, 20, "Gem");
-        this.deleteButton = new GuiButton(2, startX + 80, startY + 175, 60, 20, "Slet");
-        GuiButton cancelButton = new GuiButton(3, startX + 145, startY + 175, 60, 20, "Afbryd");
+        this.saveButton = new StyledButton(1, startX + 15, startY + 175, 60, 20, "Gem");
+        this.deleteButton = new StyledButton(2, startX + 80, startY + 175, 60, 20, "Slet");
+        GuiButton cancelButton = new StyledButton(3, startX + 145, startY + 175, 60, 20, "Afbryd");
 
-        this.placementButton = new GuiButton(4, startX + 15, startY + 115, 190, 20, getPlacementButtonLabel());
+        this.placementButton = new StyledButton(4, startX + 15, startY + 115, 190, 20, getPlacementButtonLabel());
 
         this.buttonList.add(saveButton);
         this.buttonList.add(deleteButton);
         this.buttonList.add(cancelButton);
         this.buttonList.add(placementButton);
 
-        // Retrieve existing item and placement if configured
         Minecraft mc = Minecraft.getMinecraft();
         int dimension = mc.thePlayer != null ? mc.thePlayer.dimension : 0;
         String currentIcon = ChestOrganizerPositions.getIcon(targetPos, dimension);
@@ -106,7 +108,7 @@ public class GuiChestOrganizer extends GuiScreen {
         this.searchResults.clear();
         String query = this.searchField.getText().trim().toLowerCase();
 
-        int limit = 18; // 2 rows of 9 items
+        int limit = 18;
         for (Object obj : Item.itemRegistry) {
             if (this.searchResults.size() >= limit) {
                 break;
@@ -124,7 +126,6 @@ public class GuiChestOrganizer extends GuiScreen {
             }
         }
 
-        // Enable/disable buttons appropriately
         this.saveButton.enabled = (selectedStack != null);
         
         Minecraft mc = Minecraft.getMinecraft();
@@ -158,7 +159,6 @@ public class GuiChestOrganizer extends GuiScreen {
         super.mouseClicked(mouseX, mouseY, mouseButton);
         this.searchField.mouseClicked(mouseX, mouseY, mouseButton);
 
-        // Check if clicked inside the item grid
         int gridX = startX + 15;
         int gridY = startY + 65;
 
@@ -171,7 +171,7 @@ public class GuiChestOrganizer extends GuiScreen {
             if (mouseX >= slotX && mouseX <= slotX + 18 && mouseY >= slotY && mouseY <= slotY + 18) {
                 this.selectedStack = this.searchResults.get(i);
                 this.saveButton.enabled = true;
-                this.mc.thePlayer.playSound("random.click", 0.5F, 1.2F);
+                ClickParticleEngine.INSTANCE.spawnBurst(mouseX, mouseY, Style.getAccentColor());
                 break;
             }
         }
@@ -183,7 +183,6 @@ public class GuiChestOrganizer extends GuiScreen {
         int dimension = mc.thePlayer != null ? mc.thePlayer.dimension : 0;
 
         if (button.id == 1 && selectedStack != null) {
-            // Save Icon with Placement
             ResourceLocation loc = Item.itemRegistry.getNameForObject(selectedStack.getItem());
             if (loc != null) {
                 String val = loc.toString() + ";" + PLACEMENTS[selectedPlacementIdx];
@@ -194,17 +193,14 @@ public class GuiChestOrganizer extends GuiScreen {
             }
             this.mc.displayGuiScreen(null);
         } else if (button.id == 2) {
-            // Delete Icon
             ChestOrganizerPositions.removeIcon(targetPos, dimension);
             mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
                     EnumChatFormatting.RED + "[Kiste-Organisering] Ikon slettet!"
             ));
             this.mc.displayGuiScreen(null);
         } else if (button.id == 3) {
-            // Cancel
             this.mc.displayGuiScreen(null);
         } else if (button.id == 4) {
-            // Cycle Placement
             selectedPlacementIdx = (selectedPlacementIdx + 1) % PLACEMENTS.length;
             button.displayString = getPlacementButtonLabel();
         }
@@ -214,20 +210,21 @@ public class GuiChestOrganizer extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         int accent = Style.getAccentColor();
-        Style.roundedRect(startX - 1, startY - 1, startX + guiWidth + 1, startY + guiHeight + 1, (0x66 << 24) | (accent & 0xFFFFFF)); // glow border
-        drawRect(startX, startY, startX + guiWidth, startY + guiHeight, 0xCC0C0C12); // background
+        Style.roundedRect(startX - 1, startY - 1, startX + guiWidth + 1, startY + guiHeight + 1, (0x66 << 24) | (accent & 0xFFFFFF));
+        drawRect(startX, startY, startX + guiWidth, startY + guiHeight, 0xCC0C0C12);
 
-        // Title
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Kiste-Organisering", startX + guiWidth / 2, startY + 15, accent);
-
-        // Draw Search Input Box Label
         drawString(this.fontRendererObj, "Søg efter genstand:", startX + 15, startY + 25, 0x888888);
 
-        // Draw Text Field
         this.searchField.drawTextBox();
 
-        // Render Item Grid
         int gridX = startX + 15;
         int gridY = startY + 65;
 
@@ -240,7 +237,6 @@ public class GuiChestOrganizer extends GuiScreen {
             int slotX = gridX + col * 21;
             int slotY = gridY + row * 21;
 
-            // Draw a subtle border around selected slot
             boolean isHovered = mouseX >= slotX && mouseX <= slotX + 18 && mouseY >= slotY && mouseY <= slotY + 18;
             boolean isSelected = selectedStack != null && selectedStack.getItem() == this.searchResults.get(i).getItem();
 
@@ -251,8 +247,6 @@ public class GuiChestOrganizer extends GuiScreen {
             }
 
             drawRect(slotX, slotY, slotX + 16, slotY + 16, 0x55000000);
-            
-            // Draw item stack
             this.itemRender.renderItemIntoGUI(this.searchResults.get(i), slotX, slotY);
 
             if (isHovered) {
@@ -260,7 +254,6 @@ public class GuiChestOrganizer extends GuiScreen {
             }
         }
 
-        // Draw Preview of Currently Selected Item
         if (selectedStack != null) {
             drawString(this.fontRendererObj, "Valgt:", startX + 15, startY + 150, 0x888888);
             this.itemRender.renderItemIntoGUI(selectedStack, startX + 50, startY + 147);
@@ -273,10 +266,13 @@ public class GuiChestOrganizer extends GuiScreen {
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
-        // Draw Tooltip if hovering over an item
         if (hoveredStack != null) {
             renderToolTip(hoveredStack, mouseX, mouseY);
         }
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

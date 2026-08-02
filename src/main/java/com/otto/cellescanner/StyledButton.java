@@ -2,20 +2,23 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
+import org.lwjgl.opengl.GL11;
 
 /**
- * A drop-in replacement for the vanilla stone GuiButton that draws a flat dark
- * rounded button with dynamic theme accents on hover, matching Style.
+ * Apple-Style UI Animated Button for Minecraft 1.8.9 Forge.
+ * Replicates Apple motion physics: smooth 120ms cubic hover interpolation,
+ * micro scale-press physics (0.97x -> 1.00x -> 1.02x), and 4-sided crisp glowing theme borders.
  */
 public class StyledButton extends GuiButton {
+
+    private final AnimationValue hoverAnim = new AnimationValue(0f);
+    private final AnimationValue scaleAnim = new AnimationValue(1.0f);
 
     public StyledButton(int id, int x, int y, int width, int height, String text) {
         super(id, x, y, width, height, text);
     }
-
-    private float fadeFactor = 0f;
-    private long lastTime = -1;
 
     @Override
     public void drawButton(Minecraft mc, int mouseX, int mouseY) {
@@ -26,20 +29,16 @@ public class StyledButton extends GuiButton {
         this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition
                 && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
 
-        long now = System.currentTimeMillis();
-        if (lastTime < 0) {
-            lastTime = now;
-        }
-        float dt = (now - lastTime) / 1000f;
-        lastTime = now;
-
         if (this.enabled && this.hovered) {
-            fadeFactor += dt * 5.0f; // fade in over 200ms
+            hoverAnim.animateTo(1.0f, 120);
+            scaleAnim.animateTo(1.02f, 120);
         } else {
-            fadeFactor -= dt * 5.0f; // fade out over 200ms
+            hoverAnim.animateTo(0.0f, 160);
+            scaleAnim.animateTo(1.00f, 160);
         }
-        if (fadeFactor < 0f) fadeFactor = 0f;
-        if (fadeFactor > 1f) fadeFactor = 1f;
+
+        float fade = hoverAnim.getValue();
+        float scale = scaleAnim.getValue();
 
         int x1 = this.xPosition;
         int y1 = this.yPosition;
@@ -55,35 +54,56 @@ public class StyledButton extends GuiButton {
             text = Style.TEXT_DISABLED;
             border = Style.BTN_BORDER;
         } else {
-            // Blend fill: BTN_BG -> BTN_BG_HOVER
-            int rF = (int) (0x26 + (0x34 - 0x26) * fadeFactor);
-            int gF = (int) (0x26 + (0x34 - 0x26) * fadeFactor);
-            int bF = (int) (0x2E + (0x3F - 0x2E) * fadeFactor);
+            int rF = (int) (0x26 + (0x36 - 0x26) * fade);
+            int gF = (int) (0x26 + (0x36 - 0x26) * fade);
+            int bF = (int) (0x2E + (0x42 - 0x2E) * fade);
             fill = 0xFF000000 | (rF << 16) | (gF << 8) | bF;
 
-            // Blend border dynamically using user's chosen Theme Accent Color!
             int accent = Style.getAccentColor();
             int accR = (accent >> 16) & 0xFF;
             int accG = (accent >> 8) & 0xFF;
             int accB = accent & 0xFF;
 
-            int rB = (int) (0x12 + (accR - 0x12) * fadeFactor);
-            int gB = (int) (0x12 + (accG - 0x12) * fadeFactor);
-            int bB = (int) (0x16 + (accB - 0x16) * fadeFactor);
+            int rB = (int) (0x12 + (accR - 0x12) * fade);
+            int gB = (int) (0x12 + (accG - 0x12) * fade);
+            int bB = (int) (0x16 + (accB - 0x16) * fade);
             border = 0xFF000000 | (rB << 16) | (gB << 8) | bB;
 
-            // Blend text: TEXT -> TEXT_HOVER
-            int rT = (int) (0xE6 + (0xFF - 0xE6) * fadeFactor);
-            int gT = (int) (0xE6 + (0xFF - 0xE6) * fadeFactor);
-            int bT = (int) (0xEA + (0xFF - 0xEA) * fadeFactor);
+            int rT = (int) (0xE6 + (0xFF - 0xE6) * fade);
+            int gT = (int) (0xE6 + (0xFF - 0xE6) * fade);
+            int bT = (int) (0xEA + (0xFF - 0xEA) * fade);
             text = 0xFF000000 | (rT << 16) | (gT << 8) | bT;
         }
 
-        Style.roundedRect(x1, y1, x2, y2, border);
-        Style.roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
+        float cx = x1 + this.width / 2.0f;
+        float cy = y1 + this.height / 2.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(cx, cy, 0.0f);
+        GL11.glScalef(scale, scale, 1.0f);
+        GL11.glTranslatef(-cx, -cy, 0.0f);
+
+        // Draw 4-sided crisp border outline
+        Style.drawOutline(x1, y1, x2, y2, border);
+
+        // Inner fill
+        Gui.drawRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
 
         int textX = x1 + (this.width - fr.getStringWidth(this.displayString)) / 2;
         int textY = y1 + (this.height - 8) / 2;
         fr.drawString(this.displayString, textX, textY, text, false);
+
+        GL11.glPopMatrix();
+    }
+
+    @Override
+    public boolean mousePressed(Minecraft mc, int mouseX, int mouseY) {
+        boolean pressed = super.mousePressed(mc, mouseX, mouseY);
+        if (pressed) {
+            scaleAnim.setValueInstant(0.95f);
+            scaleAnim.animateTo(1.00f, 180);
+            ClickParticleEngine.INSTANCE.spawnBurst(mouseX, mouseY, Style.getAccentColor());
+        }
+        return pressed;
     }
 }

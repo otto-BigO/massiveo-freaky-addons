@@ -14,11 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The main menu for Massiveo's Freaky Addons - the hub from the keybind (B).
- * Displays a search field at the top to search and toggle any addon.
- * If no search query is active, groups addons by category.
- * Support right-click on any addon to quickly enable/disable it.
- * Features scroll functionality to handle unlimited addons/categories.
+ * The main menu for Massiveo's Freaky Addons - Apple-Style Motion Physics.
+ * Replicates Apple UI guidelines: Staggered entry animations, smooth spring scroll physics,
+ * and micro scale/fade transitions.
  */
 public class GuiAddonsHub extends GuiScreen {
 
@@ -30,7 +28,6 @@ public class GuiAddonsHub extends GuiScreen {
     private static final int BTN_H = 20;
     private static final int PANEL_W = 200;
 
-    // null = genre level; otherwise the genre whose addons are shown.
     private final String category;
 
     private final List<String> levelCategories = new ArrayList<String>();
@@ -40,12 +37,16 @@ public class GuiAddonsHub extends GuiScreen {
 
     private GuiTextField searchField;
 
-    // Scrolling state
+    // Scrolling & Motion state
     private float scroll = 0f;
     private int targetScroll = 0;
     private int maxScroll = 0;
     private String lastQuery = "";
     private String lastCategory = "";
+
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+    private long openTimeMs = 0;
+    private long lastFrameTimeMs = 0;
 
     // Settings gear (bottom-right of the card).
     private static final int GEAR_SIZE = 9;
@@ -63,6 +64,11 @@ public class GuiAddonsHub extends GuiScreen {
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         AddonList.ensureRegistered();
+
+        openTimeMs = System.currentTimeMillis();
+        lastFrameTimeMs = System.currentTimeMillis();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260); // 260ms smooth panel open animation
 
         String carryText = (searchField != null) ? searchField.getText() : "";
         int cx = this.width / 2;
@@ -97,10 +103,14 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     public void updateScreen() {
-        // Smooth scroll interpolation
+        long now = System.currentTimeMillis();
+        float dt = Math.max(0.001f, (now - lastFrameTimeMs) / 1000.0f);
+        lastFrameTimeMs = now;
+
+        // Smooth frame-rate independent spring scroll interpolation
         float diff = targetScroll - scroll;
         if (Math.abs(diff) > 0.05f) {
-            scroll += diff * 0.2f;
+            scroll = EaseUtils.damp(scroll, targetScroll, 18.0f, dt);
             updateButtonPositions();
         } else {
             scroll = targetScroll;
@@ -113,9 +123,9 @@ public class GuiAddonsHub extends GuiScreen {
         super.handleMouseInput();
         int d = Mouse.getDWheel();
         if (d > 0) {
-            targetScroll -= ROW_H; // scroll up 1 row
+            targetScroll -= ROW_H * 2; // Smooth 2-row glide up
         } else if (d < 0) {
-            targetScroll += ROW_H; // scroll down 1 row
+            targetScroll += ROW_H * 2; // Smooth 2-row glide down
         }
         if (d != 0) {
             clampScroll();
@@ -144,7 +154,6 @@ public class GuiAddonsHub extends GuiScreen {
         int y = this.height / 2 - 70;
 
         if (isSearching) {
-            // Find matching addons across all categories
             for (String cat : MassiveoAddons.categories()) {
                 for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
                     if (a.name().toLowerCase().contains(query) || a.description().toLowerCase().contains(query)) {
@@ -191,7 +200,7 @@ public class GuiAddonsHub extends GuiScreen {
 
         int count = isSearching ? searchResults.size() : (category == null ? levelCategories.size() : levelAddons.size());
         int totalHeight = count * ROW_H;
-        maxScroll = Math.max(0, totalHeight - 170); // Viewport is 170px high (from cy - 70 to cy + 100)
+        maxScroll = Math.max(0, totalHeight - 170);
         clampScroll();
         updateButtonPositions();
     }
@@ -244,22 +253,44 @@ public class GuiAddonsHub extends GuiScreen {
 
             if (isSearching) {
                 if (button.id < searchResults.size()) {
-                    searchResults.get(button.id).open();
+                    MassiveoAddons.Addon addon = searchResults.get(button.id);
+                    if (hasSubGui(addon)) {
+                        addon.open();
+                    } else {
+                        addon.toggle();
+                        button.displayString = addonLabel(addon);
+                    }
                 }
             } else {
                 if (category == null && button.id < levelCategories.size()) {
                     this.mc.displayGuiScreen(new GuiAddonsHub(levelCategories.get(button.id)));
                 } else if (category != null && button.id < levelAddons.size()) {
-                    levelAddons.get(button.id).open();
+                    MassiveoAddons.Addon addon = levelAddons.get(button.id);
+                    if (hasSubGui(addon)) {
+                        addon.open();
+                    } else {
+                        addon.toggle();
+                        button.displayString = addonLabel(addon);
+                    }
                 }
             }
         }
     }
 
+    private boolean hasSubGui(MassiveoAddons.Addon addon) {
+        if (addon == null) return false;
+        String name = addon.name();
+        return "Celle Scanner".equals(name) || "Celle Finder".equals(name) || "Mine Celler".equals(name)
+                || "Bande ESP".equals(name) || "PvP Mine".equals(name) || "Auto Mine".equals(name)
+                || "Kiste Organisering".equals(name) || "Rustnings-HUD".equals(name) || "Spiller Info".equals(name)
+                || "Item Værdi".equals(name) || "Prisguide".equals(name) || "Armour Skins".equals(name)
+                || "Skralde-Filter".equals(name);
+    }
+
     private int hoveredItem(int mouseX, int mouseY) {
         int cy = this.height / 2;
         if (mouseY < cy - 80 || mouseY > cy + 100) {
-            return -1; // Not hovering within viewport bounds
+            return -1;
         }
         for (int i = 0; i < itemButtons.size(); i++) {
             GuiButton b = itemButtons.get(i);
@@ -274,6 +305,14 @@ public class GuiAddonsHub extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        // Calculate Apple-style panel slide-up & fade transition
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f; // Slide up 12px
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -303,21 +342,34 @@ public class GuiAddonsHub extends GuiScreen {
             drawString(this.fontRendererObj, EnumChatFormatting.ITALIC + "Skriv for at s\u00f8ge...", cx - PANEL_W / 2 + 4, cy - 112, 0x888888);
         }
 
-        // Render viewport with scissoring
+        // Render viewport with scissoring & Apple staggered item card entrance
         ScaledResolution sr = new ScaledResolution(this.mc);
         int scale = sr.getScaleFactor();
         int scissorX = (cx - PANEL_W / 2) * scale;
         int scissorY = (this.mc.displayHeight - (cy + 100) * scale);
         int scissorW = PANEL_W * scale;
-        int scissorH = 180 * scale; // Viewport height from cy-80 to cy+100 is 180px
+        int scissorH = 180 * scale;
 
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(scissorX, scissorY, scissorW, scissorH);
 
-        // Render addon buttons inside scissor
-        for (GuiButton b : this.buttonList) {
-            if (b.id >= 0 && b.id < 1000) {
-                b.drawButton(this.mc, mouseX, mouseY);
+        long now = System.currentTimeMillis();
+
+        // Render item buttons with staggered delay (40ms per row)
+        for (int i = 0; i < itemButtons.size(); i++) {
+            GuiButton b = itemButtons.get(i);
+            long itemStaggerDelay = i * 40L;
+            long elapsedSinceOpen = now - openTimeMs;
+
+            if (elapsedSinceOpen >= itemStaggerDelay) {
+                float itemProgress = Math.min(1.0f, (float) (elapsedSinceOpen - itemStaggerDelay) / 180.0f);
+                float itemEase = EaseUtils.easeOutCubic(itemProgress);
+                float itemOffsetY = (1.0f - itemEase) * 8.0f; // Slide 8px up
+
+                GL11.glPushMatrix();
+                GL11.glTranslatef(0.0f, itemOffsetY, 0.0f);
+                b.drawButton(this.mc, mouseX, (int) (mouseY - itemOffsetY));
+                GL11.glPopMatrix();
             }
         }
 
@@ -339,9 +391,7 @@ public class GuiAddonsHub extends GuiScreen {
             double scrollRatio = (double) scroll / maxScroll;
             int thumbY = (cy - 76) + (int) (scrollRatio * (trackH - thumbH));
 
-            // Track background
             drawRect(cx + PANEL_W / 2 + 4, cy - 76, cx + PANEL_W / 2 + 6, cy + 96, 0x33FFFFFF);
-            // Thumb
             Style.roundedRect(cx + PANEL_W / 2 + 3, thumbY, cx + PANEL_W / 2 + 7, thumbY + thumbH, Style.ACCENT);
         }
 
@@ -366,23 +416,46 @@ public class GuiAddonsHub extends GuiScreen {
         gearY = cardBottom - GEAR_SIZE - 6;
         boolean gearHover = mouseX >= gearX - 3 && mouseX <= gearX + GEAR_SIZE + 3
                 && mouseY >= gearY - 3 && mouseY <= gearY + GEAR_SIZE + 3;
-        drawGear(gearX, gearY, GEAR_SIZE, gearHover ? 0xFFFFFFFF : 0xFFB0B0B8, 0xFF15151A);
+        drawGear(gearX, gearY, GEAR_SIZE, gearHover ? 0xFFFFFFFF : 0xFFB0B0B8, 0xFF15151A, gearHover);
         if (gearHover) {
             String t = "Indstillinger";
             drawString(this.fontRendererObj, EnumChatFormatting.GRAY + t,
                     gearX - this.fontRendererObj.getStringWidth(t) - 6, gearY + 1, 0xAAAAAA);
         }
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
-    private void drawGear(int left, int top, int s, int body, int hole) {
-        int cx = left + s / 2;
-        int cy = top + s / 2;
-        drawRect(cx - 1, top - 2, cx + 2, top + 1, body);            // top tooth
-        drawRect(cx - 1, top + s - 1, cx + 2, top + s + 2, body);    // bottom tooth
-        drawRect(left - 2, cy - 1, left + 1, cy + 2, body);          // left tooth
-        drawRect(left + s - 1, cy - 1, left + s + 2, cy + 2, body);  // right tooth
-        Style.roundedRect(left, top, left + s, top + s, body);       // body
-        drawRect(cx - 1, cy - 1, cx + 2, cy + 2, hole);              // centre hole
+    private final AnimationValue gearRotateAnim = new AnimationValue(0.0f);
+
+    private void drawGear(int left, int top, int s, int body, int hole, boolean hovered) {
+        if (hovered) {
+            gearRotateAnim.animateTo(90.0f, 200);
+        } else {
+            gearRotateAnim.animateTo(0.0f, 240);
+        }
+        float angle = gearRotateAnim.getValue();
+
+        float cx = left + s / 2.0f;
+        float cy = top + s / 2.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(cx, cy, 0.0f);
+        GL11.glRotatef(angle, 0.0f, 0.0f, 1.0f);
+        GL11.glTranslatef(-cx, -cy, 0.0f);
+
+        int icx = left + s / 2;
+        int icy = top + s / 2;
+        drawRect(icx - 1, top - 2, icx + 2, top + 1, body);
+        drawRect(icx - 1, top + s - 1, icx + 2, top + s + 2, body);
+        drawRect(left - 2, icy - 1, left + 1, icy + 2, body);
+        drawRect(left + s - 1, icy - 1, left + s + 2, icy + 2, body);
+        Style.roundedRect(left, top, left + s, top + s, body);
+        drawRect(icx - 1, icy - 1, icx + 2, icy + 2, hole);
+
+        GL11.glPopMatrix();
     }
 
     @Override
@@ -390,7 +463,7 @@ public class GuiAddonsHub extends GuiScreen {
         int cy = this.height / 2;
         boolean clickInViewport = (mouseY >= cy - 80 && mouseY <= cy + 100);
 
-        if (mouseButton == 1) { // Right-click to quick toggle
+        if (mouseButton == 1) {
             if (clickInViewport) {
                 for (GuiButton b : this.buttonList) {
                     if (b.id >= 0 && b.id < 1000 && b.mousePressed(this.mc, mouseX, mouseY) && b.enabled) {
@@ -413,7 +486,6 @@ public class GuiAddonsHub extends GuiScreen {
             }
         }
 
-        // Temporarily disable viewport buttons if click was outside the list area
         if (!clickInViewport) {
             for (GuiButton b : this.buttonList) {
                 if (b.id >= 0 && b.id < 1000) {
@@ -424,7 +496,6 @@ public class GuiAddonsHub extends GuiScreen {
 
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
-        // Re-enable them
         if (!clickInViewport) {
             for (GuiButton b : this.buttonList) {
                 if (b.id >= 0 && b.id < 1000) {
@@ -444,7 +515,7 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        if (keyCode == 1) { // ESC closes
+        if (keyCode == 1) {
             this.mc.displayGuiScreen(null);
             return;
         }

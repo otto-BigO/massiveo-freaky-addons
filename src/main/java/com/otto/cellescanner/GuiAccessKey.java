@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
@@ -21,10 +22,14 @@ public class GuiAccessKey extends GuiScreen {
     private String statusLine = "";
     private int statusColor = 0xAAAAAA;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
@@ -67,14 +72,12 @@ public class GuiAccessKey extends GuiScreen {
         statusLine = "Verificerer...";
         statusColor = 0xAAAAAA;
 
-        // Run validation check
         if (AccessSystem.verifyKey(key)) {
             MassiveOsFreakyAddons.config.accessKey = key;
             MassiveOsFreakyAddons.config.save();
             statusLine = "Licens godkendt!";
             statusColor = 0x55FF55;
             
-            // Close verification lock GUI
             this.mc.displayGuiScreen(null);
         } else {
             statusLine = "Ugyldig adgangskode!";
@@ -89,7 +92,6 @@ public class GuiAccessKey extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
-        // OVERRIDE ESCAPE: Prevent closing this screen with Escape key to bypass verification!
         if (keyCode == Keyboard.KEY_ESCAPE) {
             return;
         }
@@ -116,10 +118,18 @@ public class GuiAccessKey extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 80;
-        drawCenteredString(this.fontRendererObj, "Massiveo's addons - Licens Verification", this.width / 2, titleY, 0xFF5555);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lMassiveo's Addons - Licens Verification", this.width / 2, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Indtast din adgangskode for at låse op:", this.width / 2, titleY + 14, 0xAAAAAA);
 
         keyField.drawTextBox();
@@ -131,6 +141,10 @@ public class GuiAccessKey extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Din HWID: " + AccessSystem.getHWID(), this.width / 2, this.height / 2 + 50, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

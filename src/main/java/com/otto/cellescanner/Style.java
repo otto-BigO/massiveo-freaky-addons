@@ -42,12 +42,21 @@ public final class Style {
     }
 
     /**
-     * A filled rectangle with 1px "rounded" corners.
+     * Draws a 4-sided crisp border outline.
+     */
+    public static void drawOutline(int x1, int y1, int x2, int y2, int color) {
+        Gui.drawRect(x1 + 1, y1, x2 - 1, y1 + 1, color);       // Top border
+        Gui.drawRect(x1 + 1, y2 - 1, x2 - 1, y2, color);       // Bottom border
+        Gui.drawRect(x1, y1 + 1, x1 + 1, y2 - 1, color);       // Left border
+        Gui.drawRect(x2 - 1, y1 + 1, x2, y2 - 1, color);       // Right border
+    }
+
+    /**
+     * A filled rectangle with crisp 4-sided border lines.
      */
     public static void roundedRect(int x1, int y1, int x2, int y2, int color) {
-        Gui.drawRect(x1 + 1, y1, x2 - 1, y1 + 1, color);
-        Gui.drawRect(x1, y1 + 1, x2, y2 - 1, color);
-        Gui.drawRect(x1 + 1, y2 - 1, x2 - 1, y2, color);
+        drawOutline(x1, y1, x2, y2, color);
+        Gui.drawRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, color);
     }
 
     public static final int COLOR_CELLER = 0xFF00FF88;      // Neon Emerald
@@ -72,10 +81,10 @@ public final class Style {
         int glowAlpha = Math.max(20, Math.min(255, (int) (alpha * 0.5f * 255)));
 
         // Outer border
-        roundedRect(x1, y1, x2, y2, (borderAlpha << 24) | 0x14151E);
+        drawOutline(x1, y1, x2, y2, (borderAlpha << 24) | 0x14151E);
         // Inner glowing border with theme accent
         int glowColor = (glowAlpha << 24) | (accent & 0xFFFFFF);
-        roundedRect(x1 + 1, y1 + 1, x2 - 1, y2 - 1, glowColor);
+        drawOutline(x1 + 1, y1 + 1, x2 - 1, y2 - 1, glowColor);
 
         // Dark card fill with user transparency
         int bgColor = (alphaInt << 24) | 0x0A0A0F;

@@ -3,10 +3,11 @@ package com.otto.cellescanner;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
-/** Control screen for the PvP Mine watcher: on/off and the entry alert. */
+/** Control screen for the PvP Mine watcher - Apple Motion Physics. */
 public class GuiPvpMine extends GuiScreen {
 
     private static final int ID_TOGGLE = 0;
@@ -18,24 +19,31 @@ public class GuiPvpMine extends GuiScreen {
     private GuiButton toggleButton;
     private GuiButton alertButton;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
+
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 12;
         this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += BTN_H + 6;
         this.buttonList.add(alertButton = new StyledButton(ID_ALERT, left, y, PANEL_W, BTN_H, alertLabel()));
         y += BTN_H + 6;
-        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
     }
 
     private String toggleLabel() {
-        return "PvP Mine: " + (MassiveOsFreakyAddons.config.pvpMineEnabled ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.pvpMineEnabled;
+        return "PvP Mine: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String alertLabel() {
-        return "Alarm når nogen er i minen: " + (MassiveOsFreakyAddons.config.pvpMineAlert ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.pvpMineAlert;
+        return "Alarm når nogen er i minen: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     @Override
@@ -60,6 +68,13 @@ public class GuiPvpMine extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -69,6 +84,10 @@ public class GuiPvpMine extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "HUD vises nederst til venstre.", cx, titleY + 22, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.IBakedModel;
 import net.minecraftforge.client.model.ISmartItemModel;
-import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -16,12 +15,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Smart Item Model wrapper for armor inventory icons.
+ */
 public class CustomArmorItemModel implements ISmartItemModel {
 
     private final IBakedModel baseModel;
     private final Item item;
     
-    // Cache map: ModelResourceLocation string -> IBakedModel
     public static final Map<String, IBakedModel> MODELS = new HashMap<String, IBakedModel>();
 
     public CustomArmorItemModel(IBakedModel baseModel, Item item) {
@@ -34,20 +35,26 @@ public class CustomArmorItemModel implements ISmartItemModel {
         if (!MassiveOsFreakyAddons.config.armorSkinsEnabled || stack == null) {
             return baseModel;
         }
+
+        if (item == Items.golden_helmet) {
+            return baseModel;
+        }
+
         String material = materialKey(item);
         if (material == null) {
             return baseModel;
         }
+
         int level = mappedLevel(material, EnchantmentHelper.getEnchantmentLevel(0, stack));
         if (level == 0) {
             return baseModel;
         }
+
         String type = itemType(item);
         if (type == null) {
             return baseModel;
         }
 
-        // e.g. "cellescanner:diamond_p1_helmet"
         String key = "cellescanner:" + material + "_p" + level + "_" + type;
         IBakedModel custom = MODELS.get(key);
         return custom != null ? custom : baseModel;
@@ -77,16 +84,16 @@ public class CustomArmorItemModel implements ISmartItemModel {
         if ("iron".equals(material)) {
             if (protection >= 4) return 4;
             if (protection == 3) return 3;
-            return 0; // Iron only has custom textures for P3, P4
+            if (protection == 2) return 2;
+            return 0;
         }
         if ("diamond".equals(material)) {
             if (protection >= 4) return 4;
-            return protection; // P1-P4
+            return protection;
         }
         return 0;
     }
 
-    // Delegate methods
     @Override public List<BakedQuad> getGeneralQuads() { return baseModel.getGeneralQuads(); }
     @Override public List<BakedQuad> getFaceQuads(EnumFacing facing) { return baseModel.getFaceQuads(facing); }
     @Override public boolean isAmbientOcclusion() { return baseModel.isAmbientOcclusion(); }

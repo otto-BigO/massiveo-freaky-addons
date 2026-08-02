@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import org.lwjgl.opengl.GL11;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,9 +10,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 
 /**
- * GUI settings tab (opened from the gear in the hub). Meant to hold all the
- * move/customize options for the mod's on-screen GUIs. For now it's a shell with
- * the existing HUD-move screen and a note that more is coming.
+ * GUI settings tab - Apple Motion Physics.
  */
 public class GuiGuiSettings extends GuiScreen {
 
@@ -23,7 +22,6 @@ public class GuiGuiSettings extends GuiScreen {
     private static final int ID_FLIP_TEST      = 5;
     private static final int PANEL_W           = 220;
     private static final int BTN_H             = 20;
-    // Width split for the "Debug → Fil" row: toggle gets TOGGLE_W, copy gets the rest.
     private static final int COPY_W            = 50;
     private static final int GAP               = 4;
     private static final int TOGGLE_W          = PANEL_W - COPY_W - GAP;
@@ -32,13 +30,17 @@ public class GuiGuiSettings extends GuiScreen {
     private GuiButton debugLogButton;
     private GuiButton debugCopyButton;
 
-    /** Feedback shown briefly after a copy, null when idle. */
     private String copyFeedback = null;
     private long   copyFeedbackUntil = 0;
+
+    private final AnimationValue panelAnim = new AnimationValue(0f);
 
     @Override
     public void initGui() {
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
+
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 65;
 
@@ -48,7 +50,6 @@ public class GuiGuiSettings extends GuiScreen {
         this.buttonList.add(debugButton = new StyledButton(ID_DEBUG, left, y, PANEL_W, BTN_H, debugLabel()));
         y += BTN_H + 6;
 
-        // "Debug → Fil" toggle + copy button on the same row.
         this.buttonList.add(debugLogButton = new StyledButton(ID_DEBUG_LOG, left, y, TOGGLE_W, BTN_H, debugLogLabel()));
         this.buttonList.add(debugCopyButton = new StyledButton(ID_DEBUG_COPY, left + TOGGLE_W + GAP, y, COPY_W, BTN_H, "Kopier"));
         y += BTN_H + 6;
@@ -56,26 +57,18 @@ public class GuiGuiSettings extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_FLIP_TEST, left, y, PANEL_W, BTN_H, "Test Flip Case"));
         y += BTN_H + 6;
 
-        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
     }
-
-    // ------------------------------------------------------------------
-    // Labels
-    // ------------------------------------------------------------------
 
     private String debugLabel() {
         boolean on = MassiveOsFreakyAddons.config.debugEnabled != null && MassiveOsFreakyAddons.config.debugEnabled;
-        return "Debug: " + (on ? "Til" : "Fra");
+        return "Debug: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String debugLogLabel() {
         boolean on = Boolean.TRUE.equals(MassiveOsFreakyAddons.config.debugLogEnabled);
-        return "Debug \u2192 Fil: " + (on ? "Til" : "Fra");
+        return "Debug \u2192 Fil: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
-
-    // ------------------------------------------------------------------
-    // Actions
-    // ------------------------------------------------------------------
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
@@ -126,10 +119,6 @@ public class GuiGuiSettings extends GuiScreen {
         }
     }
 
-    /**
-     * Reads the entire debug log file and puts it on the system clipboard.
-     * Shows brief feedback text above the button ("Kopieret!" / "Fil mangler" / "Fejl").
-     */
     private void copyLogToClipboard() {
         String path = DebugLog.getFilePath();
         File file = new File(path);
@@ -145,7 +134,6 @@ public class GuiGuiSettings extends GuiScreen {
                 return;
             }
             GuiScreen.setClipboardString(content);
-            // Count lines for a friendly confirmation.
             int lines = 1;
             for (int i = 0; i < content.length(); i++) {
                 if (content.charAt(i) == '\n') lines++;
@@ -161,21 +149,24 @@ public class GuiGuiSettings extends GuiScreen {
         copyFeedbackUntil = System.currentTimeMillis() + 2500;
     }
 
-    // ------------------------------------------------------------------
-    // Rendering
-    // ------------------------------------------------------------------
-
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
         int titleY = this.height / 2 - 115;
-        drawCenteredString(this.fontRendererObj, "GUI Indstillinger", cx, titleY, 0x55FFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lGUI Indstillinger", cx, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Flyt og tilpas mod'ens GUI'er.", cx, titleY + 12, 0xAAAAAA);
 
-        // Copy feedback or file path footer.
         if (copyFeedback != null && System.currentTimeMillis() < copyFeedbackUntil) {
             drawCenteredString(this.fontRendererObj, copyFeedback, cx, this.height / 2 + 90, 0xFFFFFF);
         } else {
@@ -190,6 +181,10 @@ public class GuiGuiSettings extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

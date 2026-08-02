@@ -2,15 +2,15 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * In-game browser for the FreakyVille price guide (fetched live by PriceGuide).
- * Drills down block -> category -> price groups, paginated, with loading/retry
- * states. Opened from the hub.
+ * In-game browser for the FreakyVille price guide - Apple Motion Physics.
  */
 public class GuiPriceGuide extends GuiScreen {
 
@@ -25,8 +25,8 @@ public class GuiPriceGuide extends GuiScreen {
     private static final int BTN_H = 20;
     private static final int HALF = (PANEL_W - 4) / 2;
 
-    private Integer blockId = null; // null = blocks level
-    private Integer catId = null;   // set = groups level
+    private Integer blockId = null;
+    private Integer catId = null;
     private int page = 0;
     private boolean built = false;
     private boolean triedFetch = false;
@@ -34,11 +34,12 @@ public class GuiPriceGuide extends GuiScreen {
     private final List<PriceGuide.Cat> pageCats = new ArrayList<PriceGuide.Cat>();
     private List<PriceGuide.Group> curGroups = null;
 
-    // Layout anchors computed once per initGui so drawScreen lines up exactly.
     private int listStartY;
     private int listBottom;
     private int pageInfoY;
     private int curPages = 1;
+
+    private final AnimationValue panelAnim = new AnimationValue(0f);
 
     private boolean groupsLevel() {
         return catId != null;
@@ -49,6 +50,9 @@ public class GuiPriceGuide extends GuiScreen {
         this.buttonList.clear();
         this.pageCats.clear();
         this.curGroups = null;
+
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         if (!triedFetch) {
             triedFetch = true;
@@ -63,7 +67,7 @@ public class GuiPriceGuide extends GuiScreen {
 
         if (!PriceGuide.isLoaded()) {
             built = false;
-            this.buttonList.add(new StyledButton(ID_BACK, left, cy + 30, HALF, BTN_H, "Tilbage"));
+            this.buttonList.add(new StyledButton(ID_BACK, left, cy + 30, HALF, BTN_H, "< Tilbage"));
             this.buttonList.add(new StyledButton(ID_REFRESH, left + HALF + 4, cy + 30, HALF, BTN_H, "Prøv igen"));
             return;
         }
@@ -98,7 +102,7 @@ public class GuiPriceGuide extends GuiScreen {
             this.buttonList.add(new StyledButton(ID_NEXT, left + HALF + 4, navY, HALF, BTN_H, "Næste >"));
             navY += BTN_H + 4;
         }
-        this.buttonList.add(new StyledButton(ID_BACK, left, navY, HALF, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, navY, HALF, BTN_H, "< Tilbage"));
         this.buttonList.add(new StyledButton(ID_REFRESH, left + HALF + 4, navY, HALF, BTN_H, "Genindlæs"));
     }
 
@@ -168,11 +172,19 @@ public class GuiPriceGuide extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
         int cy = this.height / 2;
-        drawCenteredString(this.fontRendererObj, "Prisguide", cx, cy - 92, 0x55FFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Prisguide", cx, cy - 92, accent);
 
         if (PriceGuide.isLoading() && !PriceGuide.isLoaded()) {
             drawCenteredString(this.fontRendererObj, "Henter prisguide fra freakyville.dk ...", cx, cy - 10, 0xAAAAAA);
@@ -195,7 +207,6 @@ public class GuiPriceGuide extends GuiScreen {
                     String name = g.name == null ? "?" : g.name;
                     String val = PriceGuide.valueText(g);
                     int vw = this.fontRendererObj.getStringWidth(val);
-                    // Trim the name if it would collide with the right-aligned value.
                     int maxNameW = PANEL_W - vw - 10;
                     name = trimToWidth(name, maxNameW);
                     drawString(this.fontRendererObj, name, left, y, 0xFFFFFF);
@@ -210,6 +221,10 @@ public class GuiPriceGuide extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     private String trimToWidth(String s, int maxW) {

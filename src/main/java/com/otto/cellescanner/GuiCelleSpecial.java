@@ -4,23 +4,20 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Special-celle list management. Add via the text field (or "/celler special
- * add <id>"), and remove any entry by clicking its "Fjern" button - no need to
- * drop back to chat. Celle ids are short so the field never hits Minecraft's
- * chat-length cap.
+ * Special-celle list management - Apple Motion Physics.
  */
 public class GuiCelleSpecial extends GuiScreen {
 
     private static final int ID_ADD = 0;
     private static final int ID_CLEAR = 1;
     private static final int ID_BACK = 2;
-    // Per-id remove buttons get ids REMOVE_BASE + index into shownIds.
     private static final int REMOVE_BASE = 100;
     private static final int MAX_REMOVE_ROWS = 4;
 
@@ -34,11 +31,10 @@ public class GuiCelleSpecial extends GuiScreen {
     private String statusLine = "";
     private int statusColor = 0xAAAAAA;
 
-    // The ids currently backing the visible remove buttons, in the same order,
-    // so a button id maps straight back to the celle id it removes.
     private final List<String> shownIds = new ArrayList<String>();
-
     private int listHintY;
+
+    private final AnimationValue panelAnim = new AnimationValue(0f);
 
     @Override
     public void initGui() {
@@ -46,11 +42,13 @@ public class GuiCelleSpecial extends GuiScreen {
         this.buttonList.clear();
         this.shownIds.clear();
 
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
+
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
         int y = this.height / 2 - 100;
 
-        // Preserve whatever the player had half-typed across a rebuild.
         String carry = idField != null && idField.getText() != null ? idField.getText() : "";
         idField = new GuiTextField(0, this.fontRendererObj, fieldX, y, FIELD_W, FIELD_H);
         idField.setMaxStringLength(64);
@@ -64,7 +62,7 @@ public class GuiCelleSpecial extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_CLEAR, fieldX + halfW + 4, y, halfW, BTN_H, "Ryd alle"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "< Tilbage"));
         y += BTN_H + ROW_GAP + 4;
 
         listHintY = y;
@@ -110,7 +108,7 @@ public class GuiCelleSpecial extends GuiScreen {
                 this.initGui();
                 break;
             case ID_BACK:
-                this.mc.displayGuiScreen(new GuiCelleMenu());
+                this.mc.displayGuiScreen(new GuiAddonsHub("Celler"));
                 break;
             default:
                 break;
@@ -158,10 +156,18 @@ public class GuiCelleSpecial extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 100 - 22;
-        drawCenteredString(this.fontRendererObj, "Celle Scanner - Special celler", this.width / 2, titleY, 0xFFFFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lCelle Scanner - Special Celler", this.width / 2, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Indtast et celle-id og tryk Tilføj (Enter virker også):", this.width / 2, titleY + 12, 0xAAAAAA);
 
         idField.drawTextBox();
@@ -173,8 +179,6 @@ public class GuiCelleSpecial extends GuiScreen {
             String hint = ids.size() + " special-celle(r) - klik Fjern for at slette:";
             drawCenteredString(this.fontRendererObj, hint, this.width / 2, listHintY, 0xAAAAAA);
             if (ids.size() > MAX_REMOVE_ROWS) {
-                // The remove buttons only cover the first MAX_REMOVE_ROWS; say
-                // how to reach the rest rather than silently hiding them.
                 int extra = ids.size() - MAX_REMOVE_ROWS;
                 drawCenteredString(this.fontRendererObj,
                         "+ " + extra + " mere (fjern via /celler special remove <id>)",
@@ -187,6 +191,10 @@ public class GuiCelleSpecial extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

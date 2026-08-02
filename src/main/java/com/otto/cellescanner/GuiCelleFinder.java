@@ -5,20 +5,14 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * "Celle Finder" - highlights a celle you already scanned with a distinct cyan
- * ESP box + label and a HUD compass line, so you can walk to it even if it
- * isn't loaded or is outside the normal windows.
- *
- * Type an id (from the dashboard, a friend, wherever) and press Find, OR just
- * click one of the recently-scanned celler listed below the buttons - the
- * client already remembers every id it has seen (CellePositions), so you rarely
- * need to type anything.
+ * "Celle Finder" - Apple Motion Physics.
  */
 public class GuiCelleFinder extends GuiScreen {
 
@@ -27,7 +21,6 @@ public class GuiCelleFinder extends GuiScreen {
     private static final int ID_STOP = 2;
     private static final int ID_BACK = 3;
     private static final int ID_WALK = 4;
-    // Recent-celle quick-pick buttons get ids RECENT_BASE + index.
     private static final int RECENT_BASE = 100;
     private static final int MAX_RECENT = 4;
 
@@ -47,11 +40,16 @@ public class GuiCelleFinder extends GuiScreen {
     private int statusY;
     private int recentHintY;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
         this.recentShown.clear();
+
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
@@ -75,7 +73,7 @@ public class GuiCelleFinder extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_WALK, fieldX, y, FIELD_W, BTN_H, "Gå til celle"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "< Tilbage"));
         y += BTN_H + ROW_GAP + 2;
 
         liveLineY = y;
@@ -103,8 +101,6 @@ public class GuiCelleFinder extends GuiScreen {
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
         if (button.id >= RECENT_BASE) {
-            // Left-click a celle id copies it; right-click (handled in mouseClicked)
-            // pathfinds to it.
             int index = button.id - RECENT_BASE;
             if (index >= 0 && index < recentShown.size()) {
                 CelleActions.copyCelleId(recentShown.get(index));
@@ -132,7 +128,7 @@ public class GuiCelleFinder extends GuiScreen {
                 statusColor = 0xAAAAAA;
                 break;
             case ID_BACK:
-                this.mc.displayGuiScreen(new GuiCelleMenu());
+                this.mc.displayGuiScreen(new GuiAddonsHub("Celler"));
                 break;
             default:
                 break;
@@ -171,7 +167,6 @@ public class GuiCelleFinder extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        // Right-click a recent celle id -> pathfind (walk) to it.
         if (mouseButton == 1) {
             for (Object o : this.buttonList) {
                 GuiButton b = (GuiButton) o;
@@ -197,10 +192,18 @@ public class GuiCelleFinder extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 90 - 28;
-        drawCenteredString(this.fontRendererObj, "Celle Scanner - Celle Finder", this.width / 2, titleY, 0xFFFFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lCelle Scanner - Celle Finder", this.width / 2, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Indtast et id, eller klik en celle nedenfor:", this.width / 2, titleY + 12, 0xAAAAAA);
 
         idField.drawTextBox();
@@ -221,6 +224,10 @@ public class GuiCelleFinder extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

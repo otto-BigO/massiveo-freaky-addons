@@ -16,23 +16,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Installs {@link CustomArmorLayer} into the player renderers so worn armor is
- * drawn with the protection-level textures. Re-checks periodically because the
- * renderers are rebuilt whenever resources reload (F3+T, resource-pack change),
- * which would otherwise silently drop the layer.
- *
- * The layer itself is always installed; the actual texture swap is gated by
- * CelleConfig.armorSkinsEnabled inside the layer, so toggling the addon takes
- * effect immediately without reinstalling anything.
+ * Installs {@link CustomArmorLayer} into player renderers and bakes custom armor models.
  */
 public class ArmorSkins {
 
-    // NOT WIRED UP: nothing calls this yet. Without it the custom item-icon
-    // models (models/item/*_p*_*.json) are never baked, so onModelBake below
-    // finds 0 of them and the CustomArmorItemModel wrappers just pass the
-    // vanilla model through (harmless). To activate the P-level inventory
-    // icons, call this from MassiveOsFreakyAddons during init (before models bake);
-    // to drop the idea, delete this, CustomArmorItemModel and the item jsons.
     public static void registerVariants() {
         try {
             register(net.minecraft.init.Items.diamond_helmet, "diamond", 1, 4, "helmet");
@@ -40,10 +27,12 @@ public class ArmorSkins {
             register(net.minecraft.init.Items.diamond_leggings, "diamond", 1, 4, "leggings");
             register(net.minecraft.init.Items.diamond_boots, "diamond", 1, 4, "boots");
 
-            register(net.minecraft.init.Items.iron_helmet, "iron", 3, 4, "helmet");
-            register(net.minecraft.init.Items.iron_chestplate, "iron", 3, 4, "chestplate");
-            register(net.minecraft.init.Items.iron_leggings, "iron", 3, 4, "leggings");
-            register(net.minecraft.init.Items.iron_boots, "iron", 3, 4, "boots");
+            register(net.minecraft.init.Items.iron_helmet, "iron", 2, 4, "helmet");
+            register(net.minecraft.init.Items.iron_chestplate, "iron", 2, 4, "chestplate");
+            register(net.minecraft.init.Items.iron_leggings, "iron", 2, 4, "leggings");
+            register(net.minecraft.init.Items.iron_boots, "iron", 2, 4, "boots");
+
+            register(net.minecraft.init.Items.golden_helmet, "diamond", 4, 4, "helmet");
         } catch (Throwable t) {
             System.err.println("[CelleScanner] Failed to register item variants: " + t);
         }
@@ -76,7 +65,7 @@ public class ArmorSkins {
 
             int found = 0;
             for (String material : materials) {
-                int minLevel = "iron".equals(material) ? 3 : 1;
+                int minLevel = "iron".equals(material) ? 2 : 1;
                 int maxLevel = 4;
                 for (int lvl = minLevel; lvl <= maxLevel; lvl++) {
                     for (String type : items) {
@@ -102,6 +91,8 @@ public class ArmorSkins {
             wrap(event.modelRegistry, net.minecraft.init.Items.iron_leggings);
             wrap(event.modelRegistry, net.minecraft.init.Items.iron_boots);
 
+            wrap(event.modelRegistry, net.minecraft.init.Items.golden_helmet);
+
         } catch (Throwable t) {
             System.err.println("[CelleScanner] Failed to wrap item models: " + t);
             t.printStackTrace();
@@ -126,7 +117,6 @@ public class ArmorSkins {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        // ~ every 2 seconds is plenty; installing is cheap and idempotent.
         if (++checkCounter < 40) {
             return;
         }
@@ -154,7 +144,7 @@ public class ArmorSkins {
         for (int i = 0; i < layers.size(); i++) {
             Object layer = layers.get(i);
             if (layer instanceof CustomArmorLayer) {
-                return; // already installed
+                return;
             }
             if (layer instanceof LayerBipedArmor) {
                 vanillaIndex = i;
@@ -168,11 +158,6 @@ public class ArmorSkins {
         }
     }
 
-    /**
-     * The protected {@code layerRenderers} list on RendererLivingEntity. Found
-     * by type (it's the only List field) so it resolves under both the dev MCP
-     * names and the obfuscated SRG names at runtime.
-     */
     private static List getLayers(RendererLivingEntity<?> renderer) {
         for (Field f : RendererLivingEntity.class.getDeclaredFields()) {
             if (List.class.isAssignableFrom(f.getType())) {

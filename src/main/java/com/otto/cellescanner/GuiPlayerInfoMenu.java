@@ -6,14 +6,12 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.EntityPlayer;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
 /**
- * Hub tile for the Player Info addon: explains the shift + right-click gesture,
- * lets you turn the feature on/off, and lets you look a player up by name (they
- * must be loaded/nearby, so their armor and model are available). The menu
- * itself is GuiPlayerInfo.
+ * Hub tile for the Player Info addon - Apple Motion Physics.
  */
 public class GuiPlayerInfoMenu extends GuiScreen {
 
@@ -30,10 +28,14 @@ public class GuiPlayerInfoMenu extends GuiScreen {
     private String status = "";
     private int statusColor = 0xAAAAAA;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 26;
@@ -47,7 +49,7 @@ public class GuiPlayerInfoMenu extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_SEARCH, left + PANEL_W - searchBtnW, y - 1, searchBtnW, FIELD_H + 2, "Søg"));
         y += FIELD_H + 10;
 
-        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "< Tilbage"));
     }
 
     @Override
@@ -56,7 +58,8 @@ public class GuiPlayerInfoMenu extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Spiller Info: " + (MassiveOsFreakyAddons.config.playerInfoEnabled ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.playerInfoEnabled;
+        return "Spiller Info: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     @Override
@@ -94,7 +97,6 @@ public class GuiPlayerInfoMenu extends GuiScreen {
                 return;
             }
         }
-        // Not loaded/nearby: open in offline mode (skin from Mojang + /ce info).
         mc.displayGuiScreen(new GuiPlayerInfo(name));
     }
 
@@ -125,11 +127,19 @@ public class GuiPlayerInfoMenu extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
         int titleY = this.height / 2 - 66;
-        drawCenteredString(this.fontRendererObj, "Spiller Info", cx, titleY, 0x55FFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lSpiller Info", cx, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Shift + højreklik en spiller, eller søg herunder.", cx, titleY + 12, 0xAAAAAA);
 
         nameField.drawTextBox();
@@ -139,6 +149,10 @@ public class GuiPlayerInfoMenu extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

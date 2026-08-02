@@ -377,11 +377,11 @@ public class CelleScanner {
         List<Celle> result = new ArrayList<Celle>();
         for (Celle c : cache.values()) {
             if (c.status == CelleStatus.TIL_SALG) {
-                // currently for sale - always shown, regardless of timer
-                result.add(c);
+                if (!MassiveOsFreakyAddons.config.hideBuyableCeller) {
+                    result.add(c);
+                }
                 continue;
             }
-            // SOLGT - only shown once it's about to become available
             double hours = c.liveRemainingHours();
             if (hours < MassiveOsFreakyAddons.config.minHours || hours > MassiveOsFreakyAddons.config.maxHours) {
                 continue;
@@ -394,27 +394,10 @@ public class CelleScanner {
         upcomingCache = result;
     }
 
-    /**
-     * Display list for the HUD/ESP: every TIL_SALG celle (currently for
-     * sale, shown unconditionally) plus every SOLGT celle whose remaining
-     * time falls inside [minHours, maxHours] (about to become available),
-     * soonest first. Cheap to call from a render loop - it just returns
-     * the list built during the last scan.
-     */
     public List<Celle> getUpcoming() {
         return upcomingCache;
     }
 
-    /**
-     * The HUD/ESP display list, built from the SESSION cache (not just the
-     * currently-loaded live cache) so celler don't vanish when their chunk
-     * unloads or after a relog/death. Same window rule as {@link
-     * #recomputeUpcoming()}: every TIL_SALG celle plus every SOLGT celle whose
-     * live timer sits inside [minHours, maxHours], soonest first, limited to
-     * the dimension the player is currently in (a remembered position from
-     * another dimension would be meaningless here). Cheap enough to call from a
-     * render frame - it's a filter+sort over at most a few hundred entries.
-     */
     public static List<Celle> upcomingForDimension(int dimension) {
         List<Celle> result = new ArrayList<Celle>();
         for (Map.Entry<String, Celle> e : SESSION_CACHE.entrySet()) {
@@ -424,7 +407,9 @@ public class CelleScanner {
             }
             Celle c = e.getValue();
             if (c.status == CelleStatus.TIL_SALG) {
-                result.add(c);
+                if (!MassiveOsFreakyAddons.config.hideBuyableCeller) {
+                    result.add(c);
+                }
                 continue;
             }
             double hours = c.liveRemainingHours();

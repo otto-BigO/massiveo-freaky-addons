@@ -4,15 +4,14 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Control screen for the Bande ESP addon. Add your bande members by name (they
- * get a green outline through walls), remove any with its "Fjern" button, and
- * toggle the ESP and the optional "same scoreboard team" auto-detection.
+ * Control screen for the Bande ESP addon - Apple Motion Physics.
  */
 public class GuiBande extends GuiScreen {
 
@@ -24,8 +23,6 @@ public class GuiBande extends GuiScreen {
     private static final int ID_ALL = 5;
     private static final int ID_MODE = 6;
     private static final int REMOVE_BASE = 100;
-    // How many member rows are visible at once; the rest are reachable by
-    // scrolling the mouse wheel (see handleMouseInput / scrollOffset).
     private static final int MAX_REMOVE_ROWS = 4;
 
     private static final int FIELD_W = 200;
@@ -44,14 +41,18 @@ public class GuiBande extends GuiScreen {
 
     private final List<String> shownNames = new ArrayList<String>();
     private int listHintY;
-    // Index of the first member shown in the scrollable list.
     private int scrollOffset = 0;
+
+    private final AnimationValue panelAnim = new AnimationValue(0f);
 
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
         this.shownNames.clear();
+
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
@@ -77,7 +78,7 @@ public class GuiBande extends GuiScreen {
         this.buttonList.add(allButton = new StyledButton(ID_ALL, fieldX + halfW + 4, y, halfW, BTN_H, allLabel()));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "Tilbage"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX, y, FIELD_W, BTN_H, "< Tilbage"));
         y += BTN_H + ROW_GAP + 4;
 
         listHintY = y;
@@ -238,6 +239,13 @@ public class GuiBande extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 118 - 22;
@@ -264,6 +272,10 @@ public class GuiBande extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

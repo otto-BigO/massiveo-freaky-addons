@@ -4,17 +4,12 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
 /**
- * Discord-bot connection screen. Posts this client's local scan results
- * into a Discord webhook pointed at the companion CelleScannerBot's
- * dedicated "reports" channel (see that project's README) - a single url
- * field, entered here rather than through chat since a webhook url is
- * exactly the kind of string that gets silently truncated by Minecraft's
- * vanilla chat input length cap (see the webhook-URL saga this screen was
- * originally built for).
+ * Discord-bot connection screen - Apple Motion Physics.
  */
 public class GuiCelleBot extends GuiScreen {
 
@@ -36,10 +31,15 @@ public class GuiCelleBot extends GuiScreen {
     private String statusLine = "";
     private int statusColor = 0xAAAAAA;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
+
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int centerX = this.width / 2;
         int fieldX = centerX - FIELD_W / 2;
@@ -54,16 +54,17 @@ public class GuiCelleBot extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_PASTE_URL, fieldX + FIELD_W - SMALL_BTN_W, y - 1, SMALL_BTN_W, FIELD_H + 2, "Indsæt"));
         y += FIELD_H + ROW_GAP + 4;
 
-        int halfW = (FIELD_W - 4) / 2;
         this.buttonList.add(new StyledButton(ID_SAVE, fieldX, y, FIELD_W, BTN_H, "Gem"));
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(toggleButton = new StyledButton(ID_TOGGLE, fieldX, y, halfW, BTN_H, toggleLabel()));
-        this.buttonList.add(new StyledButton(ID_TEST, fieldX + halfW + 4, y, halfW, BTN_H, "Test forbindelse"));
+        toggleButton = new StyledButton(ID_TOGGLE, fieldX, y, FIELD_W, BTN_H, toggleLabel());
+        this.buttonList.add(toggleButton);
         y += BTN_H + ROW_GAP;
 
-        this.buttonList.add(new StyledButton(ID_CLEAR, fieldX, y, halfW, BTN_H, "Ryd"));
-        this.buttonList.add(new StyledButton(ID_BACK, fieldX + halfW + 4, y, halfW, BTN_H, "Tilbage"));
+        int thirdW = (FIELD_W - 8) / 3;
+        this.buttonList.add(new StyledButton(ID_TEST, fieldX, y, thirdW, BTN_H, "Test"));
+        this.buttonList.add(new StyledButton(ID_CLEAR, fieldX + thirdW + 4, y, thirdW, BTN_H, "Ryd"));
+        this.buttonList.add(new StyledButton(ID_BACK, fieldX + (thirdW + 4) * 2, y, thirdW, BTN_H, "< Tilbage"));
     }
 
     @Override
@@ -72,7 +73,8 @@ public class GuiCelleBot extends GuiScreen {
     }
 
     private String toggleLabel() {
-        return "Rapportering: " + (MassiveOsFreakyAddons.config.botReportEnabled ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config != null && MassiveOsFreakyAddons.config.botReportEnabled;
+        return "Rapporter til Bot: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     @Override
@@ -101,7 +103,7 @@ public class GuiCelleBot extends GuiScreen {
                 statusColor = 0xAAAAAA;
                 break;
             case ID_BACK:
-                this.mc.displayGuiScreen(new GuiCelleMenu());
+                this.mc.displayGuiScreen(new GuiAddonsHub("Celler"));
                 break;
             default:
                 break;
@@ -160,10 +162,18 @@ public class GuiCelleBot extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 110;
-        drawCenteredString(this.fontRendererObj, "Celle Scanner - Discord Bot", this.width / 2, titleY, 0xFFFFFF);
+        int accent = Style.getAccentColor();
+        drawCenteredString(this.fontRendererObj, "\u00a7lCelle Scanner - Discord Bot", this.width / 2, titleY, accent);
         drawCenteredString(this.fontRendererObj, "Reports-webhook url fra din CelleScannerBot instans:", this.width / 2, titleY + 12, 0xAAAAAA);
 
         urlField.drawTextBox();
@@ -173,6 +183,10 @@ public class GuiCelleBot extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

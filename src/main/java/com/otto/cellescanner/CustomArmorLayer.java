@@ -13,15 +13,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Drop-in replacement for the vanilla biped armor layer that swaps the worn
- * armor texture based on the Protection enchantment level - the exact same
- * signal the MesterHolm CIT pack keys off (enchant id 0, levels 1-4). Iron
- * P2-P4 and diamond P1-P4 get the bundled MesterHolm textures; anything else
- * (other materials, unenchanted, leather overlays) falls through to vanilla.
+ * Drop-in replacement for the vanilla biped armor layer.
+ * Swaps worn armor textures based on protection enchantment level & item type:
+ * - Golden Helmet (enchanted) -> Divan helmet on head.
+ * - Iron P2 -> Mineral armor (helmet from the SkyBlock Mineral Helmet skull).
+ * - Iron P3 -> Unstable Dragon armor (helmet from the Unstable Dragon Helmet skull).
+ * - Iron P4 -> Tank Wither armor.
+ * - Diamond P1 -> Vanguard armor.
+ * - Diamond P2 -> Rampart armor.
+ * - Diamond P3 -> Speed Wither armor.
+ * - Diamond P4 -> Shadow Assassin armor.
  */
 public class CustomArmorLayer extends LayerBipedArmor {
 
-    // Protection is enchantment id 0 in 1.8.
     private static final int PROTECTION_ID = 0;
 
     public static String previewPackOverride = null;
@@ -42,49 +46,55 @@ public class CustomArmorLayer extends LayerBipedArmor {
         if (!MassiveOsFreakyAddons.config.armorSkinsEnabled || type != null || stack == null) {
             return null;
         }
-        String material = materialKey(stack.getItem());
+
+        Item item = stack.getItem();
+
+        // 1. Golden Helmet with ANY enchantment -> Divan helmet (only for head slot)
+        if (item == Items.golden_helmet) {
+            if (slot == 4 && isEnchanted(stack)) {
+                return getCachedResource(activePack() + "/gold_helmet_layer_1");
+            }
+            return null;
+        }
+
+        String material = materialKey(item);
         if (material == null) {
             return null;
         }
+
         int level = mappedLevel(material, EnchantmentHelper.getEnchantmentLevel(PROTECTION_ID, stack));
         if (level == 0) {
             return null;
         }
-        // Vanilla uses layer_2 for leggings (slot 2), layer_1 for the rest.
+
+        // Layer 2 for leggings (slot 2), Layer 1 for helmet/chestplate/boots.
         int layer = (slot == 2) ? 2 : 1;
-        String pack = previewPackOverride != null ? previewPackOverride 
-                : ("hypixel".equals(MassiveOsFreakyAddons.config.armorSkinPack) ? "hypixel" : "mesterholm");
-        
-        String targetPack = pack;
-        String targetMaterial = material;
-        int targetLevel = level;
 
-        if ("hypixel".equals(pack)) {
-            if ("iron".equals(material)) {
-                targetPack = "mesterholm";
-            } else if ("diamond".equals(material)) {
-                if (level == 1) {
-                    targetPack = "mesterholm";
-                } else if (level == 2) {
-                    targetMaterial = "diamond";
-                    targetLevel = 4;
-                } else if (level == 3) {
-                    targetMaterial = "iron";
-                    targetLevel = 4;
-                } else if (level == 4) {
-                    targetMaterial = "diamond";
-                    targetLevel = 2;
-                }
-            }
+        String key = activePack() + "/" + material + "_p" + level + "_layer_" + layer;
+        return getCachedResource(key);
+    }
+
+    private static String activePack() {
+        if (previewPackOverride != null) {
+            return previewPackOverride;
         }
+        return "hypixel".equals(MassiveOsFreakyAddons.config.armorSkinPack) ? "hypixel" : "mesterholm";
+    }
 
-        String key = targetPack + "/" + targetMaterial + "_p" + targetLevel + "_layer_" + layer;
+    private static ResourceLocation getCachedResource(String key) {
         ResourceLocation res = CACHE.get(key);
         if (res == null) {
             res = new ResourceLocation("cellescanner", "textures/models/armor/" + key + ".png");
             CACHE.put(key, res);
         }
         return res;
+    }
+
+    private static boolean isEnchanted(ItemStack stack) {
+        if (stack == null) return false;
+        if (stack.isItemEnchanted()) return true;
+        if (stack.hasTagCompound() && stack.getTagCompound().hasKey("ench")) return true;
+        return EnchantmentHelper.getEnchantments(stack).size() > 0;
     }
 
     private static String materialKey(Item item) {
@@ -99,25 +109,16 @@ public class CustomArmorLayer extends LayerBipedArmor {
         return null;
     }
 
-    /** Which bundled skin level applies (0 = none, keep vanilla). */
     private static int mappedLevel(String material, int protection) {
         if ("iron".equals(material)) {
-            // The pack only skins iron P2-P4; P0/P1 stay vanilla iron.
-            if (protection >= 4) {
-                return 4;
-            }
-            if (protection == 3) {
-                return 3;
-            }
-            if (protection == 2) {
-                return 2;
-            }
+            if (protection >= 4) return 4;
+            if (protection == 3) return 3;
+            if (protection == 2) return 2;
             return 0;
         }
-        // diamond: P1-P3 are distinct, P4+ uses the P4 (Vagt) skin.
         if (protection >= 4) {
             return 4;
         }
-        return protection; // 1, 2, 3, or 0
+        return protection;
     }
 }

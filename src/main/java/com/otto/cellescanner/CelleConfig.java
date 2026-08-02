@@ -43,6 +43,7 @@ public class CelleConfig {
     public boolean showOwner = true;
     public boolean showStatusTag = true;
     public boolean showDistance = false;
+    public boolean hideBuyableCeller = false;
     public boolean espLabels = true;
     public double espMaxDistance = 64.0;
 
@@ -424,6 +425,7 @@ public class CelleConfig {
                 this.espLabels = loaded.espLabels;
                 this.espMaxDistance = loaded.espMaxDistance;
                 this.botReportEnabled = loaded.botReportEnabled;
+                this.hideBuyableCeller = loaded.hideBuyableCeller;
                 this.reportsWebhookUrl = loaded.reportsWebhookUrl;
                 this.antiAfkEnabled = loaded.antiAfkEnabled;
                 // A config written before this field existed deserializes it as

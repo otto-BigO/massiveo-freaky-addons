@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -51,9 +52,13 @@ public class GuiThemeEditor extends GuiScreen {
     private int dragOffX = 0;
     private int dragOffY = 0;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int cx = this.width / 2;
         int cy = this.height / 2;
@@ -307,6 +312,13 @@ public class GuiThemeEditor extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -396,6 +408,10 @@ public class GuiThemeEditor extends GuiScreen {
 
         // Draggable Live Theme Mini Preview Card
         drawLivePreviewCard(previewX, previewY);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     private void drawHueBar(int x, int y, int width, int height) {

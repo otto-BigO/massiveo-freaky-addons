@@ -10,9 +10,7 @@ import org.lwjgl.opengl.GL11;
 import java.io.IOException;
 
 /**
- * Scrollable settings tab for HUD/ESP options (owner name, status tag,
- * distance, seconds, ESP labels, max HUD entries). Features smooth viewport
- * scrolling to accommodate unlimited future settings options cleanly.
+ * Scrollable settings tab for HUD/ESP options - Apple Motion Physics.
  */
 public class GuiCelleSettings extends GuiScreen {
 
@@ -21,8 +19,9 @@ public class GuiCelleSettings extends GuiScreen {
     private static final int ID_STATUS_TAG = 2;
     private static final int ID_DISTANCE = 3;
     private static final int ID_ESP_LABELS = 4;
-    private static final int ID_HUD_DOWN = 5;
-    private static final int ID_HUD_UP = 6;
+    private static final int ID_HIDE_BUYABLE = 5;
+    private static final int ID_HUD_DOWN = 6;
+    private static final int ID_HUD_UP = 7;
     private static final int ID_BACK = 100;
 
     private static final int ROW_H = 24;
@@ -35,15 +34,20 @@ public class GuiCelleSettings extends GuiScreen {
     private GuiButton statusTagButton;
     private GuiButton distanceButton;
     private GuiButton espLabelsButton;
+    private GuiButton hideBuyableButton;
     private NumericStepper hudStepper;
 
     private float scroll = 0f;
     private int targetScroll = 0;
     private int maxScroll = 0;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int cx = this.width / 2;
         int left = cx - PANEL_W / 2;
@@ -59,14 +63,14 @@ public class GuiCelleSettings extends GuiScreen {
         y += ROW_H;
         this.buttonList.add(espLabelsButton = new StyledButton(ID_ESP_LABELS, left, y, PANEL_W, BTN_H, espLabelsLabel()));
         y += ROW_H;
+        this.buttonList.add(hideBuyableButton = new StyledButton(ID_HIDE_BUYABLE, left, y, PANEL_W, BTN_H, hideBuyableLabel()));
+        y += ROW_H;
 
-        // maxHudEntries stepper using NumericStepper
         hudStepper = new NumericStepper(ID_HUD_DOWN, ID_HUD_UP, left, y, PANEL_W, BTN_H);
         this.buttonList.add(hudStepper.getBtnDown());
         this.buttonList.add(hudStepper.getBtnUp());
         y += ROW_H + 10;
 
-        // Back button (placed outside scroll area)
         this.buttonList.add(new StyledButton(ID_BACK, left, this.height / 2 + 82, PANEL_W, BTN_H, "< Tilbage"));
 
         int totalHeight = y - (this.height / 2 - 70);
@@ -74,23 +78,33 @@ public class GuiCelleSettings extends GuiScreen {
     }
 
     private String secondsLabel() {
-        return "Vis sekunder: " + (MassiveOsFreakyAddons.config.showSeconds ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.showSeconds;
+        return "Vis sekunder: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String ownerLabel() {
-        return "Vis ejernavn: " + (MassiveOsFreakyAddons.config.showOwner ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.showOwner;
+        return "Vis ejernavn: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String statusTagLabel() {
-        return "Vis status-mærke: " + (MassiveOsFreakyAddons.config.showStatusTag ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.showStatusTag;
+        return "Vis status-mærke: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String distanceLabel() {
-        return "Vis afstand: " + (MassiveOsFreakyAddons.config.showDistance ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.showDistance;
+        return "Vis afstand: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     private String espLabelsLabel() {
-        return "ESP celle-id label: " + (MassiveOsFreakyAddons.config.espLabels ? "Til" : "Fra");
+        boolean on = MassiveOsFreakyAddons.config.espLabels;
+        return "ESP celle-id label: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
+    }
+
+    private String hideBuyableLabel() {
+        boolean on = MassiveOsFreakyAddons.config.hideBuyableCeller;
+        return "Skjul celler til salg: " + (on ? Style.getAccentFormatting() + "[ TIL ]" : "\u00a77[ FRA ]");
     }
 
     @Override
@@ -123,6 +137,7 @@ public class GuiCelleSettings extends GuiScreen {
         statusTagButton.yPosition = y; y += ROW_H;
         distanceButton.yPosition = y; y += ROW_H;
         espLabelsButton.yPosition = y; y += ROW_H;
+        hideBuyableButton.yPosition = y; y += ROW_H;
         if (hudStepper != null) {
             hudStepper.updatePosition(this.width / 2 - PANEL_W / 2, y);
         }
@@ -151,6 +166,10 @@ public class GuiCelleSettings extends GuiScreen {
                 CelleActions.toggleEspLabels();
                 espLabelsButton.displayString = espLabelsLabel();
                 break;
+            case ID_HIDE_BUYABLE:
+                CelleActions.toggleHideBuyableCeller();
+                hideBuyableButton.displayString = hideBuyableLabel();
+                break;
             case ID_HUD_DOWN:
                 CelleActions.adjustMaxHudEntries(-1);
                 break;
@@ -168,6 +187,13 @@ public class GuiCelleSettings extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -176,7 +202,6 @@ public class GuiCelleSettings extends GuiScreen {
         int titleY = cy - 124;
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Indstillinger", cx, titleY, Style.getAccentColor());
 
-        // Render viewport scissoring for scrollable content
         ScaledResolution sr = new ScaledResolution(this.mc);
         int scale = sr.getScaleFactor();
         int scissorX = (cx - PANEL_W / 2) * scale;
@@ -193,14 +218,12 @@ public class GuiCelleSettings extends GuiScreen {
             }
         }
 
-        // Draw HUD max entries stepper label via NumericStepper
         if (hudStepper != null) {
             hudStepper.draw(this.mc, mouseX, mouseY, "Maks HUD-linjer: " + MassiveOsFreakyAddons.config.maxHudEntries);
         }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
-        // Draw Back button outside scissor
         for (GuiButton b : this.buttonList) {
             if (b.id == ID_BACK) {
                 b.drawButton(this.mc, mouseX, mouseY);
@@ -208,6 +231,10 @@ public class GuiCelleSettings extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override

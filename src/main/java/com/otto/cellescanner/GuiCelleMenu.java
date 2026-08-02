@@ -3,13 +3,12 @@ package com.otto.cellescanner;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
+import org.lwjgl.opengl.GL11;
 
 import java.io.IOException;
 
 /**
- * Clean, modern control panel for the Celle Scanner addon.
- * Opened from the Massiveo's Freaky Addons hub (B) or by typing /celler.
- * Displays high-level toggles, timer controls, and special cell tools cleanly.
+ * Clean, modern control panel for the Celle Scanner addon - Apple Motion Physics.
  */
 public class GuiCelleMenu extends GuiScreen {
 
@@ -37,9 +36,13 @@ public class GuiCelleMenu extends GuiScreen {
     private GuiButton minLabelBtn;
     private GuiButton maxLabelBtn;
 
+    private final AnimationValue panelAnim = new AnimationValue(0f);
+
     @Override
     public void initGui() {
         this.buttonList.clear();
+        panelAnim.setValueInstant(0.0f);
+        panelAnim.animateTo(1.0f, 260);
 
         int cx = this.width / 2;
         int cy = this.height / 2;
@@ -48,14 +51,12 @@ public class GuiCelleMenu extends GuiScreen {
 
         int y = cy - 105;
 
-        // Card 1: Main Toggles
         this.buttonList.add(toggleBtn = new StyledButton(ID_TOGGLE, left, y, PANEL_W, BTN_H, toggleLabel()));
         y += 24;
         this.buttonList.add(notifyBtn = new StyledButton(ID_NOTIFY, left, y, halfW, BTN_H, notifyLabel()));
         this.buttonList.add(espBtn = new StyledButton(ID_ESP, left + halfW + 4, y, halfW, BTN_H, espLabel()));
         y += 32;
 
-        // Card 2: Timer Range Steppers
         this.buttonList.add(new StyledButton(ID_MIN_DOWN, left, y, 22, BTN_H, "-"));
         this.buttonList.add(minLabelBtn = new StyledButton(ID_MIN_DOWN - 100, left + 24, y, PANEL_W - 48, BTN_H, minLabel()));
         minLabelBtn.enabled = false;
@@ -68,7 +69,6 @@ public class GuiCelleMenu extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_MAX_UP, left + PANEL_W - 22, y, 22, BTN_H, "+"));
         y += 32;
 
-        // Card 3: Action Tools & Settings
         this.buttonList.add(new StyledButton(ID_SPECIAL, left, y, halfW, BTN_H, "Special Celler"));
         this.buttonList.add(new StyledButton(ID_SETTINGS, left + halfW + 4, y, halfW, BTN_H, "Indstillinger"));
         y += 24;
@@ -162,6 +162,13 @@ public class GuiCelleMenu extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+
+        float pVal = panelAnim.getValue();
+        float offsetY = (1.0f - pVal) * 12.0f;
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0f, -offsetY, 0.0f);
+
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -172,6 +179,10 @@ public class GuiCelleMenu extends GuiScreen {
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + "Hold Shift for +/- 5 timer", cx, titleY + 12, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        GL11.glPopMatrix();
+
+        ClickParticleEngine.INSTANCE.renderAndUpdate();
     }
 
     @Override
