@@ -2,6 +2,20 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.0
+
+- Fixed the broken Armour Skins textures. The MesterHolm set was flat and
+  untextured, and iron armour was locked to it even when Hypixel+ was picked.
+- New armour mapping: iron P2 Mineral, iron P3 Unstable Dragon, iron P4 Tank
+  Wither, diamond P1 Vanguard, diamond P2 Rampart, diamond P3 Speed Wither,
+  diamond P4 Shadow Assassin, and the enchanted gold helmet uses Divan.
+- Added the real Mineral Helmet and Unstable Dragon Helmet head textures.
+  Those two sets use player heads on SkyBlock, so they had no armour layer.
+- The MesterHolm and Hypixel+ options render differently again, so the choice
+  in the preview menu actually changes something.
+- Inventory icons follow the selected texture pack and update without a
+  restart. Iron P2 icons were missing entirely and have been added.
+
 ## 2.0.0
 
 - Major AutoMine rewrite: state machine (DESTINATION vs MINING phases), pre-aiming target blocks, and immediate reach mining.
