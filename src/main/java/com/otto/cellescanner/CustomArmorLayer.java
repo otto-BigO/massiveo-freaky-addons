@@ -2,7 +2,6 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.renderer.entity.RendererLivingEntity;
 import net.minecraft.client.renderer.entity.layers.LayerBipedArmor;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -25,8 +24,6 @@ import java.util.Map;
  * - Diamond P4 -> Shadow Assassin armor.
  */
 public class CustomArmorLayer extends LayerBipedArmor {
-
-    private static final int PROTECTION_ID = 0;
 
     public static String previewPackOverride = null;
 
@@ -51,7 +48,7 @@ public class CustomArmorLayer extends LayerBipedArmor {
 
         // 1. Golden Helmet with ANY enchantment -> Divan helmet (only for head slot)
         if (item == Items.golden_helmet) {
-            if (slot == 4 && isEnchanted(stack)) {
+            if (slot == 4 && ArmorProtection.isEnchanted(stack)) {
                 return getCachedResource(activePack() + "/gold_helmet_layer_1");
             }
             return null;
@@ -62,7 +59,7 @@ public class CustomArmorLayer extends LayerBipedArmor {
             return null;
         }
 
-        int level = mappedLevel(material, EnchantmentHelper.getEnchantmentLevel(PROTECTION_ID, stack));
+        int level = mappedLevel(material, ArmorProtection.level(stack));
         if (level == 0) {
             return null;
         }
@@ -88,13 +85,6 @@ public class CustomArmorLayer extends LayerBipedArmor {
             CACHE.put(key, res);
         }
         return res;
-    }
-
-    private static boolean isEnchanted(ItemStack stack) {
-        if (stack == null) return false;
-        if (stack.isItemEnchanted()) return true;
-        if (stack.hasTagCompound() && stack.getTagCompound().hasKey("ench")) return true;
-        return EnchantmentHelper.getEnchantments(stack).size() > 0;
     }
 
     private static String materialKey(Item item) {

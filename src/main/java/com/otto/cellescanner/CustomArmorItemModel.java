@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.IBakedModel;
 import net.minecraftforge.client.model.ISmartItemModel;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
@@ -45,7 +44,7 @@ public class CustomArmorItemModel implements ISmartItemModel {
             return baseModel;
         }
 
-        int level = mappedLevel(material, EnchantmentHelper.getEnchantmentLevel(0, stack));
+        int level = mappedLevel(material, ArmorProtection.level(stack));
         if (level == 0) {
             return baseModel;
         }
