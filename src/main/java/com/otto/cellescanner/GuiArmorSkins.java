@@ -18,6 +18,8 @@ import java.io.IOException;
  */
 public class GuiArmorSkins extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_TOGGLE = 0;
     private static final int ID_BACK = 1;
     private static final int ID_MATERIAL = 2;
@@ -36,6 +38,7 @@ public class GuiArmorSkins extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int cx = this.width / 2;
         int cy = this.height / 2;
@@ -138,6 +141,7 @@ public class GuiArmorSkins extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         setupPreviewEntity();
 
         int cx = this.width / 2;
@@ -185,6 +189,7 @@ public class GuiArmorSkins extends GuiScreen {
         drawCenteredString(this.fontRendererObj, EnumChatFormatting.DARK_GRAY + "Farveret", cx + 62, cy + 72, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

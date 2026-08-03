@@ -12,6 +12,8 @@ import java.io.IOException;
  */
 public class GuiAutoMineTuning extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     // Stepper button ids: DOWN = base+0, UP = base+1, disabled value = base+2.
     private static final int APPROACH = 10;
     private static final int REACH = 20;
@@ -40,6 +42,7 @@ public class GuiAutoMineTuning extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 + TITLE_Y_OFF + TEXT_BLOCK_H;
@@ -179,6 +182,7 @@ public class GuiAutoMineTuning extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -187,6 +191,7 @@ public class GuiAutoMineTuning extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Ræk-vidde er begrænset til lovlig værdi.", cx, titleY + 14, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

@@ -14,6 +14,8 @@ import java.io.IOException;
  */
 public class GuiChestAlarm extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_TOGGLE = 0;
     private static final int ID_TOAST = 1;
     private static final int ID_SOUND = 2;
@@ -35,6 +37,7 @@ public class GuiChestAlarm extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         Keyboard.enableRepeatEvents(true);
         this.buttonList.clear();
 
@@ -147,6 +150,7 @@ public class GuiChestAlarm extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 80 - 28;
@@ -163,6 +167,7 @@ public class GuiChestAlarm extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

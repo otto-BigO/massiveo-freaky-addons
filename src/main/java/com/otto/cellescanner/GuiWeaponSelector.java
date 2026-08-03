@@ -15,6 +15,8 @@ import java.util.List;
  */
 public class GuiWeaponSelector extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_RESET = 100;
     private static final int ID_BACK = 101;
     private static final int ID_TAB_ALL = 200;
@@ -36,6 +38,7 @@ public class GuiWeaponSelector extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         if (!MajesticaDownloader.INSTANCE.isDownloaded()) {
             MajesticaDownloader.INSTANCE.startDownload(new Runnable() {
                 @Override
@@ -236,6 +239,7 @@ public class GuiWeaponSelector extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -312,6 +316,7 @@ public class GuiWeaponSelector extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

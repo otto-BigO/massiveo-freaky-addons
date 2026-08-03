@@ -377,6 +377,10 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiItemLog());
     }
 
+    public static void openVkStealer() {
+        net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiVkStealer());
+    }
+
     public static void openPvpMine() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiPvpMine());
     }

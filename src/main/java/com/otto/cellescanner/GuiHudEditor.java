@@ -18,6 +18,8 @@ import java.util.List;
  */
 public class GuiHudEditor extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_RESET = 0;
     private static final int ID_BACK = 1;
 
@@ -71,6 +73,7 @@ public class GuiHudEditor extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         huds.clear();
         final CelleConfig cfg = MassiveOsFreakyAddons.config;
@@ -360,6 +363,7 @@ public class GuiHudEditor extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.backdropOnly(this.width, this.height, mouseX, mouseY);
 
         // Handle active corner resizing drag (Corrected scale direction for all 4 corners)
         if (resizingHud >= 0 && Mouse.isButtonDown(0)) {
@@ -453,7 +457,7 @@ public class GuiHudEditor extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
-    }
+        }
 
     private void drawCornerBracket(int x1, int y1, int x2, int y2, int color, int hoveredCorner) {
         int l = 8; // Bracket leg length

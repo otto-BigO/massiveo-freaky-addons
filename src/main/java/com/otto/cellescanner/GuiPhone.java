@@ -25,6 +25,8 @@ import java.util.List;
  */
 public class GuiPhone extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     public enum AppMode {
         HOME, SETTINGS, FRIENDS, MESSAGES
     }
@@ -80,6 +82,7 @@ public class GuiPhone extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         Keyboard.enableRepeatEvents(true);
         long now = System.currentTimeMillis();
         openTime = now;
@@ -268,6 +271,7 @@ public class GuiPhone extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
 
         int phoneX = (width - PHONE_W) / 2;
         int targetPhoneY = (height - PHONE_H) / 2;
@@ -372,6 +376,7 @@ public class GuiPhone extends GuiScreen {
         // Restore Z-layer
         zLevel = 0.0f;
         GlStateManager.popMatrix();
+            screenIntro.end();
     }
 
     private void drawHomeScreen(int px, int py, int mouseX, int mouseY) {

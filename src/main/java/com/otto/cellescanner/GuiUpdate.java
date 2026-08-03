@@ -11,6 +11,8 @@ import java.io.IOException;
  */
 public class GuiUpdate extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_TOGGLE = 0;
     private static final int ID_CHECK = 1;
     private static final int ID_BACK = 2;
@@ -25,6 +27,7 @@ public class GuiUpdate extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
 
         // Check for an update when the screen is opened (once), and only here -
@@ -70,6 +73,7 @@ public class GuiUpdate extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -82,6 +86,7 @@ public class GuiUpdate extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Status: " + AutoUpdater.getStatus(), cx, titleY + 40, 0x888888);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

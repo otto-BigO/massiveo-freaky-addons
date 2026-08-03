@@ -8,6 +8,8 @@ import java.io.IOException;
 /** Minimal hub tile for the mod-user badge: just an on/off toggle. */
 public class GuiModIcon extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_TOGGLE = 0;
     private static final int ID_BACK = 1;
     private static final int PANEL_W = 220;
@@ -17,6 +19,7 @@ public class GuiModIcon extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 20;
@@ -42,6 +45,7 @@ public class GuiModIcon extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -50,6 +54,7 @@ public class GuiModIcon extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Lilla cirkel foran andre mod-brugeres navn (test).", cx, titleY + 12, 0xAAAAAA);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

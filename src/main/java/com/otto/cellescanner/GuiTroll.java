@@ -11,6 +11,8 @@ import java.io.IOException;
  */
 public class GuiTroll extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_MASTER = 0;
     private static final int ID_BACK = 1;
     private static final int TOGGLE_BASE = 10; // event i: toggle = BASE+i*2, test = BASE+i*2+1
@@ -30,6 +32,7 @@ public class GuiTroll extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 - 92;
@@ -107,6 +110,7 @@ public class GuiTroll extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -115,6 +119,7 @@ public class GuiTroll extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Fjollede lyde kun du hører, på dine begivenheder.", cx, titleY + 12, 0xAAAAAA);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

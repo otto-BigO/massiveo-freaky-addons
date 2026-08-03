@@ -318,10 +318,7 @@ public final class AddonList {
             }
 
             public void open() {
-                config.vkStealerEnabled = !config.vkStealerEnabled;
-                config.save();
-                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("Tracking"));
+                CelleActions.openVkStealer();
             }
 
             public void toggle() {

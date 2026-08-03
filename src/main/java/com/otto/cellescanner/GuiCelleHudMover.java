@@ -11,6 +11,8 @@ import java.io.IOException;
  */
 public class GuiCelleHudMover extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private boolean dragging = false;
     private int offsetX;
     private int offsetY;
@@ -89,6 +91,7 @@ public class GuiCelleHudMover extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.backdropOnly(this.width, this.height, mouseX, mouseY);
 
         // Draw Center Snap Grid Guides when dragging
         if (dragging) {

@@ -11,6 +11,8 @@ import java.io.IOException;
  */
 public class GuiAntiAfk extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_TOGGLE = 0;
     private static final int ID_SWING = 1;
     private static final int ID_ROTATE = 2;
@@ -36,6 +38,7 @@ public class GuiAntiAfk extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
 
         int centerX = this.width / 2;
@@ -129,6 +132,7 @@ public class GuiAntiAfk extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - CONTENT_H / 2 - 24;
@@ -136,6 +140,7 @@ public class GuiAntiAfk extends GuiScreen {
         drawCenteredString(this.fontRendererObj, "Holder dig aktiv - brug på eget ansvar.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override

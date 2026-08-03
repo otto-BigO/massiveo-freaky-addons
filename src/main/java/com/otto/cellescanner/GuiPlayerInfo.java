@@ -34,6 +34,8 @@ import java.util.UUID;
  */
 public class GuiPlayerInfo extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_BACK = 0;
     private static final int ID_FOLLOW = 1;
     private static final int CARD_W = 330;
@@ -122,6 +124,7 @@ public class GuiPlayerInfo extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int btnW = CARD_W / 2 - 4;
         this.buttonList.add(new StyledButton(ID_BACK, cardL(), cardT() + CARD_H + 6, btnW, 20, "Luk"));
@@ -208,6 +211,7 @@ public class GuiPlayerInfo extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Minecraft mc = Minecraft.getMinecraft();
         int cardL = cardL();
         int cardT = cardT();
@@ -265,6 +269,7 @@ public class GuiPlayerInfo extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     private void drawCellerPanel() {

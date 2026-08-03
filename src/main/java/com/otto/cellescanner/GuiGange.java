@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
  */
 public class GuiGange extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_BACK = 0;
     private static final int ID_TOGGLE = 2;
 
@@ -59,6 +61,7 @@ public class GuiGange extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         listTop = 40;
         // Room for two button rows: the detector toggle, then back/refresh.
@@ -259,6 +262,7 @@ public class GuiGange extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -289,6 +293,7 @@ public class GuiGange extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     /** Compact days/hours/minutes, e.g. "13d 9t 20m" - CelleHud.formatDuration only goes to hours. */

@@ -13,6 +13,8 @@ import java.io.IOException;
  */
 public class GuiAutoMineTrash extends GuiScreen {
 
+    private final ScreenIntro screenIntro = new ScreenIntro();
+
     private static final int ID_SAVE = 0;
     private static final int BTN_W = 100;
     private static final int BTN_H = 20;
@@ -21,6 +23,7 @@ public class GuiAutoMineTrash extends GuiScreen {
 
     @Override
     public void initGui() {
+        screenIntro.restart();
         this.buttonList.clear();
         int cx = this.width / 2;
         int cy = this.height / 2;
@@ -65,6 +68,7 @@ public class GuiAutoMineTrash extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
+        screenIntro.begin(this.width, this.height, mouseX, mouseY);
         Style.card(this.width, this.height);
 
         int cx = this.width / 2;
@@ -97,6 +101,7 @@ public class GuiAutoMineTrash extends GuiScreen {
         }
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+            screenIntro.end();
     }
 
     @Override
