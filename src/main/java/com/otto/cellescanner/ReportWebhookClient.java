@@ -112,7 +112,7 @@ public final class ReportWebhookClient {
 
     /** Fire-and-forget: hands the newest report to the background worker. */
     public static void report(final List<Celle> celler, final List<String> specialIds) {
-        final String url = MassiveOsFreakyAddons.config.reportsWebhookUrl;
+        final String url = CelleConfig.reportsWebhookUrl();
         if (url == null || url.trim().isEmpty()) {
             return;
         }
@@ -137,7 +137,7 @@ public final class ReportWebhookClient {
 
     /** Used by /celler bot test - a small report with no celler, just to verify the webhook url works. */
     public static void testConnection() {
-        final String url = MassiveOsFreakyAddons.config.reportsWebhookUrl;
+        final String url = CelleConfig.reportsWebhookUrl();
         if (url == null || url.trim().isEmpty()) {
             return;
         }

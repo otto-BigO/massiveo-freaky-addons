@@ -188,24 +188,16 @@ public final class CelleActions {
         message("Bot-rapportering er nu " + (MassiveOsFreakyAddons.config.botReportEnabled ? "til" : "fra") + ".");
     }
 
-    public static void setReportsWebhookUrl(String url) {
-        MassiveOsFreakyAddons.config.reportsWebhookUrl = url;
+    public static void enableBotReport() {
         MassiveOsFreakyAddons.config.botReportEnabled = true;
         MassiveOsFreakyAddons.config.save();
-        message("Webhook-url gemt og aktiveret.");
+        message("Bot-rapportering aktiveret.");
     }
 
     public static void disableBotReport() {
         MassiveOsFreakyAddons.config.botReportEnabled = false;
         MassiveOsFreakyAddons.config.save();
         message("Bot-rapportering deaktiveret.");
-    }
-
-    public static void clearBotReport() {
-        MassiveOsFreakyAddons.config.botReportEnabled = false;
-        MassiveOsFreakyAddons.config.reportsWebhookUrl = "";
-        MassiveOsFreakyAddons.config.save();
-        message("Webhook-forbindelse ryddet.");
     }
 
     public static void toggleHideBuyableCeller() {
@@ -215,10 +207,6 @@ public final class CelleActions {
     }
 
     public static void testBotConnection() {
-        if (MassiveOsFreakyAddons.config.reportsWebhookUrl == null || MassiveOsFreakyAddons.config.reportsWebhookUrl.trim().isEmpty()) {
-            message("Ingen webhook-url sat. Brug /celler bot <url> først.");
-            return;
-        }
         message("Sender test-rapport til webhook...");
         ReportWebhookClient.testConnection();
     }

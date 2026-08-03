@@ -2,6 +2,18 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.4
+
+- The reporting webhook now ships with the mod, so scanning is shared out of the
+  box. There is nothing to paste in and nothing to set up.
+- The webhook is fixed and cannot be pointed anywhere else. The Celle Bot screen
+  is just an on/off switch and a test button now, and `/celler bot` takes
+  `on`, `off` or `test`. Everyone reports into the same channel, so a client
+  pointing somewhere else would quietly drop out of the shared picture.
+- Reporting defaults to on. A config written before this, which had it off with
+  no webhook, is switched on once, since that meant "never set up" rather than
+  "turned off on purpose". After that your choice is kept.
+
 ## 4.2.3
 
 - New addon, VK Stealer. Locks a vagt or officer in reach and lands the

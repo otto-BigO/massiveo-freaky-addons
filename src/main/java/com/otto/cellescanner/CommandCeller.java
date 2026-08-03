@@ -155,16 +155,15 @@ public class CommandCeller extends CommandBase {
             return;
         }
         String arg = args[1];
+        // The webhook ships with the mod, so there is nothing to point anywhere.
         if ("off".equalsIgnoreCase(arg)) {
             CelleActions.disableBotReport();
-        } else if ("clear".equalsIgnoreCase(arg)) {
-            CelleActions.clearBotReport();
+        } else if ("on".equalsIgnoreCase(arg)) {
+            CelleActions.enableBotReport();
         } else if ("test".equalsIgnoreCase(arg)) {
             CelleActions.testBotConnection();
-        } else if (arg.toLowerCase().startsWith("http")) {
-            CelleActions.setReportsWebhookUrl(arg);
         } else {
-            CelleActions.message("Brug: /celler bot <url|off|clear|test>");
+            CelleActions.message("Brug: /celler bot <on|off|test>");
         }
     }
 

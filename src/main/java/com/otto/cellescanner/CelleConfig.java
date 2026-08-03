@@ -71,8 +71,30 @@ public class CelleConfig {
     // straight out, same as any Discord webhook shared with a group. Fine
     // for a friend group; rotate it (create a new webhook, update this
     // default, rebuild) if that jar ever spreads further than intended.
-    public boolean botReportEnabled = false;
-    public String reportsWebhookUrl = "";
+    /**
+     * The shared reporting webhook, bundled so the addon reports out of the box.
+     *
+     * This ships inside a public release jar, so treat it as public: anyone can
+     * read it out of the jar and post into the data channel. Rotate it by making
+     * a new webhook in Discord and shipping a build with the new value.
+     */
+    public static final String DEFAULT_REPORTS_WEBHOOK_URL =
+            "https://discord.com/api/webhooks/1533878453823213598/wEyDKzEWhB-6ztDV491Wcdvg7v_PbjwSyC9-pHN6iqTeBnisuEIs6fsjq6GD4yJEgtjU";
+
+    public boolean botReportEnabled = true;
+
+    /**
+     * Bumped when the reporting defaults change. A config written before the
+     * webhook shipped with the mod has this at 0 and has reporting off, which
+     * meant "never set up" rather than "turned off on purpose", so it gets
+     * switched on once. After that the saved choice is respected.
+     */
+    public int reportConfigVersion = 1;
+
+    /** The bundled webhook. Not a saved setting, so nothing can point it elsewhere. */
+    public static String reportsWebhookUrl() {
+        return DEFAULT_REPORTS_WEBHOOK_URL;
+    }
 
     // Anti-AFK addon: periodically performs a tiny action so the server's
     // idle-timer never trips. Off by default. (Kept in this shared config file
@@ -441,9 +463,18 @@ public class CelleConfig {
                 this.showDistance = loaded.showDistance;
                 this.espLabels = loaded.espLabels;
                 this.espMaxDistance = loaded.espMaxDistance;
-                this.botReportEnabled = loaded.botReportEnabled;
+                // Reporting is on by default now that the webhook ships with the mod.
+                // An older config written before that has the flag off with no url,
+                // which meant "never set up" rather than "turned off on purpose".
+                this.reportConfigVersion = loaded.reportConfigVersion;
+                if (loaded.reportConfigVersion < 1) {
+                    this.botReportEnabled = true;      // one time migration
+                    this.reportConfigVersion = 1;
+                } else {
+                    this.botReportEnabled = loaded.botReportEnabled;
+                }
                 this.hideBuyableCeller = loaded.hideBuyableCeller;
-                this.reportsWebhookUrl = loaded.reportsWebhookUrl;
+
                 this.antiAfkEnabled = loaded.antiAfkEnabled;
                 // A config written before this field existed deserializes it as
                 // 0; fall back to the sane default instead of an insane interval.
