@@ -31,14 +31,42 @@ public final class Style {
         return ACCENT;
     }
 
+    /** The 16 chat colours and the RGB they actually render as, used to match a custom accent. */
+    private static final int[] CHAT_RGB = {
+            0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+            0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
+    };
+    private static final net.minecraft.util.EnumChatFormatting[] CHAT_CODES = {
+            net.minecraft.util.EnumChatFormatting.BLACK, net.minecraft.util.EnumChatFormatting.DARK_BLUE,
+            net.minecraft.util.EnumChatFormatting.DARK_GREEN, net.minecraft.util.EnumChatFormatting.DARK_AQUA,
+            net.minecraft.util.EnumChatFormatting.DARK_RED, net.minecraft.util.EnumChatFormatting.DARK_PURPLE,
+            net.minecraft.util.EnumChatFormatting.GOLD, net.minecraft.util.EnumChatFormatting.GRAY,
+            net.minecraft.util.EnumChatFormatting.DARK_GRAY, net.minecraft.util.EnumChatFormatting.BLUE,
+            net.minecraft.util.EnumChatFormatting.GREEN, net.minecraft.util.EnumChatFormatting.AQUA,
+            net.minecraft.util.EnumChatFormatting.RED, net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE,
+            net.minecraft.util.EnumChatFormatting.YELLOW, net.minecraft.util.EnumChatFormatting.WHITE
+    };
+
+    /**
+     * The chat colour closest to the current accent. Text drawn with a colour code can
+     * only use the 16 chat colours, so a custom accent is matched to the nearest one
+     * instead of falling back to green, which used to make coloured text ignore the theme.
+     */
     public static String getAccentFormatting() {
         int accent = getAccentColor() & 0xFFFFFF;
-        if (accent == 0x00E5FF) return net.minecraft.util.EnumChatFormatting.AQUA.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
-        if (accent == 0xB026FF) return net.minecraft.util.EnumChatFormatting.LIGHT_PURPLE.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
-        if (accent == 0xFF2A85) return net.minecraft.util.EnumChatFormatting.RED.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
-        if (accent == 0xFF9900) return net.minecraft.util.EnumChatFormatting.GOLD.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
-        if (accent == 0x505868) return net.minecraft.util.EnumChatFormatting.GRAY.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
-        return net.minecraft.util.EnumChatFormatting.GREEN.toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
+        int ar = (accent >> 16) & 0xFF, ag = (accent >> 8) & 0xFF, ab = accent & 0xFF;
+        int best = 0;
+        long bestDist = Long.MAX_VALUE;
+        for (int i = 0; i < CHAT_RGB.length; i++) {
+            int cr = (CHAT_RGB[i] >> 16) & 0xFF, cg = (CHAT_RGB[i] >> 8) & 0xFF, cb = CHAT_RGB[i] & 0xFF;
+            long dr = ar - cr, dg = ag - cg, db = ab - cb;
+            long dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = i;
+            }
+        }
+        return CHAT_CODES[best].toString() + net.minecraft.util.EnumChatFormatting.BOLD.toString();
     }
 
     /**

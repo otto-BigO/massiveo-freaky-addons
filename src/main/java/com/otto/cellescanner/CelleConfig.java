@@ -540,7 +540,10 @@ public class CelleConfig {
                 this.alert30sEnabled = loaded.alert30sEnabled;
                 this.alert10sEnabled = loaded.alert10sEnabled;
                 this.themeAccentColor = loaded.themeAccentColor != 0 ? loaded.themeAccentColor : 0x00FF88;
-                this.themeBgAlpha = loaded.themeBgAlpha > 0f ? loaded.themeBgAlpha : 0.65f;
+                // Clamp into the usable range instead of treating any non-positive
+                // value as "unset", which silently threw away a saved setting.
+                this.themeBgAlpha = loaded.themeBgAlpha <= 0f ? 0.65f
+                        : Math.max(0.20f, Math.min(1.0f, loaded.themeBgAlpha));
                 this.themeTitleStyle = loaded.themeTitleStyle;
                 this.alertSound = loaded.alertSound != null && !loaded.alertSound.isEmpty() ? loaded.alertSound : "note.pling";
                 this.espColorBande = loaded.espColorBande != 0 ? loaded.espColorBande : 0x00A2FF;

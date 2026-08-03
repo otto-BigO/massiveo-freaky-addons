@@ -33,6 +33,28 @@ public class GuiThemeEditor extends GuiScreen {
     private static final int PANEL_W = 230;
     private static final int BTN_H = 18;
 
+    /**
+     * The opacity range, shared by the slider and the stepper. They used to disagree
+     * (the slider went to 1.00, the stepper stopped at 0.95) and the slider clamped a
+     * raw 0-1 fraction, which left the first fifth of the bar doing nothing.
+     */
+    private static final float ALPHA_MIN = 0.20f;
+    private static final float ALPHA_MAX = 1.00f;
+
+    private static final int PREVIEW_W = 180;
+    private static final int PREVIEW_H = 42;
+
+    /**
+     * Picker geometry, laid out once in initGui. These used to be re-derived from
+     * magic offsets in three separate places (hit testing, drag handling and
+     * drawing), so a change to one of them moved the visuals away from the region
+     * that actually responded to the mouse.
+     */
+    private int hueX, hueY, hueW, hueH;
+    private int svX, svY, svW, svH;
+    private int alphaBarX, alphaBarY, alphaBarW, alphaBarH;
+    private int labelColorY, labelAlphaY;
+
     private NumericStepper alphaStepper;
     private GuiButton titleStyleBtn;
     private GuiButton soundStyleBtn;
@@ -70,6 +92,9 @@ public class GuiThemeEditor extends GuiScreen {
             previewX = cx + PANEL_W / 2 + 12;
             previewY = cy - 78;
         }
+        // On a narrow screen the default sits past the right edge, where it could
+        // never be grabbed. Re-clamp on every init so a resize cannot strand it.
+        clampPreview();
 
         // Initialize HSV state from config color
         int currentColor = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeAccentColor : 0x00FF88;
@@ -95,8 +120,19 @@ public class GuiThemeEditor extends GuiScreen {
         this.buttonList.add(new StyledButton(ID_PRESET_STEALTH, left + (thirdW + 4) * 2, y, thirdW, BTN_H, "Mørk"));
         y += 26;
 
-        // Space reserved for Interactive HSV Color Picker & Opacity Slider (y + 68px)
-        y += 68;
+        // Accent colour section: label, hue bar, saturation/value box
+        labelColorY = y;
+        y += 11;
+        hueX = left; hueY = y; hueW = PANEL_W; hueH = 10;
+        y += 14;
+        svX = left; svY = y; svW = PANEL_W; svH = 30;
+        y += 34;
+
+        // Opacity section: label, then the slider the stepper below also drives
+        labelAlphaY = y;
+        y += 11;
+        alphaBarX = left; alphaBarY = y; alphaBarW = PANEL_W; alphaBarH = 10;
+        y += 14;
 
         // Row 3: Card Transparency Stepper using NumericStepper
         alphaStepper = new NumericStepper(ID_ALPHA_DOWN, ID_ALPHA_UP, left, y, PANEL_W, BTN_H);
@@ -131,16 +167,42 @@ public class GuiThemeEditor extends GuiScreen {
         this.val = hsb[2];
     }
 
+    /**
+     * Updates the live colour only. Saving happens once the drag ends, because
+     * config.save() serialises the whole config and rewrites the file, and calling
+     * it from a drag handler wrote that file on every rendered frame.
+     */
     private void applyColour() {
         int argb = Color.HSBtoRGB(hue, sat, val) | 0xFF000000;
         if (MassiveOsFreakyAddons.config != null) {
             MassiveOsFreakyAddons.config.themeAccentColor = argb;
-            MassiveOsFreakyAddons.config.save();
         }
     }
 
+    /** Slider position (0-1) to an opacity inside the usable range. */
+    private static float alphaFromFraction(float t) {
+        if (t < 0f) t = 0f;
+        if (t > 1f) t = 1f;
+        return ALPHA_MIN + t * (ALPHA_MAX - ALPHA_MIN);
+    }
+
+    /** The inverse, so the cursor sits under the pointer instead of drifting. */
+    private static float fractionFromAlpha(float alpha) {
+        float t = (alpha - ALPHA_MIN) / (ALPHA_MAX - ALPHA_MIN);
+        if (t < 0f) t = 0f;
+        if (t > 1f) t = 1f;
+        return t;
+    }
+
+    private static float currentAlpha() {
+        float a = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
+        if (a < ALPHA_MIN) a = ALPHA_MIN;
+        if (a > ALPHA_MAX) a = ALPHA_MAX;
+        return a;
+    }
+
     private String alphaLabel() {
-        int percent = Math.round((MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f) * 100f);
+        int percent = Math.round(currentAlpha() * 100f);
         return "Synlighed: " + percent + "%";
     }
 
@@ -178,11 +240,11 @@ public class GuiThemeEditor extends GuiScreen {
                 updatePickerFromPreset(0x505868);
                 break;
             case ID_ALPHA_DOWN:
-                MassiveOsFreakyAddons.config.themeBgAlpha = Math.max(0.20f, MassiveOsFreakyAddons.config.themeBgAlpha - 0.05f);
+                MassiveOsFreakyAddons.config.themeBgAlpha = Math.max(ALPHA_MIN, currentAlpha() - 0.05f);
                 MassiveOsFreakyAddons.config.save();
                 break;
             case ID_ALPHA_UP:
-                MassiveOsFreakyAddons.config.themeBgAlpha = Math.min(0.95f, MassiveOsFreakyAddons.config.themeBgAlpha + 0.05f);
+                MassiveOsFreakyAddons.config.themeBgAlpha = Math.min(ALPHA_MAX, currentAlpha() + 0.05f);
                 MassiveOsFreakyAddons.config.save();
                 break;
             case ID_TITLE_STYLE:
@@ -212,54 +274,34 @@ public class GuiThemeEditor extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        // The preview card is grabbed before the buttons get a look in. It can be
+        // dragged over them, and letting both run pressed the button underneath.
+        if (mouseButton == 0
+                && mouseX >= previewX && mouseX <= previewX + PREVIEW_W
+                && mouseY >= previewY && mouseY <= previewY + PREVIEW_H) {
+            draggingPreview = true;
+            dragOffX = mouseX - previewX;
+            dragOffY = mouseY - previewY;
+            return;
+        }
+
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
         if (mouseButton == 0) {
-            int cx = this.width / 2;
-            int cy = this.height / 2;
-            int left = cx - PANEL_W / 2;
-
-            // Check if clicking inside draggable Live Preview Card (width 180, height 42)
-            if (mouseX >= previewX && mouseX <= previewX + 180 && mouseY >= previewY && mouseY <= previewY + 42) {
-                draggingPreview = true;
-                dragOffX = mouseX - previewX;
-                dragOffY = mouseY - previewY;
-                return;
-            }
-
-            // Hue Bar bounds: left, cy - 78, width = PANEL_W, height = 10
-            int hueX = left;
-            int hueY = cy - 78;
-            int hueW = PANEL_W;
-            int hueH = 10;
-
             if (mouseX >= hueX && mouseX <= hueX + hueW && mouseY >= hueY && mouseY <= hueY + hueH) {
                 draggingHue = true;
                 updateHueFromMouse(mouseX, hueX, hueW);
                 return;
             }
-
-            // SV Box bounds: left, cy - 64, width = PANEL_W, height = 30
-            int svX = left;
-            int svY = cy - 64;
-            int svW = PANEL_W;
-            int svH = 30;
-
             if (mouseX >= svX && mouseX <= svX + svW && mouseY >= svY && mouseY <= svY + svH) {
                 draggingSV = true;
                 updateSVFromMouse(mouseX, mouseY, svX, svY, svW, svH);
                 return;
             }
-
-            // Opacity Bar bounds: left, cy - 30, width = PANEL_W, height = 10
-            int alphaX = left;
-            int alphaY = cy - 30;
-            int alphaW = PANEL_W;
-            int alphaH = 10;
-
-            if (mouseX >= alphaX && mouseX <= alphaX + alphaW && mouseY >= alphaY && mouseY <= alphaY + alphaH) {
+            if (mouseX >= alphaBarX && mouseX <= alphaBarX + alphaBarW
+                    && mouseY >= alphaBarY && mouseY <= alphaBarY + alphaBarH) {
                 draggingAlpha = true;
-                updateAlphaFromMouse(mouseX, alphaX, alphaW);
+                updateAlphaFromMouse(mouseX, alphaBarX, alphaBarW);
                 return;
             }
         }
@@ -300,13 +342,20 @@ public class GuiThemeEditor extends GuiScreen {
     }
 
     private void updateAlphaFromMouse(int mouseX, int alphaX, int alphaW) {
-        float a = (float) (mouseX - alphaX) / (float) alphaW;
-        if (a < 0.20f) a = 0.20f;
-        if (a > 1.00f) a = 1.00f;
+        float t = (float) (mouseX - alphaX) / (float) alphaW;
         if (MassiveOsFreakyAddons.config != null) {
-            MassiveOsFreakyAddons.config.themeBgAlpha = a;
-            MassiveOsFreakyAddons.config.save();
+            MassiveOsFreakyAddons.config.themeBgAlpha = alphaFromFraction(t);
         }
+    }
+
+    /** Keeps the draggable preview card on screen so it can always be grabbed again. */
+    private void clampPreview() {
+        int maxX = Math.max(0, this.width - PREVIEW_W);
+        int maxY = Math.max(0, this.height - PREVIEW_H);
+        if (previewX > maxX) previewX = maxX;
+        if (previewY > maxY) previewY = maxY;
+        if (previewX < 0) previewX = 0;
+        if (previewY < 0) previewY = 0;
     }
 
     @Override
@@ -330,31 +379,19 @@ public class GuiThemeEditor extends GuiScreen {
 
         // Handle active dragging mouse events
         if (Mouse.isButtonDown(0)) {
-            int hueX = left;
-            int hueY = cy - 78;
-            int hueW = PANEL_W;
             if (draggingHue) {
                 updateHueFromMouse(mouseX, hueX, hueW);
             }
-
-            int svX = left;
-            int svY = cy - 64;
-            int svW = PANEL_W;
-            int svH = 30;
             if (draggingSV) {
                 updateSVFromMouse(mouseX, mouseY, svX, svY, svW, svH);
             }
-
-            int alphaX = left;
-            int alphaY = cy - 30;
-            int alphaW = PANEL_W;
             if (draggingAlpha) {
-                updateAlphaFromMouse(mouseX, alphaX, alphaW);
+                updateAlphaFromMouse(mouseX, alphaBarX, alphaBarW);
             }
-
             if (draggingPreview) {
                 previewX = mouseX - dragOffX;
                 previewY = mouseY - dragOffY;
+                clampPreview();
             }
         } else {
             draggingHue = false;
@@ -365,11 +402,12 @@ public class GuiThemeEditor extends GuiScreen {
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
+        // Section labels, so the bars read as controls rather than loose strips
+        int labelColor = 0xFF9AA0AE;
+        this.fontRendererObj.drawString("ACCENTFARVE", left, labelColorY, labelColor);
+        this.fontRendererObj.drawString("SYNLIGHED", left, labelAlphaY, labelColor);
+
         // Render Interactive Hue Bar Spectrum
-        int hueX = left;
-        int hueY = cy - 78;
-        int hueW = PANEL_W;
-        int hueH = 10;
         drawHueBar(hueX, hueY, hueW, hueH);
 
         // Draw Hue indicator cursor line
@@ -377,10 +415,6 @@ public class GuiThemeEditor extends GuiScreen {
         drawRect(cursorHueX - 1, hueY - 1, cursorHueX + 1, hueY + hueH + 1, 0xFFFFFFFF);
 
         // Render Interactive SV Box Gradient
-        int svX = left;
-        int svY = cy - 64;
-        int svW = PANEL_W;
-        int svH = 30;
         drawSVBox(svX, svY, svW, svH, this.hue);
 
         // Draw SV indicator cursor dot
@@ -390,15 +424,15 @@ public class GuiThemeEditor extends GuiScreen {
         Style.roundedRect(cursorSvX - 1, cursorSvY - 1, cursorSvX + 1, cursorSvY + 1, Style.getAccentColor());
 
         // Render Interactive Opacity Slider Bar
-        int alphaX = left;
-        int alphaY = cy - 30;
-        int alphaW = PANEL_W;
-        int alphaH = 10;
+        int alphaX = alphaBarX;
+        int alphaY = alphaBarY;
+        int alphaW = alphaBarW;
+        int alphaH = alphaBarH;
         drawOpacityBar(alphaX, alphaY, alphaW, alphaH);
 
-        // Draw Opacity indicator cursor line
-        float currentAlpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
-        int cursorAlphaX = alphaX + (int) (currentAlpha * alphaW);
+        // Draw Opacity indicator cursor line, using the same mapping as the drag
+        // handler so the cursor lands under the pointer at both ends of the bar.
+        int cursorAlphaX = alphaX + (int) (fractionFromAlpha(currentAlpha()) * alphaW);
         drawRect(cursorAlphaX - 1, alphaY - 1, cursorAlphaX + 1, alphaY + alphaH + 1, 0xFFFFFFFF);
 
         // Draw NumericStepper label
@@ -442,7 +476,9 @@ public class GuiThemeEditor extends GuiScreen {
         Style.roundedRect(x - 1, y - 1, x + width + 1, y + height + 1, 0xFF14151E);
         int accent = Style.getAccentColor();
         for (int i = 0; i < width; i++) {
-            float a = (float) i / (float) width;
+            // The gradient spans the same range the slider sets, so what the bar
+            // shows at a position is what clicking there actually gives you.
+            float a = alphaFromFraction((float) i / (float) width);
             int alphaInt = Math.max(20, Math.min(255, (int) (a * 255)));
             int col = (alphaInt << 24) | (accent & 0xFFFFFF);
             drawRect(x + i, y, x + i + 1, y + height, col);
@@ -450,14 +486,11 @@ public class GuiThemeEditor extends GuiScreen {
     }
 
     private void drawLivePreviewCard(int x1, int y1) {
-        int w = 180;
-        int h = 42;
-        int x2 = x1 + w;
-        int y2 = y1 + h;
+        int x2 = x1 + PREVIEW_W;
+        int y2 = y1 + PREVIEW_H;
 
         int accent = Style.getAccentColor();
-        float alpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
-        int alphaInt = Math.max(0, Math.min(255, (int) (alpha * 255)));
+        int alphaInt = Math.max(0, Math.min(255, (int) (currentAlpha() * 255)));
 
         // Outer & Inner border with dynamic accent
         Style.roundedRect(x1, y1, x2, y2, 0xFF14151E);
