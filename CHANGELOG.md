@@ -2,6 +2,12 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.5
+
+- Celle Bot is now a tile in the menu, under Celler. It had no entry at all in
+  4.2.4, so the only way to reach the on/off switch was the `/celler bot`
+  command, which is not obvious.
+
 ## 4.2.4
 
 - The reporting webhook now ships with the mod, so scanning is shared out of the

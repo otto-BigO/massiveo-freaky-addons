@@ -302,6 +302,32 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Celle Bot";
+            }
+
+            public String description() {
+                return "Deler dine scannede celler med de andre (til/fra)";
+            }
+
+            public String category() {
+                return "Celler";
+            }
+
+            public boolean isActive() {
+                return config.botReportEnabled;
+            }
+
+            public void open() {
+                CelleActions.openBotScreen();
+            }
+
+            public void toggle() {
+                config.botReportEnabled = !config.botReportEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "VK Stealer";
             }
 
