@@ -2,6 +2,20 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.5.2
+
+- `/celler buyer` opens the Celle Buyer, and `add`, `fjern`, `liste` and `ryd`
+  manage the pick list from chat, so a celle can be picked while standing in
+  front of it instead of typing the id back in from memory.
+- Turning the buyer on with an empty pick list now says so in chat. That
+  combination runs but never fires, and there was nothing to tell you why.
+- The mod list showed a literal ${version} instead of a version number, on every
+  build since the token was added. processResources already copies the
+  resources, so the mcmod.info handling was adding a second copy on top of that
+  and the expanded one was the copy being thrown away.
+- The command help still described `/celler bot <url>`, which stopped existing
+  in 4.2.4 when the webhook was built into the mod.
+
 ## 4.5.1
 
 - Fixed "The batch file cannot be found" at the end of a Windows update. The

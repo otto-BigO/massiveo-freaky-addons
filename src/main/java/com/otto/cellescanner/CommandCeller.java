@@ -128,6 +128,8 @@ public class CommandCeller extends CommandBase {
             CelleActions.message("Log: " + CelleTimingLog.path());
         } else if ("bot".equals(sub)) {
             handleBot(args);
+        } else if ("buyer".equals(sub) || "koeb".equals(sub)) {
+            handleBuyer(args);
         } else if ("special".equals(sub)) {
             handleSpecial(args);
         } else if ("find".equals(sub)) {
@@ -169,6 +171,84 @@ public class CommandCeller extends CommandBase {
             CelleActions.testBotConnection();
         } else {
             CelleActions.message("Brug: /celler bot <on|off|test>");
+        }
+    }
+
+    private void handleBuyer(String[] args) {
+        if (args.length < 2) {
+            CelleActions.openCelleBuyer();
+            return;
+        }
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null) {
+            return;
+        }
+        String arg = args[1];
+        if ("on".equalsIgnoreCase(arg)) {
+            cfg.celleBuyerEnabled = true;
+            cfg.save();
+            CelleActions.message("Celle Buyer er slaaet til.");
+            warnIfNothingPicked(cfg);
+        } else if ("off".equalsIgnoreCase(arg)) {
+            cfg.celleBuyerEnabled = false;
+            cfg.save();
+            CelleActions.message("Celle Buyer er slaaet fra.");
+        } else if ("list".equalsIgnoreCase(arg) || "liste".equalsIgnoreCase(arg)) {
+            listPicks(cfg);
+        } else if ("add".equalsIgnoreCase(arg) || "tilfoej".equalsIgnoreCase(arg)) {
+            if (args.length < 3) {
+                CelleActions.message("Brug: /celler buyer add <celle-id>");
+                return;
+            }
+            String id = CelleBuyer.normalizeId(args[2]);
+            if (CelleBuyer.addToWhitelist(cfg, args[2])) {
+                CelleActions.message(id + " tilfoejet."
+                        + (CellePositions.get(id) == null
+                        ? " Den er ikke scannet endnu, saa der er ingen boks endnu."
+                        : " Se regnbue-boksen."));
+            } else {
+                CelleActions.message(id + " er allerede paa listen.");
+            }
+        } else if ("remove".equalsIgnoreCase(arg) || "fjern".equalsIgnoreCase(arg)) {
+            if (args.length < 3) {
+                CelleActions.message("Brug: /celler buyer fjern <celle-id>");
+                return;
+            }
+            CelleBuyer.removeFromWhitelist(cfg, args[2]);
+            CelleActions.message(CelleBuyer.normalizeId(args[2]) + " fjernet.");
+        } else if ("clear".equalsIgnoreCase(arg) || "ryd".equalsIgnoreCase(arg)) {
+            if (cfg.celleBuyerWhitelist != null) {
+                cfg.celleBuyerWhitelist.clear();
+            }
+            cfg.save();
+            CelleActions.message("Listen er ryddet.");
+        } else {
+            CelleActions.message("Brug: /celler buyer <on|off|add|fjern|liste|ryd>");
+        }
+    }
+
+    private void listPicks(CelleConfig cfg) {
+        if (cfg.celleBuyerWhitelist == null || cfg.celleBuyerWhitelist.isEmpty()) {
+            CelleActions.message("Ingen celler valgt.");
+            warnIfNothingPicked(cfg);
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < cfg.celleBuyerWhitelist.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(cfg.celleBuyerWhitelist.get(i));
+        }
+        CelleActions.message("Valgte celler (" + cfg.celleBuyerWhitelist.size() + "): " + sb);
+    }
+
+    /** The one combination that runs but never fires, said out loud. */
+    private void warnIfNothingPicked(CelleConfig cfg) {
+        if (cfg.celleBuyerEnabled && cfg.celleBuyerUseWhitelist
+                && (cfg.celleBuyerWhitelist == null || cfg.celleBuyerWhitelist.isEmpty())) {
+            CelleActions.message("Listen er tom, saa den koeber ingenting."
+                    + " Tilfoej en celle med /celler buyer add <id>.");
         }
     }
 
@@ -245,11 +325,15 @@ public class CommandCeller extends CommandBase {
         CelleActions.message("/celler showdistance - vis/skjul afstand på HUD");
         CelleActions.message("/celler esplabels - vis/skjul celle-id label over ESP-kasser");
         CelleActions.message("/celler espdistance <blokke> - sæt maks-afstand for ESP");
-        CelleActions.message("/celler bot - åbn bot-forbindelses-skærmen (brug denne til webhook-url'en)");
-        CelleActions.message("/celler bot <url> - sæt reports-webhook-url via chat");
-        CelleActions.message("/celler bot off - deaktiver rapportering (beholder url'en)");
-        CelleActions.message("/celler bot clear - deaktiver og glem url'en");
+        CelleActions.message("/celler bot - åbn Celle Bot-skærmen");
+        CelleActions.message("/celler bot <on|off> - slå deling af scannede celler til eller fra");
         CelleActions.message("/celler bot test - send en test-rapport");
+        CelleActions.message("/celler buyer - åbn Celle Buyer-skærmen");
+        CelleActions.message("/celler buyer <on|off> - slå automatisk køb til eller fra");
+        CelleActions.message("/celler buyer add <id> - vælg en celle den må købe");
+        CelleActions.message("/celler buyer fjern <id> - fjern en celle fra listen");
+        CelleActions.message("/celler buyer liste - vis de valgte celler");
+        CelleActions.message("/celler buyer ryd - tøm listen");
         CelleActions.message("/celler special - åbn special-celle skærmen");
         CelleActions.message("/celler special add <id> - flag en celle som special");
         CelleActions.message("/celler special remove <id> - fjern flaget igen");
