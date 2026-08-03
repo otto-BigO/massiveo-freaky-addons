@@ -40,31 +40,45 @@ public class CelleEsp {
      */
     private final List<Celle> visible = new ArrayList<Celle>();
 
+    /** Celler picked in the Celle Buyer, resolved to positions in this dimension. */
+    private final List<BlockPos> picked = new ArrayList<BlockPos>();
+    private final List<String> pickedIds = new ArrayList<String>();
+
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!MassiveOsFreakyAddons.config.enabled || !MassiveOsFreakyAddons.config.espEnabled) {
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null) {
             return;
         }
-
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.theWorld == null) {
             return;
         }
 
-        List<Celle> entries = CelleFilter.collectUpcoming();
+        // The buyer's picks draw on their own terms. They are a short list the
+        // player typed in by hand, so they are worth seeing whether or not the
+        // general celle ESP happens to be switched on.
+        collectPicked(mc, cfg);
+
+        boolean espOn = cfg.enabled && cfg.espEnabled;
+        if (!espOn && picked.isEmpty()) {
+            return;
+        }
+
+        List<Celle> entries = espOn ? CelleFilter.collectUpcoming() : java.util.Collections.<Celle>emptyList();
 
         // Resolve the finder target's position (if any, and if it's in this
         // dimension) up front - this can be non-null even when "entries" is
         // empty, since a finder target isn't limited to the hour window.
         BlockPos finderPos = null;
-        if (CelleFinder.hasTarget()) {
+        if (espOn && CelleFinder.hasTarget()) {
             CellePositions.Entry p = CelleFinder.getTargetPosition();
             if (p != null && mc.theWorld.provider.getDimensionId() == p.dimension) {
                 finderPos = new BlockPos(p.x, p.y, p.z);
             }
         }
 
-        if (entries.isEmpty() && finderPos == null) {
+        if (entries.isEmpty() && finderPos == null && picked.isEmpty()) {
             return;
         }
 
@@ -115,6 +129,15 @@ public class CelleEsp {
             drawBoxOutline(finderPos, 0.95f, 0.95f, 0.95f, 1.0f);
             GL11.glLineWidth(2.5f);
         }
+        // The buyer's picks, in a cycling rainbow so they are impossible to
+        // confuse with the green/amber status boxes. Also ignores maxDist.
+        if (!picked.isEmpty()) {
+            GL11.glLineWidth(4.0f);
+            for (int i = 0; i < picked.size(); i++) {
+                drawRainbowBox(picked.get(i));
+            }
+            GL11.glLineWidth(2.5f);
+        }
         GlStateManager.enableTexture2D();
 
         // pass 2: floating celle-id labels (need texture for the font)
@@ -131,6 +154,18 @@ public class CelleEsp {
             if (finderPos != null) {
                 String label = "-> " + CelleFinder.getTarget();
                 drawLabel(fr, rm, label, finderPos.getX() + 0.5, finderPos.getY() + 1.6, finderPos.getZ() + 0.5, 0xF0F0F0);
+            }
+        }
+        // Picks get their label whether or not espLabels is on, since a rainbow
+        // box with no id on it is not much use when several are picked.
+        if (!picked.isEmpty()) {
+            FontRenderer fr = mc.fontRendererObj;
+            RenderManager rm = mc.getRenderManager();
+            for (int i = 0; i < picked.size(); i++) {
+                BlockPos p = picked.get(i);
+                drawLabel(fr, rm, "* " + pickedIds.get(i),
+                        p.getX() + 0.5, p.getY() + 1.6, p.getZ() + 0.5,
+                        rainbowColor(hueFor(p, 0)));
             }
         }
 
@@ -167,6 +202,117 @@ public class CelleEsp {
 
     private static float[] colorFor(Celle c) {
         return c.status == CelleStatus.TIL_SALG ? COLOR_TIL_SALG : COLOR_SOLGT;
+    }
+
+    /**
+     * Resolves the buyer's picked ids to positions in this dimension. They come
+     * from CellePositions rather than the live scan cache, so a pick stays boxed
+     * once it has been seen even if you walk out of scan range of the sign.
+     */
+    private void collectPicked(Minecraft mc, CelleConfig cfg) {
+        picked.clear();
+        pickedIds.clear();
+        if (!cfg.celleBuyerEnabled || cfg.celleBuyerWhitelist == null
+                || cfg.celleBuyerWhitelist.isEmpty()) {
+            return;
+        }
+        int dim = mc.theWorld.provider.getDimensionId();
+        for (int i = 0; i < cfg.celleBuyerWhitelist.size(); i++) {
+            String id = cfg.celleBuyerWhitelist.get(i);
+            if (id == null || id.isEmpty()) {
+                continue;
+            }
+            CellePositions.Entry e = CellePositions.get(id);
+            if (e == null) {
+                // Never scanned, so there is nothing to draw a box around yet.
+                continue;
+            }
+            if (e.dimension != dim) {
+                continue;
+            }
+            picked.add(new BlockPos(e.x, e.y, e.z));
+            pickedIds.add(id);
+        }
+    }
+
+    /**
+     * Hue for a picked box, cycling once every few seconds. Offset by position so
+     * two picks side by side are never the same colour at the same moment, and by
+     * vertex index so the colour runs around the box rather than flashing it.
+     */
+    private static float hueFor(BlockPos pos, int vertex) {
+        float t = (System.currentTimeMillis() % 3000L) / 3000.0f;
+        float spatial = ((pos.getX() * 31 + pos.getZ() * 17) % 100) / 100.0f;
+        float h = t + spatial + vertex * 0.07f;
+        return h - (float) Math.floor(h);
+    }
+
+    /** Fully saturated HSV to RGB, avoiding a java.awt dependency for three lines. */
+    private static float[] hsvToRgb(float h, float[] out) {
+        float i = (float) Math.floor(h * 6.0f);
+        float f = h * 6.0f - i;
+        float q = 1.0f - f;
+        switch ((int) i % 6) {
+            case 0: out[0] = 1f; out[1] = f;  out[2] = 0f; break;
+            case 1: out[0] = q;  out[1] = 1f; out[2] = 0f; break;
+            case 2: out[0] = 0f; out[1] = 1f; out[2] = f;  break;
+            case 3: out[0] = 0f; out[1] = q;  out[2] = 1f; break;
+            case 4: out[0] = f;  out[1] = 0f; out[2] = 1f; break;
+            default: out[0] = 1f; out[1] = 0f; out[2] = q; break;
+        }
+        return out;
+    }
+
+    private static final float[] RAINBOW_SCRATCH = new float[3];
+
+    private static int rainbowColor(float hue) {
+        float[] c = hsvToRgb(hue, RAINBOW_SCRATCH);
+        return ((int) (c[0] * 255) << 16) | ((int) (c[1] * 255) << 8) | (int) (c[2] * 255);
+    }
+
+    private static void rainbowVertex(BlockPos pos, int vertex, double x, double y, double z) {
+        float[] c = hsvToRgb(hueFor(pos, vertex), RAINBOW_SCRATCH);
+        GlStateManager.color(c[0], c[1], c[2], 1.0f);
+        GL11.glVertex3d(x, y, z);
+    }
+
+    /**
+     * Same wireframe as the status boxes, but coloured per vertex so the rainbow
+     * runs around the edges and drifts over time.
+     */
+    private void drawRainbowBox(BlockPos pos) {
+        double pad = PAD + 0.03;
+        double minX = pos.getX() - pad;
+        double minY = pos.getY() - pad;
+        double minZ = pos.getZ() - pad;
+        double maxX = pos.getX() + 1 + pad;
+        double maxY = pos.getY() + 1 + pad;
+        double maxZ = pos.getZ() + 1 + pad;
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        rainbowVertex(pos, 0, minX, minY, minZ);
+        rainbowVertex(pos, 1, maxX, minY, minZ);
+        rainbowVertex(pos, 2, maxX, minY, maxZ);
+        rainbowVertex(pos, 3, minX, minY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        rainbowVertex(pos, 4, minX, maxY, minZ);
+        rainbowVertex(pos, 5, maxX, maxY, minZ);
+        rainbowVertex(pos, 6, maxX, maxY, maxZ);
+        rainbowVertex(pos, 7, minX, maxY, maxZ);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_LINES);
+        rainbowVertex(pos, 0, minX, minY, minZ);
+        rainbowVertex(pos, 4, minX, maxY, minZ);
+        rainbowVertex(pos, 1, maxX, minY, minZ);
+        rainbowVertex(pos, 5, maxX, maxY, minZ);
+        rainbowVertex(pos, 2, maxX, minY, maxZ);
+        rainbowVertex(pos, 6, maxX, maxY, maxZ);
+        rainbowVertex(pos, 3, minX, minY, maxZ);
+        rainbowVertex(pos, 7, minX, maxY, maxZ);
+        GL11.glEnd();
     }
 
     private void drawBoxOutline(BlockPos pos, float r, float g, float b, float a) {

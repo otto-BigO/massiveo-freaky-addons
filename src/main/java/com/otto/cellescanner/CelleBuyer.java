@@ -110,6 +110,10 @@ public class CelleBuyer {
                 continue;
             }
 
+            if (!isWhitelisted(cfg, celle.celleId)) {
+                continue;
+            }
+
             boolean buyable = celle.status == CelleStatus.TIL_SALG;
             long freeIn;
             if (buyable) {
@@ -174,6 +178,77 @@ public class CelleBuyer {
         currentTargetFreeInMs = -1L;
         currentTargetBuyable = false;
         currentTargetDistance = -1.0;
+    }
+
+    /**
+     * Celle ids are stored and compared uppercase. The same celle has turned up
+     * as both "c1289" and "C1289" depending on whether it was owned or free, so
+     * matching on the sign's own casing would silently split one celle into two.
+     */
+    public static String normalizeId(String id) {
+        return id == null ? "" : id.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * Whether this celle is one to buy. With the list off everything passes; with
+     * it on an empty list passes nothing, which is the safe way for it to fail.
+     */
+    public static boolean isWhitelisted(CelleConfig cfg, String celleId) {
+        if (cfg == null) {
+            return false;
+        }
+        if (!cfg.celleBuyerUseWhitelist) {
+            return true;
+        }
+        if (cfg.celleBuyerWhitelist == null || cfg.celleBuyerWhitelist.isEmpty()) {
+            return false;
+        }
+        String want = normalizeId(celleId);
+        if (want.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < cfg.celleBuyerWhitelist.size(); i++) {
+            if (want.equals(normalizeId(cfg.celleBuyerWhitelist.get(i)))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Adds a celle to the list. False when it is blank or already there. */
+    public static boolean addToWhitelist(CelleConfig cfg, String celleId) {
+        if (cfg == null) {
+            return false;
+        }
+        String id = normalizeId(celleId);
+        if (id.isEmpty()) {
+            return false;
+        }
+        if (cfg.celleBuyerWhitelist == null) {
+            cfg.celleBuyerWhitelist = new java.util.ArrayList<String>();
+        }
+        for (int i = 0; i < cfg.celleBuyerWhitelist.size(); i++) {
+            if (id.equals(normalizeId(cfg.celleBuyerWhitelist.get(i)))) {
+                return false;
+            }
+        }
+        cfg.celleBuyerWhitelist.add(id);
+        cfg.save();
+        return true;
+    }
+
+    public static void removeFromWhitelist(CelleConfig cfg, String celleId) {
+        if (cfg == null || cfg.celleBuyerWhitelist == null) {
+            return;
+        }
+        String id = normalizeId(celleId);
+        java.util.Iterator<String> it = cfg.celleBuyerWhitelist.iterator();
+        while (it.hasNext()) {
+            if (id.equals(normalizeId(it.next()))) {
+                it.remove();
+            }
+        }
+        cfg.save();
     }
 
     /** Reach is held at vanilla unless extended reach is explicitly switched on. */

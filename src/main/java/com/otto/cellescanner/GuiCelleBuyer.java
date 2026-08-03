@@ -25,7 +25,8 @@ public class GuiCelleBuyer extends GuiScreen {
     private static final int ID_ARM_DOWN = 9;
     private static final int ID_ARM_UP = 10;
     private static final int ID_ONLY_CONFIRMED = 11;
-    private static final int ID_BACK = 12;
+    private static final int ID_PICKS = 12;
+    private static final int ID_BACK = 13;
 
     private static final int PANEL_W = 230;
     private static final int BTN_H = 18;
@@ -35,6 +36,7 @@ public class GuiCelleBuyer extends GuiScreen {
     private GuiButton silentAimBtn;
     private GuiButton extendedReachBtn;
     private GuiButton onlyConfirmedBtn;
+    private GuiButton picksBtn;
 
     private NumericStepper reachStepper;
     private NumericStepper preClickStepper;
@@ -61,6 +63,9 @@ public class GuiCelleBuyer extends GuiScreen {
         int y = cy - 108;
 
         this.buttonList.add(enabledBtn = new StyledButton(ID_ENABLED, left, y, PANEL_W, BTN_H, enabledLabel()));
+        y += ROW + 3;
+
+        this.buttonList.add(picksBtn = new StyledButton(ID_PICKS, left, y, PANEL_W, BTN_H, picksLabel()));
         y += ROW + 3;
 
         this.buttonList.add(silentAimBtn = new StyledButton(ID_SILENT_AIM, left, y, PANEL_W, BTN_H, silentAimLabel()));
@@ -117,6 +122,18 @@ public class GuiCelleBuyer extends GuiScreen {
         return "Udvidet rækkevidde  " + onOff(cfg() != null && cfg().celleBuyerExtendedReach);
     }
 
+    private String picksLabel() {
+        CelleConfig c = cfg();
+        int n = (c == null || c.celleBuyerWhitelist == null) ? 0 : c.celleBuyerWhitelist.size();
+        if (c != null && !c.celleBuyerUseWhitelist) {
+            return "Valgte celler  " + EnumChatFormatting.GRAY + "(alle celler)";
+        }
+        if (n == 0) {
+            return "Valgte celler  " + EnumChatFormatting.RED + "(ingen valgt)";
+        }
+        return "Valgte celler  " + Style.getAccentFormatting() + "(" + n + ")";
+    }
+
     private String onlyConfirmedLabel() {
         return "Kun bekræftet timer  " + onOff(cfg() != null && cfg().celleBuyerOnlyConfirmed);
     }
@@ -149,6 +166,7 @@ public class GuiCelleBuyer extends GuiScreen {
         if (silentAimBtn != null) silentAimBtn.displayString = silentAimLabel();
         if (extendedReachBtn != null) extendedReachBtn.displayString = extendedReachLabel();
         if (onlyConfirmedBtn != null) onlyConfirmedBtn.displayString = onlyConfirmedLabel();
+        if (picksBtn != null) picksBtn.displayString = picksLabel();
         // The reach value only does anything once extended reach is unlocked.
         boolean ext = cfg() != null && cfg().celleBuyerExtendedReach;
         if (reachStepper != null) {
@@ -202,6 +220,9 @@ public class GuiCelleBuyer extends GuiScreen {
             case ID_ONLY_CONFIRMED:
                 c.celleBuyerOnlyConfirmed = !c.celleBuyerOnlyConfirmed;
                 break;
+            case ID_PICKS:
+                CelleActions.openCelleBuyerList();
+                return;
             case ID_BACK:
                 CelleActions.openHub();
                 return;

@@ -276,6 +276,14 @@ public class CelleConfig {
      * up to a full twenty minutes.
      */
     public boolean celleBuyerOnlyConfirmed = true;
+    /**
+     * Only buy celler on the list. On by default, because an addon that claims
+     * whatever happens to free up next to you is not something to leave running.
+     * An empty list with this on buys nothing, which is the safe way round.
+     */
+    public boolean celleBuyerUseWhitelist = true;
+    /** Picked celle ids, stored uppercase so the sign's own casing does not matter. */
+    public List<String> celleBuyerWhitelist = new ArrayList<String>();
     public Boolean majesticaEnabled = Boolean.TRUE;
     public String majesticaSelectedWeaponId = "";
     public Boolean freecamEnabled = Boolean.TRUE;
@@ -580,6 +588,10 @@ public class CelleConfig {
                 this.celleBuyerArmSeconds = Math.max(5,
                         Math.min(600, loaded.celleBuyerArmSeconds <= 0 ? 60 : loaded.celleBuyerArmSeconds));
                 this.celleBuyerOnlyConfirmed = loaded.celleBuyerOnlyConfirmed;
+                this.celleBuyerUseWhitelist = loaded.celleBuyerUseWhitelist;
+                if (loaded.celleBuyerWhitelist != null) {
+                    this.celleBuyerWhitelist = loaded.celleBuyerWhitelist;
+                }
                 if (this.staffList.isEmpty()) {
                     String[] defaultStaff = {
                         "Direktør", "Inspektør", "Officer", "Vagt", "Ejer", "Hoved Administrator", "Administrator", "Moderator", "Hjælper",

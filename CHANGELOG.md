@@ -2,6 +2,25 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.5.0
+
+- Celle Buyer only buys celler you picked. Valgte celler opens a list you type
+  ids into, and nothing off that list is touched. This is on by default and an
+  empty list buys nothing, because an addon that claims whatever happens to free
+  up next to you is not something to leave running. Turn the list off if you
+  really do want it to take anything in reach.
+- Each picked celle gets a rainbow box in the world, colour running around the
+  edges so it cannot be mistaken for the green and amber status boxes. Picks
+  ignore the ESP distance limit and draw even with the general celle ESP switched
+  off, since a short list you typed in by hand is worth seeing either way.
+- Boxes come from the recorded position rather than the live scan, so a pick
+  stays boxed once its sign has been seen even after you walk away from it. A
+  celle that has never been scanned says so in the list instead of quietly having
+  no box.
+- Ids are matched without case. The same celle shows up as c1289 while owned and
+  C1289 once free, and matching the sign's own casing would have split one celle
+  into two and missed the buy.
+
 ## 4.4.0
 
 - New addon, Celle Buyer. Claims a celle the moment it becomes buyable. The
