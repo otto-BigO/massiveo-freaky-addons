@@ -47,6 +47,15 @@ public final class ReportWebhookClient {
     // a chunk's JSON past Discord's 2000-char message content limit.
     private static final int CHUNK_SIZE = 12;
 
+    /**
+     * Set when a report is given up on, so the scanner knows the data never
+     * landed and can offer it again. Without this a rate limited report was
+     * dropped silently: the scanner had already recorded that state as sent,
+     * so it would not resend until something else in the cache changed.
+     */
+    private static final java.util.concurrent.atomic.AtomicBoolean LAST_SEND_FAILED =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
     // Retries for a single message before giving up on it. 429s (rate limits)
     // and transient 5xx are retried using the delay Discord itself asks for; a
     // hard 4xx (e.g. 404 bad/expired webhook) is treated as permanent.
@@ -111,6 +120,11 @@ public final class ReportWebhookClient {
     }
 
     /** Fire-and-forget: hands the newest report to the background worker. */
+    /** True once if the last report was given up on. Clears when read. */
+    public static boolean consumeFailure() {
+        return LAST_SEND_FAILED.getAndSet(false);
+    }
+
     public static void report(final List<Celle> celler, final List<String> specialIds) {
         final String url = CelleConfig.reportsWebhookUrl();
         if (url == null || url.trim().isEmpty()) {

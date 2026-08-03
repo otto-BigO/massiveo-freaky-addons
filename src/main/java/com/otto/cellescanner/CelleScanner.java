@@ -491,6 +491,11 @@ public class CelleScanner {
         if (!MassiveOsFreakyAddons.config.botReportEnabled) {
             return;
         }
+        // A report that was rate limited or errored never reached the bot, so
+        // forget that we "sent" it and let the next scan offer it again.
+        if (ReportWebhookClient.consumeFailure()) {
+            lastReportSignature = "";
+        }
         if (System.currentTimeMillis() - lastReportPushMillis < REPORT_COOLDOWN_MS) {
             return;
         }
