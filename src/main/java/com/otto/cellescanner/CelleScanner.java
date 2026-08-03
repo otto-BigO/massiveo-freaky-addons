@@ -321,8 +321,14 @@ public class CelleScanner {
             // what tells us the sign's real cadence and how far a prediction
             // lands from the moment a celle actually frees up.
             if (valueChanged && !isNew) {
+                // This tick IS the witnessed change, so the anchor it creates is
+                // exact. celle.timerConfirmed still holds the value from before
+                // the update at this point, which is false the very first time,
+                // and passing that would throw away the first anchor for every
+                // celle. With signs refreshing every 20 minutes that would cost
+                // a whole cycle per celle before any measurement could start.
                 CelleTimingLog.tick(celleId, celle.remainingSeconds, remaining,
-                        celle.valueUpdatedAt, celle.timerConfirmed);
+                        celle.valueUpdatedAt, true);
             }
             if (statusChanged && !isNew) {
                 if (status == CelleStatus.TIL_SALG) {

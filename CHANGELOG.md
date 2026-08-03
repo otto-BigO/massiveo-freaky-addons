@@ -2,6 +2,14 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.8
+
+- Fixed the timing log throwing away the first anchor for every celle. It read
+  the confirmed flag from before the update, which is false on the very first
+  witnessed change, so an anchor was only kept from the second one onward. With
+  signs refreshing every 20 minutes that cost a full cycle per celle before any
+  measurement could begin. Use this build for measuring, not 4.2.7.
+
 ## 4.2.7
 
 - Added a passive timing log for celle signs. It records only, never acts, and
