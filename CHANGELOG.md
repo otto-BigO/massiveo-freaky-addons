@@ -2,6 +2,14 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.6
+
+- A report that was rate limited past its retries, or failed on the network, was
+  dropped silently. The scanner had already recorded that data as sent, so it
+  would not try again until something else changed, which turned a rate limit
+  into missing data rather than a delay. Failed reports are now offered again on
+  the next scan.
+
 ## 4.2.5
 
 - Celle Bot is now a tile in the menu, under Celler. It had no entry at all in
