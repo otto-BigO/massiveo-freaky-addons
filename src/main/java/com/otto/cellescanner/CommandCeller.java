@@ -121,6 +121,11 @@ public class CommandCeller extends CommandBase {
             CelleActions.toggleEspLabels();
         } else if ("espdistance".equals(sub)) {
             setEspDistance(args);
+        } else if ("timing".equals(sub)) {
+            for (String line : CelleTimingLog.summary()) {
+                CelleActions.message(line);
+            }
+            CelleActions.message("Log: " + CelleTimingLog.path());
         } else if ("bot".equals(sub)) {
             handleBot(args);
         } else if ("special".equals(sub)) {

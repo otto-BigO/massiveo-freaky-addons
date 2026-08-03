@@ -36,6 +36,9 @@ public class Celle {
     // then on, so this flips permanently true.
     public boolean timerConfirmed;
 
+    /** When this celle was last seen flip to TIL_SALG. Timing measurement only. */
+    public long freeSince;
+
     public Celle(BlockPos position) {
         this.position = position;
     }

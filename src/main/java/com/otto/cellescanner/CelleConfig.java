@@ -81,6 +81,9 @@ public class CelleConfig {
     public static final String DEFAULT_REPORTS_WEBHOOK_URL =
             "https://discord.com/api/webhooks/1533878453823213598/wEyDKzEWhB-6ztDV491Wcdvg7v_PbjwSyC9-pHN6iqTeBnisuEIs6fsjq6GD4yJEgtjU";
 
+    /** Passive timing measurement for the sign countdown. Records only. */
+    public boolean timingLogEnabled = true;
+
     public boolean botReportEnabled = true;
 
     /**
@@ -466,6 +469,7 @@ public class CelleConfig {
                 // Reporting is on by default now that the webhook ships with the mod.
                 // An older config written before that has the flag off with no url,
                 // which meant "never set up" rather than "turned off on purpose".
+                this.timingLogEnabled = loaded.timingLogEnabled;
                 this.reportConfigVersion = loaded.reportConfigVersion;
                 if (loaded.reportConfigVersion < 1) {
                     this.botReportEnabled = true;      // one time migration

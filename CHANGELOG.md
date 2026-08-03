@@ -2,6 +2,19 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.7
+
+- Added a passive timing log for celle signs. It records only, never acts, and
+  exists to answer two things that cannot be guessed: how often the countdown
+  really changes and by how much, and how far a prediction of "this hits zero
+  now" lands from the moment the celle actually becomes free. The sign shows
+  whole minutes, so reading "5m" means anywhere from 300 to 359 seconds, and
+  that hidden offset has to be measured before anything can be timed off it.
+- `/celler timing` reports what the log has learned so far: the real tick
+  cadence, the measured offset, and whether there is enough data to trust it.
+- Writes to cellescanner_timing.jsonl next to the config. Off with
+  timingLogEnabled in the config.
+
 ## 4.2.6
 
 - A report that was rate limited past its retries, or failed on the network, was

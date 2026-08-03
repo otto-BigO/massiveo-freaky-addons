@@ -317,6 +317,23 @@ public class CelleScanner {
                 renewed = !isNew && remaining > celle.remainingSeconds;
             }
 
+            // Measurement only, before the old values are overwritten. This is
+            // what tells us the sign's real cadence and how far a prediction
+            // lands from the moment a celle actually frees up.
+            if (valueChanged && !isNew) {
+                CelleTimingLog.tick(celleId, celle.remainingSeconds, remaining,
+                        celle.valueUpdatedAt, celle.timerConfirmed);
+            }
+            if (statusChanged && !isNew) {
+                if (status == CelleStatus.TIL_SALG) {
+                    CelleTimingLog.becameFree(celleId);
+                    celle.freeSince = System.currentTimeMillis();
+                } else if (celle.status == CelleStatus.TIL_SALG) {
+                    CelleTimingLog.wasBought(celleId, owner, celle.freeSince);
+                    celle.freeSince = 0L;
+                }
+            }
+
             celle.status = status;
             celle.celleId = celleId;
             celle.owner = owner;
