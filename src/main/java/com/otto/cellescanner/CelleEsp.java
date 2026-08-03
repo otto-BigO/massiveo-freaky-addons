@@ -10,6 +10,7 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,6 +32,13 @@ public class CelleEsp {
 
     private static final double PAD = 0.02;
     private static final float LABEL_SCALE = 0.035F;
+
+    /**
+     * Reused between frames. The visible set was previously recomputed inline in
+     * both render passes, so every celle had its distance taken twice per frame,
+     * each with a square root.
+     */
+    private final List<Celle> visible = new ArrayList<Celle>();
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -82,14 +90,21 @@ public class CelleEsp {
         // genuinely nearby ones legible matters more than seeing all of them.
         double maxDist = MassiveOsFreakyAddons.config.espMaxDistance;
         boolean limitDistance = maxDist > 0;
+        double maxDistSq = maxDist * maxDist;
+
+        visible.clear();
+        for (Celle c : entries) {
+            if (limitDistance && distanceSqTo(px, py, pz, c) > maxDistSq) {
+                continue;
+            }
+            visible.add(c);
+        }
 
         // pass 1: box outlines (no texture needed)
         GlStateManager.disableTexture2D();
         GL11.glLineWidth(2.5f);
-        for (Celle c : entries) {
-            if (limitDistance && distanceTo(px, py, pz, c) > maxDist) {
-                continue;
-            }
+        for (int i = 0; i < visible.size(); i++) {
+            Celle c = visible.get(i);
             float[] col = colorFor(c);
             drawBoxOutline(c.position, col[0], col[1], col[2], 0.9f);
         }
@@ -106,10 +121,8 @@ public class CelleEsp {
         if (MassiveOsFreakyAddons.config.espLabels) {
             FontRenderer fr = mc.fontRendererObj;
             RenderManager rm = mc.getRenderManager();
-            for (Celle c : entries) {
-                if (limitDistance && distanceTo(px, py, pz, c) > maxDist) {
-                    continue;
-                }
+            for (int i = 0; i < visible.size(); i++) {
+                Celle c = visible.get(i);
                 float[] col = colorFor(c);
                 int color = ((int) (col[0] * 255) << 16) | ((int) (col[1] * 255) << 8) | (int) (col[2] * 255);
                 String label = c.timerConfirmed ? c.celleId : "~" + c.celleId;
@@ -127,6 +140,14 @@ public class CelleEsp {
         GlStateManager.disableBlend();
         GlStateManager.enableLighting();
         GlStateManager.popMatrix();
+    }
+
+    /** Squared distance, so the range test avoids a square root per celle. */
+    private static double distanceSqTo(double px, double py, double pz, Celle c) {
+        double dx = px - (c.position.getX() + 0.5);
+        double dy = py - (c.position.getY() + 0.5);
+        double dz = pz - (c.position.getZ() + 0.5);
+        return dx * dx + dy * dy + dz * dz;
     }
 
     private static double distanceTo(double px, double py, double pz, Celle c) {

@@ -202,28 +202,35 @@ public class CelleScanner {
                 continue;
             }
 
+            // Most signs in a loaded world are not celle signs, so decide from the
+            // first two lines before cleaning and upper casing the rest. This used
+            // to clean all four lines and build a joined string for every sign.
             String line1 = clean(sign.signText[0].getUnformattedText());
             String line2 = clean(sign.signText[1].getUnformattedText());
+            String u1 = line1.toUpperCase(java.util.Locale.ROOT);
+            String u2 = line2.toUpperCase(java.util.Locale.ROOT);
+
+            boolean looksSold = u1.contains("SOLGT");
+            boolean looksForSale = u1.contains("TIL SALG") || u1.contains("LEDIG")
+                    || u2.contains("TIL SALG") || u2.contains("LEDIG");
+            if (!looksSold && !looksForSale) {
+                continue;
+            }
+
             String line3 = clean(sign.signText[2].getUnformattedText());
             String line4 = clean(sign.signText[3].getUnformattedText());
+            String u3 = line3.toUpperCase(java.util.Locale.ROOT);
 
             CelleStatus status;
             String owner = null;
             String celleId;
             long remaining;
 
-            String u1 = line1.toUpperCase(java.util.Locale.ROOT);
-            String u2 = line2.toUpperCase(java.util.Locale.ROOT);
-            String u3 = line3.toUpperCase(java.util.Locale.ROOT);
-
-            String fullText = (u1 + " " + u2 + " " + u3);
-            if (fullText.contains("INFO") || fullText.contains("REGLER") || fullText.contains("SKILT")
-                    || fullText.contains("HJÆLP") || fullText.contains("PRIS") || fullText.contains("KLIK")
-                    || fullText.contains("VELKOMMEN") || fullText.contains("SPAWN")) {
+            if (isInfoSign(u1) || isInfoSign(u2) || isInfoSign(u3)) {
                 continue;
             }
 
-            if (u1.contains("SOLGT")) {
+            if (looksSold) {
                 status = CelleStatus.SOLGT;
                 owner = line2;
                 celleId = line3;
@@ -247,7 +254,7 @@ public class CelleScanner {
                 continue;
             }
 
-            if (celleId == null || celleId.isEmpty() || !celleId.matches(".*\\d+.*")) {
+            if (celleId == null || celleId.isEmpty() || !hasDigit(celleId)) {
                 continue;
             }
 
@@ -370,6 +377,7 @@ public class CelleScanner {
         }
 
         recomputeUpcoming();
+        invalidateUpcoming();
         maybeReportToBot();
     }
 
@@ -398,7 +406,37 @@ public class CelleScanner {
         return upcomingCache;
     }
 
+    /**
+     * Cached because both the HUD overlay and the world ESP ask for this every
+     * frame, and building it walks the whole session cache, does a map lookup and
+     * a timer calculation per entry, then sorts. That was happening twice per
+     * frame; now it happens a few times a second and the scan invalidates it so
+     * fresh data still shows up immediately.
+     */
+    private static List<Celle> upcomingMemo = Collections.emptyList();
+    private static int upcomingMemoDim = Integer.MIN_VALUE;
+    private static long upcomingMemoAtMs = 0L;
+    private static final long UPCOMING_MEMO_MS = 200L;
+
+    /** Drops the cache so the next read rebuilds. Called when the data changes. */
+    public static void invalidateUpcoming() {
+        upcomingMemoAtMs = 0L;
+    }
+
     public static List<Celle> upcomingForDimension(int dimension) {
+        long now = System.currentTimeMillis();
+        if (dimension == upcomingMemoDim && upcomingMemoAtMs != 0L
+                && now - upcomingMemoAtMs < UPCOMING_MEMO_MS) {
+            return upcomingMemo;
+        }
+        List<Celle> built = buildUpcomingForDimension(dimension);
+        upcomingMemo = built;
+        upcomingMemoDim = dimension;
+        upcomingMemoAtMs = now;
+        return built;
+    }
+
+    private static List<Celle> buildUpcomingForDimension(int dimension) {
         List<Celle> result = new ArrayList<Celle>();
         for (Map.Entry<String, Celle> e : SESSION_CACHE.entrySet()) {
             Integer dim = SESSION_DIM.get(e.getKey());
@@ -490,6 +528,24 @@ public class CelleScanner {
                     .append(c.timerConfirmed).append(',');
         }
         return sb.toString();
+    }
+
+    /** Cheaper than celleId.matches(".*\\d+.*"), which compiled a Pattern per sign. */
+    /** Info boards, rule boards and shop signs that are not celler. */
+    private static boolean isInfoSign(String upper) {
+        return upper.contains("INFO") || upper.contains("REGLER") || upper.contains("SKILT")
+                || upper.contains("HJÆLP") || upper.contains("PRIS") || upper.contains("KLIK")
+                || upper.contains("VELKOMMEN") || upper.contains("SPAWN");
+    }
+
+    private static boolean hasDigit(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '0' && ch <= '9') {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String clean(String text) {
