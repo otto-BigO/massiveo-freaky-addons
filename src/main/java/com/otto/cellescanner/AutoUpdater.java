@@ -199,32 +199,61 @@ public class AutoUpdater {
     }
 
     private static File writeSwapScript(File oldJar, File pending, File dest, boolean windows) throws Exception {
-        File dir = dest.getParentFile();
+        // The helper lives in the temp directory rather than next to the jar. It
+        // is not a mod, it has no business in the mods folder, and if it ever
+        // fails to remove itself the leftover is somewhere the OS already cleans.
+        File dir = new File(System.getProperty("java.io.tmpdir", "."));
+        if (!dir.isDirectory()) {
+            dir = dest.getParentFile();
+        }
         String old = oldJar.getAbsolutePath();
         String pend = pending.getAbsolutePath();
         String fin = dest.getAbsolutePath();
         File script;
         String content;
         if (windows) {
-            // Loop until the old jar can be deleted (i.e. the JVM has exited and
-            // released it), then move the staged jar into place and self-delete.
+            // Wait for the old jar's lock to clear, i.e. for the JVM to have
+            // exited, then move the staged jar into place.
+            //
+            // The last line is not a plain "del %~f0". cmd.exe reads a batch file
+            // as it runs it, so a batch that deletes itself and then hands control
+            // back leaves cmd looking for the next line of a file that is no
+            // longer there, and it says "The batch file cannot be found". The
+            // (goto) pops out of the batch first, which ends the script, and the
+            // delete still runs because the whole line was already parsed.
+            //
+            // The wait is bounded. It used to loop forever, so a jar that could
+            // never be deleted, for instance because of file permissions, left a
+            // hidden process spinning until the machine was restarted.
             script = new File(dir, "massiveo-update.bat");
             content = "@echo off\r\n"
-                    + "setlocal\r\n"
+                    + "set /a MASSIVEO_TRIES=0\r\n"
                     + ":wait\r\n"
                     + "del \"" + old + "\" >nul 2>&1\r\n"
-                    + "if exist \"" + old + "\" (\r\n"
-                    + "  ping -n 2 127.0.0.1 >nul\r\n"
-                    + "  goto wait\r\n"
-                    + ")\r\n"
+                    + "if not exist \"" + old + "\" goto swap\r\n"
+                    + "set /a MASSIVEO_TRIES+=1\r\n"
+                    + "if %MASSIVEO_TRIES% GEQ 60 goto done\r\n"
+                    + "ping -n 2 127.0.0.1 >nul\r\n"
+                    + "goto wait\r\n"
+                    + ":swap\r\n"
                     + "move /y \"" + pend + "\" \"" + fin + "\" >nul 2>&1\r\n"
-                    + "del \"%~f0\"\r\n";
+                    + ":done\r\n"
+                    + "(goto) 2>nul & del \"%~f0\"\r\n";
         } else {
+            // Unix does not lock the running jar, so this is normally one pass.
+            // Bounded for the same reason as above. Deleting the script while the
+            // shell still has it open is fine here: the file stays readable
+            // through the open descriptor until the shell is done with it.
             script = new File(dir, "massiveo-update.sh");
             content = "#!/bin/sh\n"
-                    + "while ! rm -f \"" + old + "\" 2>/dev/null; do sleep 1; done\n"
+                    + "i=0\n"
+                    + "while [ $i -lt 60 ]; do\n"
+                    + "  rm -f \"" + old + "\" 2>/dev/null && break\n"
+                    + "  i=$((i+1))\n"
+                    + "  sleep 1\n"
+                    + "done\n"
                     + "mv -f \"" + pend + "\" \"" + fin + "\"\n"
-                    + "rm -- \"$0\"\n";
+                    + "rm -f -- \"$0\"\n";
         }
         OutputStream out = null;
         try {

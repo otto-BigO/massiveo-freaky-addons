@@ -2,6 +2,21 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.5.1
+
+- Fixed "The batch file cannot be found" at the end of a Windows update. The
+  helper that swaps the jar after the game closes ended by deleting itself, and
+  cmd.exe reads a batch file as it runs it, so it was left looking for the next
+  line of a file that was no longer there. The update itself had already
+  applied by that point, since the jar is moved into place before that line, so
+  this was a real error message about nothing. It exits the script before
+  removing itself now.
+- The helper waited forever for the old jar's lock to clear. A jar that could
+  never be deleted, for instance because of file permissions, left a hidden
+  process spinning until the machine was restarted. It gives up after a minute.
+- The helper is written to the temp directory instead of the mods folder, where
+  it never belonged.
+
 ## 4.5.0
 
 - Celle Buyer only buys celler you picked. Valgte celler opens a list you type
