@@ -44,14 +44,11 @@ processResources {
 
     filteringCharset = 'UTF-8'
 
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
+    // filesMatching edits the copy that processResources already makes. The two
+    // from() blocks this replaces added a second copy of mcmod.info on top of
+    // that implicit one, and EXCLUDE kept the first, so the expanded version was
+    // the one being thrown away and every build shipped a literal ${version}.
+    filesMatching('mcmod.info') {
         expand 'version': project.version, 'mcversion': project.minecraft.version
     }
-
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

@@ -1,7 +1,7 @@
 [
 {
   "modid": "cellescanner",
-  "name": "Massiveo's Freaky Addons 4.2.3",
+  "name": "Massiveo's Freaky Addons",
   "description": "Fejlrettelser og optimeringer i knap-kanter, Armour Skins og celle skanning",
   "version": "${version}",
   "mcversion": "${mcversion}",
