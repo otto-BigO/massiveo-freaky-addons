@@ -257,6 +257,25 @@ public class CelleConfig {
     public int vkAttackDelayMs = 100;
     public boolean vkRequireLineOfSight = true;
     public boolean vkTargetInvisible = false;
+    // Celle Buyer. Off by default, this only runs when switched on.
+    public boolean celleBuyerEnabled = false;
+    /** Rotation goes in the packet only, the camera does not move. */
+    public boolean celleBuyerSilentAim = true;
+    /** Unlocks reach past vanilla, so you can stand back out of the crowd. */
+    public boolean celleBuyerExtendedReach = false;
+    /** Only used when extended reach is on, otherwise reach is held at vanilla. */
+    public float celleBuyerReach = 5.0f;
+    /** Start clicking this long before the predicted flip. */
+    public int celleBuyerPreClickMs = 250;
+    public int celleBuyerClickIntervalMs = 100;
+    /** How far ahead of a predicted expiry to start tracking a celle. */
+    public int celleBuyerArmSeconds = 60;
+    /**
+     * Only predict from a countdown this client watched change. Without it the
+     * sign may have been read partway through a step and the anchor is early by
+     * up to a full twenty minutes.
+     */
+    public boolean celleBuyerOnlyConfirmed = true;
     public Boolean majesticaEnabled = Boolean.TRUE;
     public String majesticaSelectedWeaponId = "";
     public Boolean freecamEnabled = Boolean.TRUE;
@@ -548,6 +567,19 @@ public class CelleConfig {
                 this.vkAttackDelayMs = Math.max(50, loaded.vkAttackDelayMs <= 0 ? 100 : loaded.vkAttackDelayMs);
                 this.vkRequireLineOfSight = loaded.vkRequireLineOfSight;
                 this.vkTargetInvisible = loaded.vkTargetInvisible;
+                this.celleBuyerEnabled = loaded.celleBuyerEnabled;
+                this.celleBuyerSilentAim = loaded.celleBuyerSilentAim;
+                this.celleBuyerExtendedReach = loaded.celleBuyerExtendedReach;
+                this.celleBuyerReach = Math.max(CelleBuyer.VANILLA_REACH,
+                        Math.min(CelleBuyer.MAX_REACH,
+                                loaded.celleBuyerReach <= 0f ? 5.0f : loaded.celleBuyerReach));
+                this.celleBuyerPreClickMs = Math.max(0,
+                        Math.min(1000, loaded.celleBuyerPreClickMs));
+                this.celleBuyerClickIntervalMs = Math.max(50,
+                        loaded.celleBuyerClickIntervalMs <= 0 ? 100 : loaded.celleBuyerClickIntervalMs);
+                this.celleBuyerArmSeconds = Math.max(5,
+                        Math.min(600, loaded.celleBuyerArmSeconds <= 0 ? 60 : loaded.celleBuyerArmSeconds));
+                this.celleBuyerOnlyConfirmed = loaded.celleBuyerOnlyConfirmed;
                 if (this.staffList.isEmpty()) {
                     String[] defaultStaff = {
                         "Direktør", "Inspektør", "Officer", "Vagt", "Ejer", "Hoved Administrator", "Administrator", "Moderator", "Hjælper",

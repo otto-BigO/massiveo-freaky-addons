@@ -2,6 +2,31 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.4.0
+
+- New addon, Celle Buyer. Claims a celle the moment it becomes buyable. The
+  timing is not guesswork: every countdown value is an exact multiple of 1200
+  seconds and the sign steps down one notch every 1199.6s, measured over twelve
+  consecutive ticks, so a celle that expires on schedule can be predicted from an
+  anchor taken twenty minutes earlier. It arms before the sign visibly changes.
+- Skjult sigte sends the rotation in the packet only, so the camera never swings
+  and you keep whatever view you were holding.
+- Udvidet rækkevidde lets you stand back out of the crowd instead of pressed
+  against the sign. Off by default and held at vanilla reach until you turn it
+  on, then adjustable up to the six blocks the server will still accept. Past
+  that is only rejected packets.
+- Uses the sign by position rather than through whatever the crosshair is over,
+  which is the part that survives a crowd. A player standing between you and the
+  sign blocks the client raytrace but not this, and being knocked around only
+  matters if it puts you out of reach.
+- Forudklik starts clicking slightly before the predicted flip so the click is
+  already in flight when the server releases the celle. Clicking a sold sign
+  costs nothing, which is what makes the lead safe to spend.
+- Also fires reactively, because a celle can be dumped from days out when an
+  owner sells up and nothing predicts that. An armed target that gains time
+  instead of losing it is dropped rather than clicked at, since an owner renewing
+  one tick before expiry is the normal way a camp ends.
+
 ## 4.3.0
 
 - The offset measurement was measuring nothing. The tick that takes a celle to

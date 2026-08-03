@@ -328,6 +328,32 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Celle Buyer";
+            }
+
+            public String description() {
+                return "Køber cellen i det sekund den bliver ledig (egen risiko)";
+            }
+
+            public String category() {
+                return "Celler";
+            }
+
+            public boolean isActive() {
+                return config.celleBuyerEnabled;
+            }
+
+            public void open() {
+                CelleActions.openCelleBuyer();
+            }
+
+            public void toggle() {
+                config.celleBuyerEnabled = !config.celleBuyerEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "VK Stealer";
             }
 

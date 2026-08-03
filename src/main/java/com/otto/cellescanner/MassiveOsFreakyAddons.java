@@ -20,7 +20,7 @@ public class MassiveOsFreakyAddons {
     // the display name is the new hub brand. See MassiveoAddons.
     public static final String MODID = "cellescanner";
     public static final String NAME = "Massiveo's Freaky Addons 4.2.3";
-    public static final String VERSION = "4.3.0";
+    public static final String VERSION = "4.4.0";
 
     public static CelleConfig config;
     public static CelleScanner scanner;
@@ -108,6 +108,7 @@ public class MassiveOsFreakyAddons {
         MinecraftForge.EVENT_BUS.register(new AutoMine());
         MinecraftForge.EVENT_BUS.register(new AutoFish());
         MinecraftForge.EVENT_BUS.register(new VkStealer());
+        MinecraftForge.EVENT_BUS.register(new CelleBuyer());
         MinecraftForge.EVENT_BUS.register(new AutoCrate());
         MinecraftForge.EVENT_BUS.register(AutoArmor.INSTANCE);
         MinecraftForge.EVENT_BUS.register(new FastMine());
