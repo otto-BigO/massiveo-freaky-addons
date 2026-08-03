@@ -13,8 +13,16 @@ import org.lwjgl.opengl.GL11;
  */
 public class StyledButton extends GuiButton {
 
+    private static final long PRESS_MS = 180L;
+
     private final AnimationValue hoverAnim = new AnimationValue(0f);
     private final AnimationValue scaleAnim = new AnimationValue(1.0f);
+    /**
+     * While a press is playing, the hover target is not applied. Without this the
+     * next frame overwrote the press compression with the hover scale, so the
+     * click never actually looked like it depressed.
+     */
+    private long pressUntilMs = 0L;
 
     public StyledButton(int id, int x, int y, int width, int height, String text) {
         super(id, x, y, width, height, text);
@@ -29,12 +37,17 @@ public class StyledButton extends GuiButton {
         this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition
                 && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
 
+        boolean pressing = System.currentTimeMillis() < pressUntilMs;
         if (this.enabled && this.hovered) {
             hoverAnim.animateTo(1.0f, 120);
-            scaleAnim.animateTo(1.02f, 120);
+            if (!pressing) {
+                scaleAnim.animateTo(1.02f, 120);
+            }
         } else {
             hoverAnim.animateTo(0.0f, 160);
-            scaleAnim.animateTo(1.00f, 160);
+            if (!pressing) {
+                scaleAnim.animateTo(1.00f, 160);
+            }
         }
 
         float fade = hoverAnim.getValue();
@@ -100,8 +113,9 @@ public class StyledButton extends GuiButton {
     public boolean mousePressed(Minecraft mc, int mouseX, int mouseY) {
         boolean pressed = super.mousePressed(mc, mouseX, mouseY);
         if (pressed) {
+            pressUntilMs = System.currentTimeMillis() + PRESS_MS;
             scaleAnim.setValueInstant(0.95f);
-            scaleAnim.animateTo(1.00f, 180);
+            scaleAnim.animateTo(1.02f, PRESS_MS);
             ClickParticleEngine.INSTANCE.spawnBurst(mouseX, mouseY, Style.getAccentColor());
         }
         return pressed;

@@ -310,6 +310,21 @@ public class GuiAddonsHub extends GuiScreen {
         float pVal = panelAnim.getValue();
         float offsetY = (1.0f - pVal) * 12.0f; // Slide up 12px
 
+        // Ambient field behind the card. Drawn before the panel transform so the
+        // motes stay put while the card slides in, which sells the depth.
+        int halfW = Style.cardHalfWidth(this.width);
+        int halfH = Style.cardHalfHeight(this.height);
+        int ccx = this.width / 2;
+        int ccy = this.height / 2;
+        AmbientParticleEngine.INSTANCE.renderBehind(
+                this.width, this.height,
+                ccx - halfW, ccy - halfH, ccx + halfW, ccy + halfH,
+                mouseX, mouseY);
+
+        // Slow breathing halo around the card edge, fading in with the panel.
+        float breathe = 0.5f + 0.5f * (float) Math.sin(System.currentTimeMillis() / 1400.0);
+        Style.cardGlow(this.width, this.height, pVal * (0.45f + 0.55f * breathe));
+
         GL11.glPushMatrix();
         GL11.glTranslatef(0.0f, -offsetY, 0.0f);
 

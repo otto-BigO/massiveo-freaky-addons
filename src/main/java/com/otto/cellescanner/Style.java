@@ -119,14 +119,53 @@ public final class Style {
         Gui.drawRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, bgColor);
     }
 
+    /** Half width of the centered card. Exposed so callers do not re-derive it. */
+    public static int cardHalfWidth(int screenW) {
+        return Math.min(screenW / 2 - 8, 170);
+    }
+
+    /** Half height of the centered card. */
+    public static int cardHalfHeight(int screenH) {
+        return Math.min(screenH / 2 - 8, 150);
+    }
+
     /**
      * A centered card the screen content sits inside.
      */
     public static void card(int screenW, int screenH) {
         int cx = screenW / 2;
         int cy = screenH / 2;
-        int halfW = Math.min(cx - 8, 170);
-        int halfH = Math.min(cy - 8, 150);
+        int halfW = cardHalfWidth(screenW);
+        int halfH = cardHalfHeight(screenH);
         panel(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    }
+
+    /**
+     * A soft accent halo just outside the card. Alpha is supplied by the caller so
+     * it can breathe with a slow pulse without this class holding animation state.
+     */
+    public static void cardGlow(int screenW, int screenH, float strength) {
+        if (strength <= 0f) {
+            return;
+        }
+        if (strength > 1f) {
+            strength = 1f;
+        }
+        int cx = screenW / 2;
+        int cy = screenH / 2;
+        int halfW = cardHalfWidth(screenW);
+        int halfH = cardHalfHeight(screenH);
+        int accent = getAccentColor() & 0xFFFFFF;
+
+        // Three rings, each dimmer and further out, approximating a blur.
+        for (int i = 1; i <= 3; i++) {
+            int a = (int) (strength * (26f / i));
+            if (a <= 1) {
+                continue;
+            }
+            int col = (a << 24) | accent;
+            int pad = i * 2;
+            drawOutline(cx - halfW - pad, cy - halfH - pad, cx + halfW + pad, cy + halfH + pad, col);
+        }
     }
 }

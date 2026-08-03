@@ -27,6 +27,7 @@ public class ClickParticleEngine {
     }
 
     private final List<Particle> pool = new ArrayList<Particle>();
+    private long lastUpdateMs = 0L;
 
     private ClickParticleEngine() {
         for (int i = 0; i < MAX_PARTICLES; i++) {
@@ -64,7 +65,15 @@ public class ClickParticleEngine {
         for (Particle p : pool) {
             if (!p.active) return p;
         }
-        return pool.get(0); // Recycler
+        // Full: reuse the oldest burst rather than always stealing slot 0, which
+        // made that one particle flicker on every click once the pool filled up.
+        Particle oldest = pool.get(0);
+        for (Particle p : pool) {
+            if (p.spawnTimeMs < oldest.spawnTimeMs) {
+                oldest = p;
+            }
+        }
+        return oldest;
     }
 
     /**
@@ -72,6 +81,18 @@ public class ClickParticleEngine {
      */
     public void renderAndUpdate() {
         long now = System.currentTimeMillis();
+
+        // Motion used to be applied per frame, so bursts flew several times
+        // faster on a 240 fps machine than on a 60 fps one. Step by real time
+        // instead, normalised so the tuned speeds still look the same at 60 fps.
+        if (lastUpdateMs == 0L) {
+            lastUpdateMs = now;
+        }
+        float dt = (now - lastUpdateMs) / 1000f;
+        lastUpdateMs = now;
+        if (dt > 0.05f) dt = 0.05f;
+        if (dt < 0f) dt = 0f;
+        float step = dt * 60f;
 
         for (Particle p : pool) {
             if (!p.active) continue;
@@ -85,9 +106,9 @@ public class ClickParticleEngine {
             float progress = (float) elapsed / (float) p.lifetimeMs;
             float alphaProgress = 1.0f - EaseUtils.easeOutCubic(progress);
 
-            p.x += p.vx * 0.4f;
-            p.y += p.vy * 0.4f;
-            p.vy += 0.05f; // Gentle gravity
+            p.x += p.vx * 0.4f * step;
+            p.y += p.vy * 0.4f * step;
+            p.vy += 0.05f * step; // Gentle gravity
 
             int alphaInt = Math.max(0, Math.min(255, (int) (alphaProgress * 255)));
             int col = (alphaInt << 24) | (p.color & 0xFFFFFF);
