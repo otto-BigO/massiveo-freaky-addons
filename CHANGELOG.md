@@ -13,6 +13,11 @@ Older releases are on the GitHub releases page.
 - Reporting defaults to on. A config written before this, which had it off with
   no webhook, is switched on once, since that meant "never set up" rather than
   "turned off on purpose". After that your choice is kept.
+- Celle scanner runs lighter. The upcoming list was rebuilt and re-sorted from
+  scratch twice every frame, once for the HUD and once for the ESP. The ESP also
+  measured the distance to every celle twice per frame, each with a square root.
+  The sign scan cleaned all four lines of every sign in every loaded chunk before
+  deciding it was not a celle sign at all.
 
 ## 4.2.3
 
