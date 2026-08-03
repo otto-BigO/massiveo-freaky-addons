@@ -2,6 +2,31 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.3
+
+- New addon, VK Stealer. Locks a vagt or officer in reach and lands the
+  finishing hit. Because a crowd is usually beating on the same guard it holds
+  off by default until the target is low, then commits. All 109 staff accounts
+  are matched by exact username, with rank.
+- Settings screen for VK Stealer: steal mode and its threshold, swing delay,
+  reach, silent or smooth aim, line of sight, and what to do when health cannot
+  be read. A live line shows the locked guard, their rank and health.
+- Armour skins now apply when the server writes Protection as lore text rather
+  than as a real enchantment, which is how guard and shop gear arrives. The
+  golden helmet was the clearest case since it needs any enchantment at all.
+- Theme screen fixes. The opacity slider and stepper disagreed on their range
+  and the first fifth of the bar did nothing. Dragging a slider rewrote the
+  config file on every frame. A custom accent colour left text green instead of
+  following the theme. The live preview card could be dragged off screen with
+  no way to get it back, and clicking it also pressed the button underneath.
+- Drifting background particles behind the menus, in the theme colour, fading
+  out around the card so they never cover the content.
+- The open animation now runs on every screen instead of only the ones that had
+  it copied in by hand.
+- Button presses actually animate now. The press compression was being
+  overwritten by the hover state on the very next frame.
+- Click particles no longer fly faster on a high refresh rate machine.
+
 ## 4.2.0
 
 - Fixed the broken Armour Skins textures. The MesterHolm set was flat and
