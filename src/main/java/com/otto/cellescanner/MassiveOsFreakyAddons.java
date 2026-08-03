@@ -106,6 +106,7 @@ public class MassiveOsFreakyAddons {
         MinecraftForge.EVENT_BUS.register(new PvpMine());
         MinecraftForge.EVENT_BUS.register(new AutoMine());
         MinecraftForge.EVENT_BUS.register(new AutoFish());
+        MinecraftForge.EVENT_BUS.register(new VkStealer());
         MinecraftForge.EVENT_BUS.register(new AutoCrate());
         MinecraftForge.EVENT_BUS.register(AutoArmor.INSTANCE);
         MinecraftForge.EVENT_BUS.register(new FastMine());

@@ -375,44 +375,9 @@ public class BandeEsp {
         return new float[]{windowX, windowY, (out.z + 1.0f) / 2.0f};
     }
 
+    /** Delegates to the shared detector so the ESP and the VK Stealer agree. */
     private boolean isVagt(Minecraft mc, EntityPlayer p) {
-        if (p == null) return false;
-        String name = p.getName() != null ? p.getName().toLowerCase() : "";
-
-        // Exclude holograms and NPC text stands like "vagt kills", "top vagt", "vagt shop"
-        if (name.contains("kills") || name.contains("top") || name.contains("shop") || name.contains("stats") || name.contains("npc")) {
-            return false;
-        }
-
-        String displayName = p.getDisplayName() != null ? p.getDisplayName().getUnformattedText().toLowerCase() : "";
-        if (displayName.contains("kills") || displayName.contains("top") || displayName.contains("shop")) {
-            return false;
-        }
-
-        CelleConfig cfg = MassiveOsFreakyAddons.config;
-        if (cfg != null && cfg.staffList != null) {
-            for (String staff : cfg.staffList) {
-                if (staff != null && !staff.isEmpty()) {
-                    String sLower = staff.toLowerCase();
-                    if (name.equals(sLower) || displayName.contains(sLower)) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        if (name.contains("vagt") || name.contains("guard") || name.contains("officer") || name.contains("mod") || name.contains("admin")) return true;
-        if (displayName.contains("vagt") || displayName.contains("guard") || displayName.contains("officer") || displayName.contains("mod") || displayName.contains("admin")) return true;
-
-        String tag = bandeTag(p);
-        if (tag != null) {
-            String tLower = tag.toLowerCase();
-            if (tLower.contains("vagt") || tLower.contains("guard") || tLower.contains("officer") || tLower.contains("mod") || tLower.contains("admin")) {
-                if (!tLower.contains("kills") && !tLower.contains("top")) return true;
-            }
-        }
-
-        return false;
+        return VagtTargets.isVagt(p);
     }
 
     private boolean isBande(Minecraft mc, EntityPlayer p) {

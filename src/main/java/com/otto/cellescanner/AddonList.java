@@ -302,6 +302,35 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "VK Stealer";
+            }
+
+            public String description() {
+                return "Tager sidste hit p\u00e5 vagter (" + VagtRoster.size() + " p\u00e5 listen - egen risiko)";
+            }
+
+            public String category() {
+                return "Tracking";
+            }
+
+            public boolean isActive() {
+                return config.vkStealerEnabled;
+            }
+
+            public void open() {
+                config.vkStealerEnabled = !config.vkStealerEnabled;
+                config.save();
+                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
+                        new GuiAddonsHub("Tracking"));
+            }
+
+            public void toggle() {
+                config.vkStealerEnabled = !config.vkStealerEnabled; config.save();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Auto Fish";
             }
 

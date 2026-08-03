@@ -215,6 +215,23 @@ public class CelleConfig {
     public Boolean autoMineStaffDisconnect = Boolean.FALSE;
     public Boolean autoMineSmartScaffold = Boolean.TRUE;
     public List<String> staffList = new ArrayList<String>();
+
+    // VK Stealer (vagt kill). Off by default, this only runs when switched on.
+    public boolean vkStealerEnabled = false;
+    /** Hold fire until the guard is low, so the finishing hit is the one that lands. */
+    public boolean vkStealOnly = true;
+    /** Attack once health drops to this fraction or below. */
+    public float vkHealthThreshold = 0.30f;
+    /** When health cannot be read at all, attack anyway rather than never firing. */
+    public boolean vkAttackWhenHealthUnknown = true;
+    /** Rotation is sent with the packet only, the camera does not move. */
+    public boolean vkSilentAim = true;
+    /** Only used when silent aim is off: ease onto the target instead of snapping. */
+    public boolean vkSmoothAim = true;
+    public float vkReach = 3.0f;
+    public int vkAttackDelayMs = 100;
+    public boolean vkRequireLineOfSight = true;
+    public boolean vkTargetInvisible = false;
     public Boolean majesticaEnabled = Boolean.TRUE;
     public String majesticaSelectedWeaponId = "";
     public Boolean freecamEnabled = Boolean.TRUE;
@@ -485,6 +502,17 @@ public class CelleConfig {
                 this.autoMineStaffDisconnect = loaded.autoMineStaffDisconnect != null ? loaded.autoMineStaffDisconnect : Boolean.FALSE;
                 this.autoMineSmartScaffold = loaded.autoMineSmartScaffold != null ? loaded.autoMineSmartScaffold : Boolean.TRUE;
                 this.staffList = loaded.staffList != null ? loaded.staffList : new ArrayList<String>();
+                this.vkStealerEnabled = loaded.vkStealerEnabled;
+                this.vkStealOnly = loaded.vkStealOnly;
+                this.vkHealthThreshold = Math.max(0.05f, Math.min(1.0f,
+                        loaded.vkHealthThreshold <= 0f ? 0.30f : loaded.vkHealthThreshold));
+                this.vkAttackWhenHealthUnknown = loaded.vkAttackWhenHealthUnknown;
+                this.vkSilentAim = loaded.vkSilentAim;
+                this.vkSmoothAim = loaded.vkSmoothAim;
+                this.vkReach = Math.max(1.0f, Math.min(3.0f, loaded.vkReach <= 0f ? 3.0f : loaded.vkReach));
+                this.vkAttackDelayMs = Math.max(50, loaded.vkAttackDelayMs <= 0 ? 100 : loaded.vkAttackDelayMs);
+                this.vkRequireLineOfSight = loaded.vkRequireLineOfSight;
+                this.vkTargetInvisible = loaded.vkTargetInvisible;
                 if (this.staffList.isEmpty()) {
                     String[] defaultStaff = {
                         "Direktør", "Inspektør", "Officer", "Vagt", "Ejer", "Hoved Administrator", "Administrator", "Moderator", "Hjælper",
