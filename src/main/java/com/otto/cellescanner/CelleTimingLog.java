@@ -159,7 +159,12 @@ public final class CelleTimingLog {
         List<Long> offsets = new ArrayList<Long>();
         List<Long> drops = new ArrayList<Long>();
         List<Long> cadences = new ArrayList<Long>();
-        int ticks = 0, frees = 0, boughts = 0, noAnchor = 0;
+        List<Long> renewals = new ArrayList<Long>();
+        // Last real tick per celle, so cadence is measured between two actual
+        // ticks. The stored sincePrevChange can span a rehydration or a first
+        // sighting, which is not a cadence at all.
+        Map<String, Long> lastTickAt = new HashMap<String, Long>();
+        int ticks = 0, frees = 0, boughts = 0, noAnchor = 0, quantised = 0, unquantised = 0;
 
         BufferedReader reader = null;
         try {
@@ -167,11 +172,32 @@ public final class CelleTimingLog {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.indexOf("\"tick\"") >= 0) {
-                    ticks++;
                     long d = readNum(line, "droppedSeconds");
-                    if (d > 0L && d != Long.MIN_VALUE) drops.add(Long.valueOf(d));
-                    long c = readNum(line, "sincePrevChangeMs");
-                    if (c > 0L && c != Long.MIN_VALUE) cadences.add(Long.valueOf(c));
+                    String id = readStr(line, "celle");
+                    long at = readNum(line, "t");
+
+                    if (d < 0L && d != Long.MIN_VALUE) {
+                        // The countdown went up, so the owner bought more time.
+                        renewals.add(Long.valueOf(-d));
+                    } else if (d > 0L && d != Long.MIN_VALUE) {
+                        ticks++;
+                        drops.add(Long.valueOf(d));
+                        long newRem = readNum(line, "newRemaining");
+                        if (newRem != Long.MIN_VALUE && d > 0) {
+                            if (newRem % d == 0L) {
+                                quantised++;
+                            } else {
+                                unquantised++;
+                            }
+                        }
+                        if (id != null && at != Long.MIN_VALUE) {
+                            Long prev = lastTickAt.get(id);
+                            if (prev != null) {
+                                cadences.add(Long.valueOf(at - prev.longValue()));
+                            }
+                            lastTickAt.put(id, Long.valueOf(at));
+                        }
+                    }
                 } else if (line.indexOf("\"free\"") >= 0) {
                     frees++;
                     if (line.indexOf("noAnchor") >= 0) {
@@ -193,16 +219,30 @@ public final class CelleTimingLog {
             close(reader);
         }
 
-        out.add("Timing-log: " + ticks + " tick, " + frees + " frigivet, " + boughts + " koebt");
+        out.add("Timing-log: " + ticks + " tick, " + renewals.size() + " fornyet, "
+                + frees + " frigivet, " + boughts + " koebt");
 
         if (!drops.isEmpty()) {
-            out.add("Skiltet falder typisk " + median(drops) + "s pr. opdatering"
+            out.add("Skiltet falder " + median(drops) + "s pr. opdatering"
                     + " (min " + Collections.min(drops) + "s, max " + Collections.max(drops) + "s)");
+            if (unquantised == 0 && quantised > 0) {
+                out.add("Alle vaerdier er praecise multipla af faldet, saa skiltet"
+                        + " taeller i faste spring.");
+            } else if (unquantised > 0) {
+                out.add(unquantised + " vaerdier passede ikke i faste spring.");
+            }
         }
-        if (!cadences.isEmpty()) {
-            out.add("Opdaterer ca. hvert " + (median(cadences) / 1000L) + "s"
+        if (cadences.size() >= 2) {
+            out.add("Mellem to rigtige tick: " + (median(cadences) / 1000L) + "s"
                     + " (min " + (Collections.min(cadences) / 1000L) + "s, max "
                     + (Collections.max(cadences) / 1000L) + "s)");
+        } else {
+            out.add("Endnu ikke to tick i traek paa samme celle, saa kadencen er ukendt.");
+        }
+        if (!renewals.isEmpty()) {
+            out.add("Ejere koeber tid: median +" + (median(renewals) / 3600L) + "t"
+                    + " over " + renewals.size() + " gange. En celle du venter paa"
+                    + " kan altsaa bare blive fornyet.");
         }
 
         if (offsets.isEmpty()) {
@@ -274,6 +314,17 @@ public final class CelleTimingLog {
         } catch (NumberFormatException e) {
             return Long.MIN_VALUE;
         }
+    }
+
+    /** Reads a string field out of one log line. */
+    private static String readStr(String line, String key) {
+        int i = line.indexOf('"' + key + "\":\"");
+        if (i < 0) {
+            return null;
+        }
+        int start = i + key.length() + 4;
+        int end = line.indexOf('"', start);
+        return end < 0 ? null : line.substring(start, end);
     }
 
     private static long median(List<Long> values) {

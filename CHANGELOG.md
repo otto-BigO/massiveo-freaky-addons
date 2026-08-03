@@ -2,6 +2,17 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.2.9
+
+- The timing summary hid the most interesting thing in the log. A countdown that
+  goes UP is an owner buying more time, not a tick, and those were being counted
+  as neither. They are reported separately now, because a celle you are waiting
+  on can simply be renewed out from under you.
+- Cadence is measured between two real ticks on the same celle. The stored gap
+  could span a first sighting or a rehydration, which is not a cadence.
+- Reports whether the values are exact multiples of the drop, which is what says
+  the sign counts in fixed steps rather than continuously.
+
 ## 4.2.8
 
 - Fixed the timing log throwing away the first anchor for every celle. It read
