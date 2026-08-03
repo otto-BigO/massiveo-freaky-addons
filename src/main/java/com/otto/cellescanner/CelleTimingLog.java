@@ -43,6 +43,54 @@ public final class CelleTimingLog {
     /** Last confirmed anchor per celle, used to predict when it should hit zero. */
     private static final Map<String, long[]> ANCHORS = new HashMap<String, long[]>();
 
+    /**
+     * The last confirmed anchor that still had time left on it. The tick that
+     * takes a celle to zero arrives a millisecond before it becomes free, so an
+     * anchor taken from that tick predicts the free moment to be right now and
+     * the measurement comes out as ~1ms no matter what the truth is. Predicting
+     * forward from the step before is the only version that says anything.
+     */
+    private static final Map<String, long[]> LIVE_ANCHORS = new HashMap<String, long[]>();
+
+    /**
+     * Events waiting to be reported to the bot, so the measurement pools across
+     * everyone running the mod instead of each client waiting alone. Bounded,
+     * because a client that cannot reach the webhook must not grow this forever.
+     */
+    private static final List<String> PENDING = new ArrayList<String>();
+    private static final int MAX_PENDING = 200;
+
+    /** Takes the queued events, leaving the queue empty. */
+    public static synchronized List<String> drainPending() {
+        if (PENDING.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        List<String> out = new ArrayList<String>(PENDING);
+        PENDING.clear();
+        return out;
+    }
+
+    /** Puts events back after a failed send, so a rate limit does not lose them. */
+    public static synchronized void requeue(List<String> events) {
+        if (events == null || events.isEmpty()) {
+            return;
+        }
+        PENDING.addAll(0, events);
+        while (PENDING.size() > MAX_PENDING) {
+            PENDING.remove(PENDING.size() - 1);
+        }
+    }
+
+    private static synchronized void queue(String json) {
+        if (MassiveOsFreakyAddons.config == null || !MassiveOsFreakyAddons.config.timingLogEnabled) {
+            return;
+        }
+        PENDING.add(json);
+        while (PENDING.size() > MAX_PENDING) {
+            PENDING.remove(0);
+        }
+    }
+
     private CelleTimingLog() {
     }
 
@@ -72,6 +120,9 @@ public final class CelleTimingLog {
         long now = System.currentTimeMillis();
         if (confirmed) {
             ANCHORS.put(celleId, new long[]{now, newRemaining});
+            if (newRemaining > 0) {
+                LIVE_ANCHORS.put(celleId, new long[]{now, newRemaining});
+            }
         }
         if (!enabled()) {
             return;
@@ -91,7 +142,9 @@ public final class CelleTimingLog {
         bool(sb, "confirmed", confirmed);
         sb.setLength(sb.length() - 1);
         sb.append('}');
-        append(sb.toString());
+        String json = sb.toString();
+        queue(json);
+        append(json);
     }
 
     /**
@@ -100,11 +153,13 @@ public final class CelleTimingLog {
      */
     public static void becameFree(String celleId) {
         long now = System.currentTimeMillis();
-        long[] anchor = ANCHORS.get(celleId);
+        long[] live = LIVE_ANCHORS.remove(celleId);
+        long[] zero = ANCHORS.get(celleId);
+        long[] anchor = live != null ? live : zero;
         if (!enabled()) {
             return;
         }
-        StringBuilder sb = new StringBuilder(200);
+        StringBuilder sb = new StringBuilder(240);
         sb.append('{');
         field(sb, "event", "free");
         field(sb, "celle", celleId);
@@ -114,15 +169,27 @@ public final class CelleTimingLog {
             num(sb, "anchorAt", anchor[0]);
             num(sb, "anchorRemaining", anchor[1]);
             num(sb, "predictedFreeAt", predicted);
-            // Positive means it became free later than predicted.
+            // Positive means it became free later than predicted. Divided by the
+            // number of steps this is the error per step, which is what a
+            // prediction made days out actually accumulates.
             num(sb, "offsetMs", now - predicted);
             num(sb, "anchorAgeMs", now - anchor[0]);
+            // Whether the anchor still had time on it. False means we only had
+            // the zero tick to go on and the offset is meaningless.
+            bool(sb, "anchorLive", live != null);
+            // Whether the sign reached zero by counting down, or was dumped from
+            // a high value. Only the first kind is predictable.
+            if (zero != null && live != null) {
+                num(sb, "droppedFromSeconds", live[1]);
+            }
         } else {
             bool(sb, "noAnchor", true);
         }
         sb.setLength(sb.length() - 1);
         sb.append('}');
-        append(sb.toString());
+        String json = sb.toString();
+        queue(json);
+        append(json);
     }
 
     /** Someone bought it. Shows how long a free celle survives. */
@@ -142,7 +209,9 @@ public final class CelleTimingLog {
         num(sb, "freeForMs", freeSinceMs > 0 ? now - freeSinceMs : -1);
         sb.setLength(sb.length() - 1);
         sb.append('}');
-        append(sb.toString());
+        String json = sb.toString();
+        queue(json);
+        append(json);
     }
 
     /**

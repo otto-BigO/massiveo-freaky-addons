@@ -2,6 +2,17 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.3.0
+
+- The offset measurement was measuring nothing. The tick that takes a celle to
+  zero lands about a millisecond before it becomes free, and that tick replaced
+  the anchor first, so the prediction was always "free right now" and the answer
+  was always 1ms. It predicts forward from the last anchor that still had time
+  on it instead, which is the number an actual prediction would accumulate.
+- Records whether the celle reached zero by counting down or was dumped there
+  from days out. Both end up free, but only the first is predictable, and mixing
+  them makes the measurement look far worse than it is.
+
 ## 4.2.9
 
 - The timing summary hid the most interesting thing in the log. A countdown that

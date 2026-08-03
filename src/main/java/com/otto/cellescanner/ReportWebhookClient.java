@@ -110,12 +110,16 @@ public final class ReportWebhookClient {
         final String reporter;
         final List<Snap> celler;
         final List<String> specialIds;
+        /** Raw timing event JSON, shared so the measurement pools across clients. */
+        final List<String> timing;
 
-        Report(String url, String reporter, List<Snap> celler, List<String> specialIds) {
+        Report(String url, String reporter, List<Snap> celler, List<String> specialIds,
+               List<String> timing) {
             this.url = url;
             this.reporter = reporter;
             this.celler = celler;
             this.specialIds = specialIds;
+            this.timing = timing;
         }
     }
 
@@ -145,7 +149,8 @@ public final class ReportWebhookClient {
             }
         }
 
-        PENDING.set(new Report(url.trim(), reporterName(), snaps, specials));
+        PENDING.set(new Report(url.trim(), reporterName(), snaps, specials,
+                CelleTimingLog.drainPending()));
         ensureWorker();
     }
 
@@ -227,14 +232,29 @@ public final class ReportWebhookClient {
             // still send one (empty) report so reporter/specialIds reach the bot
             chunks.add(new ArrayList<Snap>());
         }
-        for (List<Snap> part : chunks) {
-            // A newer report landed while we were sending - abandon the rest of
-            // this now-stale one and let the loop pick up the fresh data.
-            if (PENDING.get() != null) {
-                return;
+
+        // Timing events are measurements, so losing one costs real waiting time.
+        // They ride on the first chunk and go back on the queue if that chunk
+        // never lands, whether because this report went stale or the send failed.
+        boolean timingSent = r.timing == null || r.timing.isEmpty();
+        try {
+            for (int i = 0; i < chunks.size(); i++) {
+                // A newer report landed while we were sending - abandon the rest of
+                // this now-stale one and let the loop pick up the fresh data.
+                if (PENDING.get() != null) {
+                    return;
+                }
+                JsonObject payload = buildReportPayload(r.reporter, chunks.get(i), r.specialIds,
+                        i == 0 ? r.timing : null);
+                postWithRetry(r.url, payload);
+                if (i == 0) {
+                    timingSent = true;
+                }
             }
-            JsonObject payload = buildReportPayload(r.reporter, part, r.specialIds);
-            postWithRetry(r.url, payload);
+        } finally {
+            if (!timingSent) {
+                CelleTimingLog.requeue(r.timing);
+            }
         }
     }
 
@@ -392,8 +412,28 @@ public final class ReportWebhookClient {
     }
 
     private static JsonObject buildReportPayload(String reporter, List<Snap> celler, List<String> specialIds) {
+        return buildReportPayload(reporter, celler, specialIds, null);
+    }
+
+    private static JsonObject buildReportPayload(String reporter, List<Snap> celler,
+                                                 List<String> specialIds, List<String> timing) {
         JsonObject payload = new JsonObject();
         payload.addProperty("reporter", reporter);
+
+        // Timing events ride along on the first chunk only, so a multi message
+        // report does not send them repeatedly.
+        if (timing != null && !timing.isEmpty()) {
+            JsonArray timingArray = new JsonArray();
+            com.google.gson.JsonParser parser = new com.google.gson.JsonParser();
+            for (String raw : timing) {
+                try {
+                    timingArray.add(parser.parse(raw).getAsJsonObject());
+                } catch (Exception ignored) {
+                    // a malformed line is not worth failing the whole report over
+                }
+            }
+            payload.add("timing", timingArray);
+        }
 
         JsonArray specialArray = new JsonArray();
         for (String id : specialIds) {
