@@ -157,20 +157,36 @@ public class CelleBuyer {
         currentTargetBuyable = bestBuyable;
         currentTargetDistance = bestDist;
 
-        // Aim early so the rotation is already correct when the click goes out,
-        // rather than sharing a tick with it.
-        aimAt(mc, cfg, faceCenter(mc, bestPos));
-
         // Fire once it is actually buyable, or slightly before the predicted flip
         // so the click is already in flight when the server releases it. Clicking
         // a sold sign costs nothing, which is what makes the lead safe to spend.
         boolean fire = bestBuyable || bestFreeIn <= cfg.celleBuyerPreClickMs;
+
+        // Aim just before the click, not for the whole arm window. Arming can be
+        // set as far out as ten minutes and it only means "watch this one", so
+        // aiming from that moment held the player's view on a sign for minutes
+        // when silent aim was off, and sent a steady stream of look packets at
+        // one sign when it was on. The short lead is still enough for the
+        // rotation to land ahead of the click rather than sharing its tick.
+        if (fire || bestFreeIn <= aimLeadMs(cfg)) {
+            aimAt(mc, cfg, faceCenter(mc, bestPos));
+        }
+
         if (!fire || now < nextClickAllowedMs) {
             return;
         }
 
         clickSign(mc, bestPos);
         nextClickAllowedMs = now + Math.max(50, cfg.celleBuyerClickIntervalMs);
+    }
+
+    /**
+     * How long before the flip to start pointing at the sign. Enough for the
+     * rotation to be registered ahead of the first click and no longer, since
+     * the whole point is not to sit aimed at a sign for minutes.
+     */
+    private static long aimLeadMs(CelleConfig cfg) {
+        return Math.max(1000L, cfg.celleBuyerPreClickMs + 750L);
     }
 
     private void clear() {

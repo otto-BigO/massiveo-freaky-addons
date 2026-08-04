@@ -2,6 +2,15 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.5.4
+
+- Celle Buyer aimed at the sign for the whole Klargør window instead of just
+  before the click. Klargør can be set as far out as ten minutes and only means
+  "watch this one", so with skjult sigte off it dragged the player's view onto a
+  sign and held it there for minutes, and with it on it sent a steady stream of
+  look packets at a single sign the entire time. It aims about a second before
+  the click now, which is still ahead of it rather than sharing its tick.
+
 ## 4.5.3
 
 - Clicking Celle Buyer in the menu opened nothing. It silently toggled the
