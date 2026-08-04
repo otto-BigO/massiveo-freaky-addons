@@ -2,6 +2,24 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.6.0
+
+- Auto Mine has named mines now. Each one keeps its own area and its own three
+  positions, so a second mine is a second profile rather than re-teaching the
+  bot every time you move. Under Auto Mine, Indstillinger, the top button names
+  the mine you are editing and opens the list.
+- The pickaxe sign and the Skraldespand can be set by pointing at them. Both
+  were compiled in, aimed at one mine on one server, so the bot only ever knew
+  how to buy a pickaxe and empty its bag in that one place.
+- Where mined iron is handed in was hardcoded the same way and is now part of a
+  profile too. Leaving that one fixed would have meant a second mine worked
+  right up until the bag filled with iron.
+- A mine with nothing set still uses the built-in positions, so an existing
+  setup keeps working untouched, and a config from before this becomes your
+  first profile with its area intact rather than being reset to the default box.
+- Ryd mine-område cleared a field the bot had stopped reading, so it looked like
+  it worked and changed nothing. It clears the selected mine's area now.
+
 ## 4.5.4
 
 - Celle Buyer aimed at the sign for the whole Klargør window instead of just

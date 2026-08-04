@@ -20,6 +20,7 @@ public class GuiAutoMineSettings extends GuiScreen {
     private static final int ID_BACK = 3;
     private static final int ID_CRAZY = 4;
     private static final int ID_TUNING = 5;
+    private static final int ID_PROFILES = 6;
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
     private static final int GAP = 6;
@@ -36,10 +37,12 @@ public class GuiAutoMineSettings extends GuiScreen {
         this.buttonList.clear();
         int left = this.width / 2 - PANEL_W / 2;
         int y = this.height / 2 + TITLE_Y_OFF + TEXT_BLOCK_H;
+        this.buttonList.add(new StyledButton(ID_PROFILES, left, y, PANEL_W, BTN_H, profilesLabel()));
+        y += BTN_H + GAP;
         this.buttonList.add(new StyledButton(ID_SET_AREA, left, y, PANEL_W, BTN_H, "Sæt mine-område"));
         y += BTN_H + GAP;
         this.buttonList.add(clearAreaButton = new StyledButton(ID_CLEAR_AREA, left, y, PANEL_W, BTN_H, clearLabel()));
-        clearAreaButton.enabled = MassiveOsFreakyAddons.config.mineAreaSet;
+        clearAreaButton.enabled = MassiveOsFreakyAddons.config.activeMineProfile().areaSet;
         y += BTN_H + GAP;
         this.buttonList.add(new StyledButton(ID_TRASH, left, y, PANEL_W, BTN_H, "Skralde Filter"));
         y += BTN_H + GAP;
@@ -51,7 +54,15 @@ public class GuiAutoMineSettings extends GuiScreen {
     }
 
     private String clearLabel() {
-        return MassiveOsFreakyAddons.config.mineAreaSet ? "Ryd mine-område (brug standard)" : "Ryd mine-område";
+        return MassiveOsFreakyAddons.config.activeMineProfile().areaSet
+                ? "Ryd mine-område (brug standard)" : "Ryd mine-område";
+    }
+
+    /** Names the mine being edited, so it is obvious which one the buttons touch. */
+    private String profilesLabel() {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        return "Mine: " + c.activeMineProfile().displayName()
+                + " (" + c.mineProfiles.size() + ")";
     }
 
     private String crazyLabel() {
@@ -64,9 +75,15 @@ public class GuiAutoMineSettings extends GuiScreen {
             // Arm set-area mode, then close so the player can right-click the two corners.
             AutoMine.beginSetArea();
             this.mc.displayGuiScreen(null);
+        } else if (button.id == ID_PROFILES) {
+            this.mc.displayGuiScreen(new GuiMineProfiles());
         } else if (button.id == ID_CLEAR_AREA) {
+            // Clears the area on the selected mine, not the shared legacy field,
+            // since the bot reads its box from the profile now.
+            MassiveOsFreakyAddons.config.activeMineProfile().areaSet = false;
             MassiveOsFreakyAddons.config.mineAreaSet = false;
             MassiveOsFreakyAddons.config.save();
+            AutoMine.invalidatePlan();
             this.initGui();
         } else if (button.id == ID_TRASH) {
             this.mc.displayGuiScreen(new GuiAutoMineTrash());

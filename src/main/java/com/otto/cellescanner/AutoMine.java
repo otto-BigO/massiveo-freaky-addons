@@ -80,7 +80,17 @@ public class AutoMine {
     // "Set area" mode: after the player clicks Set Area in the GUI, the next two
     // right-clicks on blocks become the two corners. Static so the GUI can flip it
     // on; the registered AutoMine instance reads it in onMouseInput.
-    public static boolean setAreaMode = false;
+    public static final int PICK_NONE = 0;
+    public static final int PICK_AREA = 1;
+    public static final int PICK_SHOP = 2;
+    public static final int PICK_DEPOSIT = 3;
+    public static final int PICK_IRON = 4;
+
+    /**
+     * What the next right-click is capturing, if anything. The GUI arms this and
+     * the registered AutoMine instance reads it in onMouseInput.
+     */
+    public static int pickMode = PICK_NONE;
     private static BlockPos pendingCorner1 = null;
 
     private static final double REACH = 4.3;
@@ -154,7 +164,8 @@ public class AutoMine {
 
     // Pickaxe upkeep: keep one equipped; when it breaks and there's no spare, walk
     // to the shop sign and buy a new one.
-    private static final BlockPos SHOP_SIGN = new BlockPos(24, 62, -689);
+    /** Fallback when the active profile has no shop sign picked. */
+    private static final BlockPos DEFAULT_SHOP_SIGN = new BlockPos(24, 62, -689);
     private boolean buying = false;
     private long buyStart = 0;
     private long lastBuyClick = 0;
@@ -198,7 +209,8 @@ public class AutoMine {
     // it walks to the Skraldespand, opens it and pings the player to shift-click
     // the
     // junk in by hand, then resumes.
-    private static final BlockPos DEPOSIT_SIGN = new BlockPos(55, 61, -691);
+    /** Fallback when the active profile has no deposit sign picked. */
+    private static final BlockPos DEFAULT_DEPOSIT_SIGN = new BlockPos(55, 61, -691);
     private boolean depositing = false;
     private long lastDepositClick = 0;
     private boolean notifiedDeposit = false;
@@ -208,7 +220,8 @@ public class AutoMine {
     // the
     // old drop-off spot and ping the player to store it, then resume once there's
     // room.
-    private static final BlockPos IRON_DROP = new BlockPos(20, 60, -684);
+    /** Fallback when the active profile has no iron drop-off picked. */
+    private static final BlockPos DEFAULT_IRON_DROP = new BlockPos(20, 60, -684);
     private boolean storingIron = false;
     private boolean notifiedIron = false;
     private long storeIronStart = 0;
@@ -402,7 +415,7 @@ public class AutoMine {
         // disappears when Auto Mine is disabled.
         CelleConfig cfg = MassiveOsFreakyAddons.config;
         boolean customHere = cfg.mineAreaSet && mc.thePlayer.dimension == cfg.mineAreaDim;
-        boolean showBox = setAreaMode || (cfg.autoMineEnabled && (customHere || !cfg.mineAreaSet));
+        boolean showBox = pickMode == PICK_AREA || (cfg.autoMineEnabled && (customHere || !cfg.mineAreaSet));
         if (!showBox) {
             return;
         }
@@ -440,7 +453,7 @@ public class AutoMine {
             GL11.glLineWidth(2.5f);
         }
 
-        if (setAreaMode && pendingCorner1 != null) {
+        if (pickMode == PICK_AREA && pendingCorner1 != null) {
             BlockPos c = pendingCorner1;
             drawBox(c.getX(), c.getY(), c.getZ(), c.getX(), c.getY(), c.getZ(), 0.30f, 0.90f, 1.0f); // corner 1
             if (mc.objectMouseOver != null
@@ -557,11 +570,13 @@ public class AutoMine {
     }
 
     /**
-     * In "set area" mode, right-clicks on blocks capture the two mine-area corners.
+     * While something is being picked, right-clicks on blocks capture positions
+     * instead of using the held item. The area takes two clicks, the three single
+     * positions take one.
      */
     @SubscribeEvent
     public void onMouseInput(MouseEvent event) {
-        if (!setAreaMode) {
+        if (pickMode == PICK_NONE) {
             return;
         }
         // button 1 = right-click, buttonstate true = pressed
@@ -579,6 +594,26 @@ public class AutoMine {
         BlockPos pos = mc.objectMouseOver.getBlockPos();
         event.setCanceled(true); // don't also use the held item / place a block
 
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        MineProfile prof = cfg.activeMineProfile();
+        int dim = mc.thePlayer.dimension;
+
+        if (pickMode == PICK_SHOP) {
+            prof.setShop(pos, dim);
+            finishPick(mc, cfg, "Pikaxe-skilt", pos);
+            return;
+        }
+        if (pickMode == PICK_DEPOSIT) {
+            prof.setDeposit(pos, dim);
+            finishPick(mc, cfg, "Skraldespand", pos);
+            return;
+        }
+        if (pickMode == PICK_IRON) {
+            prof.setIron(pos, dim);
+            finishPick(mc, cfg, "Jern-aflevering", pos);
+            return;
+        }
+
         if (pendingCorner1 == null) {
             pendingCorner1 = pos;
             mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD
@@ -587,25 +622,37 @@ public class AutoMine {
         }
 
         // Second corner - save the area and rebuild the plan against it.
-        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        prof.setArea(pendingCorner1, pos, dim);
+        // The pre-profile fields are kept in step so an older build reading the
+        // same config still finds the area where it expects it.
         cfg.mineAreaX1 = pendingCorner1.getX();
         cfg.mineAreaY1 = pendingCorner1.getY();
         cfg.mineAreaZ1 = pendingCorner1.getZ();
         cfg.mineAreaX2 = pos.getX();
         cfg.mineAreaY2 = pos.getY();
         cfg.mineAreaZ2 = pos.getZ();
-        cfg.mineAreaDim = mc.thePlayer.dimension;
+        cfg.mineAreaDim = dim;
         cfg.mineAreaSet = true;
         cfg.save();
 
-        setAreaMode = false;
+        pickMode = PICK_NONE;
         pendingCorner1 = null;
         plan = null; // force a rebuild against the new box next mine tick
 
         int[] b = boxBounds();
         int vol = (b[1] - b[0] + 1) * (b[3] - b[2] + 1) * (b[5] - b[4] + 1);
         mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN
-                + "[Auto Mine] Mine-område sat (" + vol + " blokke). Start botten for at mine her."));
+                + "[Auto Mine] Mine-område sat for \"" + prof.displayName()
+                + "\" (" + vol + " blokke). Start botten for at mine her."));
+    }
+
+    private void finishPick(Minecraft mc, CelleConfig cfg, String what, BlockPos pos) {
+        cfg.save();
+        pickMode = PICK_NONE;
+        pendingCorner1 = null;
+        mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN
+                + "[Auto Mine] " + what + " sat til " + posStr(pos)
+                + " for \"" + cfg.activeMineProfile().displayName() + "\"."));
     }
 
     private static String posStr(BlockPos p) {
@@ -1442,8 +1489,8 @@ public class AutoMine {
             return;
         }
 
-        if (eyeDist(mc, SHOP_SIGN) > 3.3) {
-            navigate(mc, SHOP_SIGN, 2.5); // pathfind over/around obstacles
+        if (eyeDist(mc, shopSign()) > 3.3) {
+            navigate(mc, shopSign(), 2.5); // pathfind over/around obstacles
             return;
         }
         stopWalk(mc);
@@ -1456,23 +1503,23 @@ public class AutoMine {
             return;
         }
 
-        aimAt(mc, SHOP_SIGN);
+        aimAt(mc, shopSign());
 
         // Aimed at the sign and in reach - right-click it (throttled).
         MovingObjectPosition mop = mc.objectMouseOver;
         boolean lookingAtShop = false;
         if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
             BlockPos hit = mop.getBlockPos();
-            if (SHOP_SIGN.equals(hit) ||
-                    (Math.abs(hit.getX() - SHOP_SIGN.getX()) <= 1 &&
-                            Math.abs(hit.getY() - SHOP_SIGN.getY()) <= 1 &&
-                            Math.abs(hit.getZ() - SHOP_SIGN.getZ()) <= 1)) {
+            if (shopSign().equals(hit) ||
+                    (Math.abs(hit.getX() - shopSign().getX()) <= 1 &&
+                            Math.abs(hit.getY() - shopSign().getY()) <= 1 &&
+                            Math.abs(hit.getZ() - shopSign().getZ()) <= 1)) {
                 lookingAtShop = true;
             }
         }
         if (lookingAtShop && System.currentTimeMillis() - lastBuyClick > 800) {
             mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
-                    mc.thePlayer.getCurrentEquippedItem(), SHOP_SIGN, mop.sideHit, mop.hitVec);
+                    mc.thePlayer.getCurrentEquippedItem(), shopSign(), mop.sideHit, mop.hitVec);
             mc.thePlayer.swingItem();
             lastBuyClick = System.currentTimeMillis();
         }
@@ -1487,13 +1534,13 @@ public class AutoMine {
      */
     private void doDeposit(Minecraft mc) {
         stopMining(mc);
-        if (eyeDist(mc, DEPOSIT_SIGN) > 3.3) {
-            navigate(mc, DEPOSIT_SIGN, 2.5); // pathfind over/around obstacles
+        if (eyeDist(mc, depositSign()) > 3.3) {
+            navigate(mc, depositSign(), 2.5); // pathfind over/around obstacles
             return;
         }
         stopWalk(mc);
         clearPath();
-        aimAt(mc, DEPOSIT_SIGN);
+        aimAt(mc, depositSign());
 
         // In reach - right-click the sign to open the Diposit chest (throttled), then
         // ping the player. Once the chest opens, onTick pauses us (screen open) until
@@ -1502,16 +1549,16 @@ public class AutoMine {
         boolean lookingAtSign = false;
         if (mop != null && mop.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
             BlockPos hit = mop.getBlockPos();
-            if (DEPOSIT_SIGN.equals(hit) ||
-                    (Math.abs(hit.getX() - DEPOSIT_SIGN.getX()) <= 1 &&
-                            Math.abs(hit.getY() - DEPOSIT_SIGN.getY()) <= 1 &&
-                            Math.abs(hit.getZ() - DEPOSIT_SIGN.getZ()) <= 1)) {
+            if (depositSign().equals(hit) ||
+                    (Math.abs(hit.getX() - depositSign().getX()) <= 1 &&
+                            Math.abs(hit.getY() - depositSign().getY()) <= 1 &&
+                            Math.abs(hit.getZ() - depositSign().getZ()) <= 1)) {
                 lookingAtSign = true;
             }
         }
         if (lookingAtSign && System.currentTimeMillis() - lastDepositClick > 1000) {
             mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld,
-                    mc.thePlayer.getCurrentEquippedItem(), DEPOSIT_SIGN, mop.sideHit, mop.hitVec);
+                    mc.thePlayer.getCurrentEquippedItem(), depositSign(), mop.sideHit, mop.hitVec);
             mc.thePlayer.swingItem();
             lastDepositClick = System.currentTimeMillis();
         }
@@ -1536,10 +1583,10 @@ public class AutoMine {
         if (storeIronStart == 0) {
             storeIronStart = System.currentTimeMillis();
         }
-        double dx = (IRON_DROP.getX() + 0.5) - mc.thePlayer.posX;
-        double dz = (IRON_DROP.getZ() + 0.5) - mc.thePlayer.posZ;
+        double dx = (ironDrop().getX() + 0.5) - mc.thePlayer.posX;
+        double dz = (ironDrop().getZ() + 0.5) - mc.thePlayer.posZ;
         if (Math.sqrt(dx * dx + dz * dz) > 1.8 && System.currentTimeMillis() - storeIronStart < 5000) {
-            navigate(mc, IRON_DROP, 2.0);
+            navigate(mc, ironDrop(), 2.0);
             return;
         }
         stopWalk(mc);
@@ -1608,15 +1655,43 @@ public class AutoMine {
      * default.
      */
     private static int[] boxBounds() {
-        CelleConfig c = MassiveOsFreakyAddons.config;
-        if (c.mineAreaSet) {
-            return new int[] {
-                    Math.min(c.mineAreaX1, c.mineAreaX2), Math.max(c.mineAreaX1, c.mineAreaX2),
-                    Math.min(c.mineAreaY1, c.mineAreaY2), Math.max(c.mineAreaY1, c.mineAreaY2),
-                    Math.min(c.mineAreaZ1, c.mineAreaZ2), Math.max(c.mineAreaZ1, c.mineAreaZ2)
-            };
+        MineProfile p = profile();
+        if (p != null) {
+            int[] b = p.bounds();
+            if (b != null) {
+                return b;
+            }
         }
         return DEFAULT_BOX.clone();
+    }
+
+    /** The mine the bot is set to, or null before the config has loaded. */
+    private static MineProfile profile() {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        return c == null ? null : c.activeMineProfile();
+    }
+
+    /**
+     * The three places the bot walks to when it cannot keep mining. Each comes
+     * from the active profile, falling back to the built-in position so an
+     * existing setup keeps working until the profile is filled in.
+     */
+    private static BlockPos shopSign() {
+        MineProfile p = profile();
+        BlockPos b = p == null ? null : p.shopPos();
+        return b != null ? b : DEFAULT_SHOP_SIGN;
+    }
+
+    private static BlockPos depositSign() {
+        MineProfile p = profile();
+        BlockPos b = p == null ? null : p.depositPos();
+        return b != null ? b : DEFAULT_DEPOSIT_SIGN;
+    }
+
+    private static BlockPos ironDrop() {
+        MineProfile p = profile();
+        BlockPos b = p == null ? null : p.ironPos();
+        return b != null ? b : DEFAULT_IRON_DROP;
     }
 
     /**
@@ -1634,11 +1709,45 @@ public class AutoMine {
     }
 
     /**
+     * Called from the GUI: arm picking one of the single positions, so the next
+     * right-click on a block records it against the active profile. Closes the
+     * menu, since the block has to be clicked in the world.
+     */
+    public static void beginPick(int mode, String what) {
+        pickMode = mode;
+        pendingCorner1 = null;
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.displayGuiScreen(null);
+        if (mc.thePlayer != null) {
+            CelleConfig cfg = MassiveOsFreakyAddons.config;
+            mc.thePlayer.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD
+                    + "[Auto Mine] Højreklik " + what + " for \""
+                    + cfg.activeMineProfile().displayName() + "\"."));
+        }
+    }
+
+    /**
+     * Throws away the mining plan so the next tick rebuilds it. Needed whenever
+     * the box changes under the bot, which switching profile does.
+     */
+    public static void invalidatePlan() {
+        if (INSTANCE != null) {
+            INSTANCE.plan = null;
+        }
+    }
+
+    /** Cancels whatever was being picked. */
+    public static void cancelPick() {
+        pickMode = PICK_NONE;
+        pendingCorner1 = null;
+    }
+
+    /**
      * Called from the GUI: arm "set area" mode so the next two right-clicks pick
      * corners.
      */
     public static void beginSetArea() {
-        setAreaMode = true;
+        pickMode = PICK_AREA;
         pendingCorner1 = null;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {

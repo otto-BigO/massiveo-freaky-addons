@@ -211,6 +211,14 @@ public class CelleConfig {
     // Custom Auto Mine area: two corners the player picks in-game (right-click
     // each). When mineAreaSet is true the bot mines this box instead of the
     // built-in default one, and the box outline is drawn in the world.
+    /**
+     * Named mines. Each one carries its own area and its own shop, deposit and
+     * iron positions, so switching mine is picking a profile rather than
+     * re-teaching the bot every location.
+     */
+    public List<MineProfile> mineProfiles = new ArrayList<MineProfile>();
+    public int mineProfileIndex = 0;
+
     public boolean mineAreaSet = false;
     public int mineAreaX1, mineAreaY1, mineAreaZ1;
     public int mineAreaX2, mineAreaY2, mineAreaZ2;
@@ -552,6 +560,11 @@ public class CelleConfig {
                 this.mineAreaY2 = loaded.mineAreaY2;
                 this.mineAreaZ2 = loaded.mineAreaZ2;
                 this.mineAreaDim = loaded.mineAreaDim;
+                if (loaded.mineProfiles != null) {
+                    this.mineProfiles = loaded.mineProfiles;
+                }
+                this.mineProfileIndex = loaded.mineProfileIndex;
+                migrateMineProfiles();
                 this.autoMineCrazy = loaded.autoMineCrazy;
                 this.autoMineApproachDist = loaded.autoMineApproachDist > 0 ? loaded.autoMineApproachDist : 2.7;
                 this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.5;
@@ -691,6 +704,36 @@ public class CelleConfig {
                 }
             }
         }
+    }
+
+    /**
+     * Makes sure there is always at least one profile, and carries a pre-profile
+     * config across. Someone who had already set a mine area keeps it as their
+     * first profile rather than finding the bot pointed back at the built-in box.
+     */
+    public void migrateMineProfiles() {
+        if (mineProfiles == null) {
+            mineProfiles = new ArrayList<MineProfile>();
+        }
+        if (mineProfiles.isEmpty()) {
+            MineProfile p = new MineProfile(mineAreaSet ? "Min mine" : "Standard");
+            if (mineAreaSet) {
+                p.areaSet = true;
+                p.x1 = mineAreaX1; p.y1 = mineAreaY1; p.z1 = mineAreaZ1;
+                p.x2 = mineAreaX2; p.y2 = mineAreaY2; p.z2 = mineAreaZ2;
+                p.dimension = mineAreaDim;
+            }
+            mineProfiles.add(p);
+        }
+        if (mineProfileIndex < 0 || mineProfileIndex >= mineProfiles.size()) {
+            mineProfileIndex = 0;
+        }
+    }
+
+    /** The mine the bot is currently set to. Never null. */
+    public MineProfile activeMineProfile() {
+        migrateMineProfiles();
+        return mineProfiles.get(mineProfileIndex);
     }
 
     public void save() {
