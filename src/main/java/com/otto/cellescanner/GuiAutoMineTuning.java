@@ -28,7 +28,7 @@ public class GuiAutoMineTuning extends GuiScreen {
     // Ranges / steps.
     private static final double APPROACH_MIN = 1.5, APPROACH_MAX = 4.0, APPROACH_STEP = 0.2;
     private static final double REACH_MIN = 3.0, REACH_MAX = 4.5, REACH_STEP = 0.1; // capped legit
-    private static final int PICK_MIN = 0, PICK_MAX = 500, PICK_STEP = 10;
+    private static final int PICK_MIN = 0, PICK_MAX = 90, PICK_STEP = 5;
 
     private static final int PANEL_W = 240;
     private static final int BTN_H = 18;
@@ -85,8 +85,9 @@ public class GuiAutoMineTuning extends GuiScreen {
     }
 
     private String pickLabel() {
-        int v = MassiveOsFreakyAddons.config.autoMinePickaxeMin;
-        return "Skift hakke ved: " + (v == 0 ? "0 (til den knækker)" : v + " holdbarhed");
+        Integer p = MassiveOsFreakyAddons.config.autoMinePickaxeMinPercent;
+        int v = p == null ? 0 : p.intValue();
+        return "Skift hakke ved: " + (v == 0 ? "til den knækker" : v + "% tilbage");
     }
 
     private String collectLabel() {
@@ -129,8 +130,9 @@ public class GuiAutoMineTuning extends GuiScreen {
             reachLabel.displayString = reachLabel();
             c.save();
         } else if (id == PICK || id == PICK + 1) {
-            int v = c.autoMinePickaxeMin + (id == PICK ? -PICK_STEP : PICK_STEP);
-            c.autoMinePickaxeMin = Math.max(PICK_MIN, Math.min(PICK_MAX, v));
+            int cur = c.autoMinePickaxeMinPercent == null ? 0 : c.autoMinePickaxeMinPercent.intValue();
+            int v = cur + (id == PICK ? -PICK_STEP : PICK_STEP);
+            c.autoMinePickaxeMinPercent = Integer.valueOf(Math.max(PICK_MIN, Math.min(PICK_MAX, v)));
             pickLabel.displayString = pickLabel();
             c.save();
         } else if (id == ID_COLLECT) {

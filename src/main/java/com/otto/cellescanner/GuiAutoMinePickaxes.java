@@ -22,13 +22,16 @@ public class GuiAutoMinePickaxes extends GuiScreen {
     private static final int ID_IRON = 2;
     private static final int ID_GOLDEN = 3;
     private static final int ID_DIAMOND = 4;
-    private static final int ID_BACK = 5;
+    private static final int ID_DUR_DOWN = 5;
+    private static final int ID_DUR_UP = 6;
+    private static final int ID_BACK = 7;
 
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
     private static final int GAP = 6;
 
     private GuiButton woodenBtn, stoneBtn, ironBtn, goldenBtn, diamondBtn;
+    private NumericStepper durStepper;
 
     private final AnimationValue panelAnim = new AnimationValue(0f);
 
@@ -54,7 +57,12 @@ public class GuiAutoMinePickaxes extends GuiScreen {
         this.buttonList.add(goldenBtn = new StyledButton(ID_GOLDEN, left, y, PANEL_W, BTN_H, ""));
         y += BTN_H + GAP;
         this.buttonList.add(diamondBtn = new StyledButton(ID_DIAMOND, left, y, PANEL_W, BTN_H, ""));
-        y += BTN_H + GAP + 6;
+        y += BTN_H + GAP + 8;
+
+        durStepper = new NumericStepper(ID_DUR_DOWN, ID_DUR_UP, left, y, PANEL_W, BTN_H);
+        this.buttonList.add(durStepper.getBtnDown());
+        this.buttonList.add(durStepper.getBtnUp());
+        y += BTN_H + GAP + 8;
 
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
 
@@ -77,6 +85,21 @@ public class GuiAutoMinePickaxes extends GuiScreen {
         diamondBtn.displayString = label("Diamant", c.autoMineUseDiamond);
     }
 
+    private static int pct(CelleConfig c) {
+        return c.autoMinePickaxeMinPercent == null ? 0 : c.autoMinePickaxeMinPercent.intValue();
+    }
+
+    /**
+     * Reads as a share of each pickaxe's own durability, so it means the same
+     * thing for a gold pickaxe with 33 points as for a diamond one with 1562.
+     */
+    private String durLabel() {
+        CelleConfig c = cfg();
+        int v = c == null ? 0 : pct(c);
+        return v == 0 ? "Skift hakke ved: brug til den knækker"
+                : "Skift hakke ved: " + v + "% tilbage";
+    }
+
     private static Boolean flip(Boolean b) {
         return Boolean.TRUE.equals(b) ? Boolean.FALSE : Boolean.TRUE;
     }
@@ -91,6 +114,12 @@ public class GuiAutoMinePickaxes extends GuiScreen {
             case ID_IRON:    c.autoMineUseIron = flip(c.autoMineUseIron); break;
             case ID_GOLDEN:  c.autoMineUseGolden = flip(c.autoMineUseGolden); break;
             case ID_DIAMOND: c.autoMineUseDiamond = flip(c.autoMineUseDiamond); break;
+            case ID_DUR_DOWN:
+                c.autoMinePickaxeMinPercent = Integer.valueOf(Math.max(0, pct(c) - 5));
+                break;
+            case ID_DUR_UP:
+                c.autoMinePickaxeMinPercent = Integer.valueOf(Math.min(90, pct(c) + 5));
+                break;
             case ID_BACK:
                 this.mc.displayGuiScreen(new GuiAutoMineSettings());
                 return;
@@ -134,16 +163,18 @@ public class GuiAutoMinePickaxes extends GuiScreen {
 
         super.drawScreen(mouseX, mouseY, partialTicks);
 
+        if (durStepper != null) durStepper.draw(this.mc, mouseX, mouseY, durLabel());
+
         // Turning everything off leaves the bot with nothing to hold, and it
         // would just stand there rather than say why.
         if (AutoMine.noPickaxeTypeAllowed()) {
             drawCenteredString(this.fontRendererObj,
                     EnumChatFormatting.RED + "Ingen hakker valgt, botten kan ikke mine",
-                    cx, cy + 62, 0xFF5555);
+                    cx, cy + 78, 0xFF5555);
         } else {
             drawCenteredString(this.fontRendererObj,
                     EnumChatFormatting.DARK_GRAY + "Serverens egne hakker bruges altid",
-                    cx, cy + 62, 0x888888);
+                    cx, cy + 78, 0x888888);
         }
 
         GL11.glPopMatrix();

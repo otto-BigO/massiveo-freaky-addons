@@ -2,6 +2,23 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.7.1
+
+- "Skift hakke ved" was a flat number of durability points, and that is what
+  made the bot look like it could only use one kind of pickaxe. A gold pickaxe
+  only holds 33 durability in total, so any threshold above 33 meant a brand new
+  gold one was never good enough to pick up. Above 132 the same went for stone,
+  above 251 for iron. The stepper went to 500.
+- It is a percentage of each pickaxe's own durability now, so 20% means the same
+  thing for a gold pickaxe as for a diamond one and no kind can be ruled out by
+  accident. Zero still means use it until it breaks.
+- The control sits on the Hakker screen next to the pickaxe switches, which is
+  where it was actually being looked for. The row in Finjustering edits the same
+  setting rather than being a second, competing one.
+- An existing points value is converted rather than dropped, read against an
+  iron pickaxe and capped at 50%, so no setting carried over can leave a fresh
+  pickaxe of any kind unusable.
+
 ## 4.7.0
 
 - Auto Mine, Indstillinger, Hakker: pick which pickaxes the bot may mine with.

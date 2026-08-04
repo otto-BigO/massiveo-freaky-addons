@@ -236,6 +236,16 @@ public class CelleConfig {
     public double autoMineReach = 4.5;
     // Swap/discard a pickaxe once its remaining durability is <= this (0 = use
     // it until it breaks).
+    /**
+     * Swap the pickaxe once it drops below this share of its own durability.
+     * Zero means use it until it breaks.
+     *
+     * This replaced a flat number of durability points, which quietly ruled out
+     * whole kinds of pickaxe: gold only has 33 durability in total, so any
+     * threshold above 33 meant a brand new gold pickaxe was never good enough.
+     */
+    public Integer autoMinePickaxeMinPercent = Integer.valueOf(0);
+    /** Kept only to migrate the old points-based value across. */
     public int autoMinePickaxeMin = 0;
     // Whether to detour to pick up our own dropped iron while mining. Nullable
     // so an older config (key absent) defaults to ON, not the Gson-Unsafe false.
@@ -579,6 +589,18 @@ public class CelleConfig {
                 this.autoMineApproachDist = loaded.autoMineApproachDist > 0 ? loaded.autoMineApproachDist : 2.7;
                 this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.5;
                 this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
+                if (loaded.autoMinePickaxeMinPercent != null) {
+                    this.autoMinePickaxeMinPercent = Integer.valueOf(
+                            Math.max(0, Math.min(90, loaded.autoMinePickaxeMinPercent.intValue())));
+                } else if (loaded.autoMinePickaxeMin > 0) {
+                    // A config from before the switch to percentages. Read the old
+                    // points against an iron pickaxe, which is what it was almost
+                    // certainly set for, and cap it well short of unusable.
+                    int pct = (int) Math.round(loaded.autoMinePickaxeMin * 100.0 / 251.0);
+                    this.autoMinePickaxeMinPercent = Integer.valueOf(Math.max(0, Math.min(50, pct)));
+                } else {
+                    this.autoMinePickaxeMinPercent = Integer.valueOf(0);
+                }
                 this.autoMineUseWooden = loaded.autoMineUseWooden != null ? loaded.autoMineUseWooden : Boolean.FALSE;
                 this.autoMineUseStone = loaded.autoMineUseStone != null ? loaded.autoMineUseStone : Boolean.FALSE;
                 this.autoMineUseIron = loaded.autoMineUseIron != null ? loaded.autoMineUseIron : Boolean.TRUE;

@@ -1414,9 +1414,27 @@ public class AutoMine {
             return true;
         }
         int maxDur = stack.getMaxDamage();
-        int curDamage = stack.getItemDamage();
-        int left = maxDur - curDamage;
-        return left > MassiveOsFreakyAddons.config.autoMinePickaxeMin;
+        int left = maxDur - stack.getItemDamage();
+        if (left <= 0) {
+            return false;
+        }
+        int pct = pickaxeMinPercent();
+        if (pct <= 0) {
+            return true;
+        }
+        // Measured against this pickaxe's own maximum rather than a flat number
+        // of points. A flat threshold quietly rules out whole kinds of pickaxe:
+        // a gold one only has 33 durability in total, so anything above 33 meant
+        // gold could never be used at all, however fresh it was.
+        return left * 100 >= maxDur * pct;
+    }
+
+    private static int pickaxeMinPercent() {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        if (c == null || c.autoMinePickaxeMinPercent == null) {
+            return 0;
+        }
+        return Math.max(0, Math.min(90, c.autoMinePickaxeMinPercent.intValue()));
     }
 
     /**
