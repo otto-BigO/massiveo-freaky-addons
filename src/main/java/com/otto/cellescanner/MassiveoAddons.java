@@ -33,6 +33,18 @@ public final class MassiveoAddons {
         void open();
 
         void toggle();
+
+        /**
+         * Whether open() actually shows a settings screen. The hub opens the
+         * screen when it does and toggles the addon when it does not.
+         *
+         * This used to be a list of addon names kept in the hub, which meant a
+         * new addon with a settings screen silently toggled instead of opening
+         * until someone remembered to add its name. Eleven of them had ended up
+         * that way. Declaring it next to open() is the only version that cannot
+         * drift, since both are written at the same time.
+         */
+        boolean hasSettings();
     }
 
     private static final List<Addon> ADDONS = new ArrayList<Addon>();

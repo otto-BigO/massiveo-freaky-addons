@@ -2,6 +2,20 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.5.3
+
+- Clicking Celle Buyer in the menu opened nothing. It silently toggled the
+  addon on and off instead, so the settings and the pick list could not be
+  reached at all.
+- The same bug hid ten other screens: Celle Bot, VK Stealer, Chest Alarm, Troll
+  Lyde, Item Log, Anti AFK, Armour HUD, Prisguide, Opdatering and Auto Følg. All
+  of them open properly now.
+- The cause was a list of addon names kept in the hub, which decided whether a
+  tile opened a screen or just toggled. Every addon added after the list was
+  written was missing from it, and two names on it had no screen behind them at
+  all. Each addon says for itself now, right next to the code that opens it, and
+  the compiler will not accept a new addon that has not answered the question.
+
 ## 4.5.2
 
 - `/celler buyer` opens the Celle Buyer, and `add`, `fjern`, `liste` and `ryd`

@@ -40,6 +40,10 @@ public final class AddonList {
                 return config.enabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openMenu();
             }
@@ -68,6 +72,10 @@ public final class AddonList {
                 return CelleFinder.hasTarget();
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openFinderScreen();
             }
@@ -92,6 +100,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.mineCellerEspEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -132,6 +144,10 @@ public final class AddonList {
                 return config.bandeEspEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openBande();
             }
@@ -157,6 +173,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.friendEspEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -187,6 +207,10 @@ public final class AddonList {
                 return config.chestAlarmEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openChestAlarm();
             }
@@ -211,6 +235,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.playerInfoEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -239,6 +267,10 @@ public final class AddonList {
                 return config.trollEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openTroll();
             }
@@ -263,6 +295,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.pvpMineEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -291,6 +327,10 @@ public final class AddonList {
                 return config.autoMineEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openAutoMine();
             }
@@ -315,6 +355,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.botReportEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -343,6 +387,10 @@ public final class AddonList {
                 return config.celleBuyerEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openCelleBuyer();
             }
@@ -369,6 +417,10 @@ public final class AddonList {
                 return config.vkStealerEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openVkStealer();
             }
@@ -393,6 +445,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.autoFishEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -424,6 +480,10 @@ public final class AddonList {
                 return config.autoCrateEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.autoCrateEnabled = !config.autoCrateEnabled;
                 config.save();
@@ -451,6 +511,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.fastMineEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -481,6 +545,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.autoArmorEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -523,6 +591,10 @@ public final class AddonList {
                 return config.itemPickupEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openItemLog();
             }
@@ -547,6 +619,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.antiAfkEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -575,6 +651,10 @@ public final class AddonList {
                 return config.armorSkinsEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openArmorSkins();
             }
@@ -599,6 +679,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.armorHudEnabled;
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -628,6 +712,10 @@ public final class AddonList {
                 return config.itemValueEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openItemValues();
             }
@@ -652,6 +740,10 @@ public final class AddonList {
             }
 
             public boolean isActive() {
+                return true;
+            }
+
+            public boolean hasSettings() {
                 return true;
             }
 
@@ -681,6 +773,10 @@ public final class AddonList {
                 return config.autoUpdateEnabled;
             }
 
+            public boolean hasSettings() {
+                return true;
+            }
+
             public void open() {
                 CelleActions.openUpdate();
             }
@@ -705,6 +801,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.flipCaseEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -737,6 +837,10 @@ public final class AddonList {
                 return config.celleExpiryAlertsEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.celleExpiryAlertsEnabled = !config.celleExpiryAlertsEnabled;
                 config.save();
@@ -764,6 +868,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.chestOrganizerEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -795,6 +903,10 @@ public final class AddonList {
                 return config.ironDoorSoundsEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.ironDoorSoundsEnabled = !config.ironDoorSoundsEnabled;
                 config.save();
@@ -824,6 +936,10 @@ public final class AddonList {
                 return config.playerLoggerEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.playerLoggerEnabled = !config.playerLoggerEnabled;
                 config.save();
@@ -851,6 +967,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.farmBotEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {
@@ -883,6 +1003,10 @@ public final class AddonList {
                 return config.playerEspEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.playerEspEnabled = !config.playerEspEnabled;
                 config.save();
@@ -911,6 +1035,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return AutoFollow.isActive();
+            }
+
+            public boolean hasSettings() {
+                return true;
             }
 
             public void open() {
@@ -949,6 +1077,10 @@ public final class AddonList {
                 return config.mineTrackerEnabled;
             }
 
+            public boolean hasSettings() {
+                return false;
+            }
+
             public void open() {
                 config.mineTrackerEnabled = !config.mineTrackerEnabled; config.save();
                 net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiAddonsHub("Automation"));
@@ -974,6 +1106,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.autoTrashEnabled;
+            }
+
+            public boolean hasSettings() {
+                return false;
             }
 
             public void open() {

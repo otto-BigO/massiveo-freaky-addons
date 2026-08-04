@@ -277,14 +277,14 @@ public class GuiAddonsHub extends GuiScreen {
         }
     }
 
+    /**
+     * This used to be a hardcoded list of addon names. Every addon added since
+     * then whose tile should open a settings screen just toggled instead, which
+     * is why eleven screens were unreachable from the menu, and two names on the
+     * list had no screen behind them at all. The addon declares it now.
+     */
     private boolean hasSubGui(MassiveoAddons.Addon addon) {
-        if (addon == null) return false;
-        String name = addon.name();
-        return "Celle Scanner".equals(name) || "Celle Finder".equals(name) || "Mine Celler".equals(name)
-                || "Bande ESP".equals(name) || "PvP Mine".equals(name) || "Auto Mine".equals(name)
-                || "Kiste Organisering".equals(name) || "Rustnings-HUD".equals(name) || "Spiller Info".equals(name)
-                || "Item Værdi".equals(name) || "Prisguide".equals(name) || "Armour Skins".equals(name)
-                || "Skralde-Filter".equals(name);
+        return addon != null && addon.hasSettings();
     }
 
     private int hoveredItem(int mouseX, int mouseY) {
