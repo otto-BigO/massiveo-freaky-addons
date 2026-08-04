@@ -2,6 +2,7 @@ package com.otto.cellescanner;
 
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.EnumChatFormatting;
 
 import java.io.IOException;
 
@@ -21,6 +22,7 @@ public class GuiAutoMineSettings extends GuiScreen {
     private static final int ID_CRAZY = 4;
     private static final int ID_TUNING = 5;
     private static final int ID_PROFILES = 6;
+    private static final int ID_PICKAXES = 7;
     private static final int PANEL_W = 220;
     private static final int BTN_H = 20;
     private static final int GAP = 6;
@@ -48,6 +50,8 @@ public class GuiAutoMineSettings extends GuiScreen {
         y += BTN_H + GAP;
         this.buttonList.add(crazyButton = new StyledButton(ID_CRAZY, left, y, PANEL_W, BTN_H, crazyLabel()));
         y += BTN_H + GAP;
+        this.buttonList.add(new StyledButton(ID_PICKAXES, left, y, PANEL_W, BTN_H, pickaxesLabel()));
+        y += BTN_H + GAP;
         this.buttonList.add(new StyledButton(ID_TUNING, left, y, PANEL_W, BTN_H, "Finjustering (afstand, ræk, hakke)"));
         y += BTN_H + GAP;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
@@ -56,6 +60,22 @@ public class GuiAutoMineSettings extends GuiScreen {
     private String clearLabel() {
         return MassiveOsFreakyAddons.config.activeMineProfile().areaSet
                 ? "Ryd mine-område (brug standard)" : "Ryd mine-område";
+    }
+
+    /** Lists what is switched on, so the screen shows it without opening. */
+    private String pickaxesLabel() {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        if (AutoMine.noPickaxeTypeAllowed()) {
+            return "Hakker: " + EnumChatFormatting.RED + "ingen valgt";
+        }
+        StringBuilder sb = new StringBuilder();
+        if (Boolean.TRUE.equals(c.autoMineUseWooden)) sb.append("træ, ");
+        if (Boolean.TRUE.equals(c.autoMineUseStone)) sb.append("sten, ");
+        if (Boolean.TRUE.equals(c.autoMineUseIron)) sb.append("jern, ");
+        if (Boolean.TRUE.equals(c.autoMineUseGolden)) sb.append("guld, ");
+        if (Boolean.TRUE.equals(c.autoMineUseDiamond)) sb.append("diamant, ");
+        sb.setLength(sb.length() - 2);
+        return "Hakker: " + sb;
     }
 
     /** Names the mine being edited, so it is obvious which one the buttons touch. */
@@ -75,6 +95,8 @@ public class GuiAutoMineSettings extends GuiScreen {
             // Arm set-area mode, then close so the player can right-click the two corners.
             AutoMine.beginSetArea();
             this.mc.displayGuiScreen(null);
+        } else if (button.id == ID_PICKAXES) {
+            this.mc.displayGuiScreen(new GuiAutoMinePickaxes());
         } else if (button.id == ID_PROFILES) {
             this.mc.displayGuiScreen(new GuiMineProfiles());
         } else if (button.id == ID_CLEAR_AREA) {

@@ -239,6 +239,16 @@ public class CelleConfig {
     public int autoMinePickaxeMin = 0;
     // Whether to detour to pick up our own dropped iron while mining. Nullable
     // so an older config (key absent) defaults to ON, not the Gson-Unsafe false.
+    /**
+     * Which pickaxes the bot is allowed to mine with. These used to be fixed in
+     * code: iron, gold and diamond in, wood and stone out. The defaults keep
+     * that, so nothing changes until you say otherwise.
+     */
+    public Boolean autoMineUseWooden = Boolean.FALSE;
+    public Boolean autoMineUseStone = Boolean.FALSE;
+    public Boolean autoMineUseIron = Boolean.TRUE;
+    public Boolean autoMineUseGolden = Boolean.TRUE;
+    public Boolean autoMineUseDiamond = Boolean.TRUE;
     public Boolean autoMineCollectDrops = Boolean.TRUE;
     // Command sent to leave the mine when inventory is 100% full of iron ore.
     public String autoMineLeaveCommand = "/spawn";
@@ -569,6 +579,11 @@ public class CelleConfig {
                 this.autoMineApproachDist = loaded.autoMineApproachDist > 0 ? loaded.autoMineApproachDist : 2.7;
                 this.autoMineReach = loaded.autoMineReach > 0 ? loaded.autoMineReach : 4.5;
                 this.autoMinePickaxeMin = loaded.autoMinePickaxeMin;
+                this.autoMineUseWooden = loaded.autoMineUseWooden != null ? loaded.autoMineUseWooden : Boolean.FALSE;
+                this.autoMineUseStone = loaded.autoMineUseStone != null ? loaded.autoMineUseStone : Boolean.FALSE;
+                this.autoMineUseIron = loaded.autoMineUseIron != null ? loaded.autoMineUseIron : Boolean.TRUE;
+                this.autoMineUseGolden = loaded.autoMineUseGolden != null ? loaded.autoMineUseGolden : Boolean.TRUE;
+                this.autoMineUseDiamond = loaded.autoMineUseDiamond != null ? loaded.autoMineUseDiamond : Boolean.TRUE;
                 this.autoMineCollectDrops = loaded.autoMineCollectDrops != null ? loaded.autoMineCollectDrops : Boolean.TRUE;
                 this.autoMineLeaveCommand = (loaded.autoMineLeaveCommand != null && !loaded.autoMineLeaveCommand.isEmpty()) ? loaded.autoMineLeaveCommand : "/spawn";
                 this.autoMineHumanizedDelays = loaded.autoMineHumanizedDelays != null ? loaded.autoMineHumanizedDelays : Boolean.TRUE;

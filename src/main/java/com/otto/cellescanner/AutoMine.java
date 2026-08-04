@@ -1369,16 +1369,45 @@ public class AutoMine {
         return b != Blocks.air && b != Blocks.barrier && b != Blocks.bedrock;
     }
 
+    /**
+     * Whether this kind of pickaxe is switched on in the settings. Anything that
+     * is a pickaxe but none of the five vanilla ones is allowed through, because
+     * a server's custom pickaxe is usually the good one and refusing it would
+     * leave the bot standing next to a working tool it will not pick up.
+     */
+    private static boolean typeAllowed(Item item) {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        if (c == null) {
+            return item == Items.iron_pickaxe || item == Items.diamond_pickaxe
+                    || item == Items.golden_pickaxe;
+        }
+        if (item == Items.wooden_pickaxe) return Boolean.TRUE.equals(c.autoMineUseWooden);
+        if (item == Items.stone_pickaxe) return Boolean.TRUE.equals(c.autoMineUseStone);
+        if (item == Items.iron_pickaxe) return Boolean.TRUE.equals(c.autoMineUseIron);
+        if (item == Items.golden_pickaxe) return Boolean.TRUE.equals(c.autoMineUseGolden);
+        if (item == Items.diamond_pickaxe) return Boolean.TRUE.equals(c.autoMineUseDiamond);
+        return true;
+    }
+
+    /** True when every kind is switched off, which leaves the bot nothing to mine with. */
+    public static boolean noPickaxeTypeAllowed() {
+        CelleConfig c = MassiveOsFreakyAddons.config;
+        if (c == null) {
+            return false;
+        }
+        return !Boolean.TRUE.equals(c.autoMineUseWooden)
+                && !Boolean.TRUE.equals(c.autoMineUseStone)
+                && !Boolean.TRUE.equals(c.autoMineUseIron)
+                && !Boolean.TRUE.equals(c.autoMineUseGolden)
+                && !Boolean.TRUE.equals(c.autoMineUseDiamond);
+    }
+
     private boolean isUsablePickaxe(ItemStack stack) {
         if (stack == null || !(stack.getItem() instanceof ItemPickaxe)) {
             return false;
         }
         Item item = stack.getItem();
-        // Whitelist: Only use Iron Pickaxes (plain or enchanted), Diamond, and Gold. Exclude Wooden & Stone.
-        if (item == Items.wooden_pickaxe || item == Items.stone_pickaxe) {
-            return false;
-        }
-        if (item != Items.iron_pickaxe && item != Items.diamond_pickaxe && item != Items.golden_pickaxe) {
+        if (!typeAllowed(item)) {
             return false;
         }
         if (!stack.isItemStackDamageable()) {

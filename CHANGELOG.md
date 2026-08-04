@@ -2,6 +2,20 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.7.0
+
+- Auto Mine, Indstillinger, Hakker: pick which pickaxes the bot may mine with.
+  The five vanilla kinds each have a switch, and the button shows what is on
+  without opening it. Defaults match what the code did before, so nothing
+  changes until you say otherwise.
+- A pickaxe the server made itself is now always allowed. The old whitelist
+  named the five vanilla items and rejected everything else, so a custom
+  pickaxe was refused and the bot stood next to a working tool it would not
+  pick up. That is the likelier reason it looked iron-only, since gold and
+  diamond were already permitted.
+- Turning every kind off is called out on both screens rather than leaving the
+  bot standing in the mine with nothing it is willing to hold.
+
 ## 4.6.0
 
 - Auto Mine has named mines now. Each one keeps its own area and its own three
