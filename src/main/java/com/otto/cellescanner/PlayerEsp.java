@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
@@ -65,6 +66,13 @@ public class PlayerEsp {
         renderCustomNametag(player, event.x, event.y, event.z);
     }
 
+    /**
+     * How bright a name has to be to read on the dark backing card. Set just
+     * below the shipped palette so those colours pass through untouched, and
+     * only a genuinely dark custom colour gets lifted.
+     */
+    private static final double MIN_TEXT_LUM = 115.0;
+
     static final int REL_BANDE = 0;
     static final int REL_VAGT = 1;
     static final int REL_OTHER = 2;
@@ -102,10 +110,57 @@ public class PlayerEsp {
             return -1;
         }
         switch (relationOf(mc, p)) {
-            case REL_BANDE: return 0xFF000000 | cfg.espColorBande;
-            case REL_VAGT:  return 0xFF000000 | cfg.espColorVagt;
-            default:        return 0xFF000000 | cfg.espColorOther;
+            case REL_BANDE: return 0xFF000000 | readable(cfg.espColorBande);
+            case REL_VAGT:  return 0xFF000000 | readable(cfg.espColorVagt);
+            default:        return 0xFF000000 | readable(cfg.espColorOther);
         }
+    }
+
+    /**
+     * Lifts a colour until it is bright enough to read as text.
+     *
+     * The palette is shared with the ESP boxes, where a dark colour is still a
+     * perfectly visible outline against the world. Text has no such luxury: the
+     * same colour on a dark backing card is a smudge. This scales the channels
+     * up together, so the hue is kept and only the brightness moves.
+     */
+    static int readable(int rgb) {
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = rgb & 0xFF;
+        double lum = lumOf(r, g, b);
+        if (lum >= MIN_TEXT_LUM) {
+            return rgb;
+        }
+
+        // First scale the channels together, which lifts brightness while
+        // keeping the hue exactly.
+        if (lum > 0.0) {
+            double f = MIN_TEXT_LUM / lum;
+            r = (int) Math.min(255, Math.round(r * f));
+            g = (int) Math.min(255, Math.round(g * f));
+            b = (int) Math.min(255, Math.round(b * f));
+            lum = lumOf(r, g, b);
+        }
+        if (lum >= MIN_TEXT_LUM) {
+            return (r << 16) | (g << 8) | b;
+        }
+
+        // Scaling alone cannot always get there. A saturated hue has a hard
+        // ceiling: pure blue tops out at a luminance of 29 however bright the
+        // channel goes, because blue barely registers to an eye. Past that the
+        // only way up is toward white, so mix in exactly as much as is needed
+        // and no more, which keeps the colour recognisable.
+        double t = (MIN_TEXT_LUM - lum) / (255.0 - lum);
+        r = (int) Math.round(r + (255 - r) * t);
+        g = (int) Math.round(g + (255 - g) * t);
+        b = (int) Math.round(b + (255 - b) * t);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    private static double lumOf(int r, int g, int b) {
+        // Green-weighted, the way an eye actually judges brightness.
+        return 0.299 * r + 0.587 * g + 0.114 * b;
     }
 
     private void renderCustomNametag(EntityPlayer player, double x, double y, double z) {
@@ -113,7 +168,16 @@ public class PlayerEsp {
         FontRenderer fontRenderer = mc.fontRendererObj;
         RenderManager renderManager = mc.getRenderManager();
 
-        String name = player.getDisplayName().getFormattedText();
+        // The server's own formatting is kept only when we are not colouring the
+        // name ourselves. A display name carries its own colour codes, and those
+        // override the colour passed to the font renderer, so keeping them meant
+        // our colour was ignored and the name rendered in whatever dark grey the
+        // server prefixes it with.
+        CelleConfig nameCfg = MassiveOsFreakyAddons.config;
+        boolean ownColour = nameCfg != null && Boolean.TRUE.equals(nameCfg.nameEspColorByRelation);
+        String name = ownColour
+                ? EnumChatFormatting.getTextWithoutFormattingCodes(player.getName())
+                : player.getDisplayName().getFormattedText();
         UUID uuid = player.getUniqueID();
 
         float distance = player.getDistanceToEntity(mc.thePlayer);
@@ -162,10 +226,10 @@ public class PlayerEsp {
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer worldrenderer = tessellator.getWorldRenderer();
         worldrenderer.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        worldrenderer.pos((double) (-width - leftOffset), -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.5F).endVertex();
-        worldrenderer.pos((double) (-width - leftOffset), 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.5F).endVertex();
-        worldrenderer.pos((double) (width + rightOffset), 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.5F).endVertex();
-        worldrenderer.pos((double) (width + rightOffset), -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.5F).endVertex();
+        worldrenderer.pos((double) (-width - leftOffset), -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        worldrenderer.pos((double) (-width - leftOffset), 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        worldrenderer.pos((double) (width + rightOffset), 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        worldrenderer.pos((double) (width + rightOffset), -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
         tessellator.draw();
         GlStateManager.enableTexture2D();
 

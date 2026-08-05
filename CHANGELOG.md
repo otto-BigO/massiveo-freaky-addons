@@ -2,6 +2,20 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.8.1
+
+- Navne ESP drew names in whatever dark colour the server prefixes them with,
+  which made them hard to read. The tag used the server's formatted display
+  name, and the colour codes inside that override the colour passed to the font
+  renderer, so the addon's own colour never applied. It draws the plain username
+  in its own colour now, and only keeps the server's formatting when colouring
+  by role is switched off.
+- Stronger dark backing behind the name for contrast.
+- A colour too dark to read as text is lifted until it is readable. The palette
+  is shared with the ESP boxes, where a dark colour is still a perfectly good
+  outline, but the same colour as text is a smudge. The three shipped colours
+  are untouched; only a genuinely dark custom one is raised, keeping its hue.
+
 ## 4.8.0
 
 - Navne ESP is a real addon now, under Tracking. It was written but never
