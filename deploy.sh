@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
-# Build Massiveo's Freaky Addons and deploy it to LabyMod and the Desktop.
+# Build Massiveo's Freaky Addons and deploy it to LabyMod.
+#
+# It used to drop a copy on the Desktop as well, which just piled up a jar per
+# version. Releases are on GitHub and the live jar is in LabyMod, so a build
+# artefact sitting on the Desktop was only clutter.
 #
 # The version is read from the jar that gets built, so this never needs editing
 # when the version changes.
@@ -14,7 +18,6 @@ set -euo pipefail
 PROJECT="/Users/otto/Developer/CelleScanner"
 JAVA8="/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home"
 LABY_MODS="/Users/otto/Library/Application Support/LabyMod/instances/f9b097c3-757b-4829-a2a9-ccaf85449987/loader/forge/1.8.9/mods"
-DESKTOP="/Users/otto/Desktop"
 
 cd "$PROJECT"
 
@@ -53,11 +56,7 @@ find "$LABY_MODS" -maxdepth 1 -name 'cellescanner-*.jar' -delete
 echo "==> Copying to LabyMod"
 cp "$JAR" "$LABY_MODS/cellescanner-${VERSION}.jar"
 
-echo "==> Copying to Desktop"
-cp "$JAR" "$DESKTOP/Massiveo's Freaky Addons ${VERSION}.jar"
-
 echo
 echo "Deployed ${VERSION}:"
 ls -la "$LABY_MODS/cellescanner-${VERSION}.jar" | awk '{print "  LabyMod  " $5 " bytes"}'
-ls -la "$DESKTOP/Massiveo's Freaky Addons ${VERSION}.jar" | awk '{print "  Desktop  " $5 " bytes"}'
 echo "  Restart Minecraft to load it."
