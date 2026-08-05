@@ -985,18 +985,17 @@ public final class AddonList {
             }
         });
 
-        /* Shelved for now - Spiller ESP is replaced by Bande ESP.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Spiller ESP";
+                return "Navne ESP";
             }
 
             public String description() {
-                return "Se spillere og deres navneskilte gennem vægge i 3D";
+                return "Navneskilte gennem vægge, farvet efter bande, vagt eller andre";
             }
 
             public String category() {
-                return "Quality of life";
+                return "Tracking";
             }
 
             public boolean isActive() {
@@ -1004,21 +1003,17 @@ public final class AddonList {
             }
 
             public boolean hasSettings() {
-                return false;
+                return true;
             }
 
             public void open() {
-                config.playerEspEnabled = !config.playerEspEnabled;
-                config.save();
-                net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
-                        new GuiAddonsHub("Quality of life"));
+                CelleActions.openNameEsp();
             }
 
             public void toggle() {
                 config.playerEspEnabled = !config.playerEspEnabled; config.save();
             }
         });
-        */
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {

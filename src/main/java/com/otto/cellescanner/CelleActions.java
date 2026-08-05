@@ -377,6 +377,10 @@ public final class CelleActions {
         net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiCelleBuyerList());
     }
 
+    public static void openNameEsp() {
+        net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(new GuiNameEsp());
+    }
+
     public static void openPvpMine() {
         Minecraft.getMinecraft().displayGuiScreen(new GuiPvpMine());
     }

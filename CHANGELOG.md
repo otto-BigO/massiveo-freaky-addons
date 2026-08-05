@@ -2,6 +2,32 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.8.0
+
+- Navne ESP is a real addon now, under Tracking. It was written but never
+  registered on the event bus and its tile was commented out, so it had no way
+  of running at all. That is why nothing ever appeared.
+- Names are tinted by who the player is, sharing the Bande ESP palette so the
+  two addons never disagree about someone's colour: bande and friends one
+  colour, vagter another, everyone else a third.
+- A name grows with distance and never shrinks below normal, so a far-off one
+  stays readable instead of collapsing into a smudge. How fast it grows is a
+  setting, and it is capped, because without a ceiling a name across the map
+  covers the screen.
+- Settings for through-walls, colouring, a distance limit and showing only
+  bande and vagter, which is what keeps a busy area from becoming a wall of
+  overlapping text.
+- Past the distance limit the vanilla nametag is left alone rather than
+  cancelled, so a distant player still has a name instead of none at all.
+- It defaults to off. It used to default on while being dead code, so simply
+  wiring it up would have switched tags on for everyone who never asked.
+- Fixed Bande ESP's outline mode corrupting the view. The handler that sets up
+  the outline returns early for a player who is not highlighted, without
+  pushing anything, but the handler that cleans up popped the matrix stack
+  regardless. Popping a matrix nobody pushed underflows the stack and every
+  draw after it uses the wrong matrix, which with one unhighlighted player in
+  sight was every frame.
+
 ## 4.7.1
 
 - "Skift hakke ved" was a flat number of durability points, and that is what

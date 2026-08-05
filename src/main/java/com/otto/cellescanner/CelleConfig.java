@@ -399,7 +399,26 @@ public class CelleConfig {
     public boolean celleExpiryAlertsEnabled = true;
 
     // Player Nameplate ESP Addon
-    public boolean playerEspEnabled = true;
+    /**
+     * Nametag ESP. Off by default now that it is actually registered: it used
+     * to default on while being dead code, so switching it on would have turned
+     * tags on for everyone who had never asked for them.
+     */
+    public boolean playerEspEnabled = false;
+    /** Draw tags through walls. Off means they behave like vanilla ones. */
+    public Boolean nameEspThroughWalls = Boolean.TRUE;
+    /** Colour the tag by whether they are bande, a vagt, or nobody in particular. */
+    public Boolean nameEspColorByRelation = Boolean.TRUE;
+    /** Only draw tags for people worth watching, rather than every player. */
+    public Boolean nameEspOnlyKnown = Boolean.FALSE;
+    /** Stop drawing past this many blocks. 0 means no limit. */
+    public int nameEspMaxDistance = 0;
+    /**
+     * How fast the tag grows with distance, as a divisor: bigger means slower.
+     * The tag never shrinks below its normal size, it only grows, which is what
+     * keeps a far-off name readable instead of collapsing into a smudge.
+     */
+    public int nameEspScaleDivisor = 8;
 
     // Chest Organizer Addon
     public boolean chestOrganizerEnabled = true;
@@ -719,6 +738,12 @@ public class CelleConfig {
                 this.autoCrateEnabled = loaded.autoCrateEnabled;
                 this.celleExpiryAlertsEnabled = loaded.celleExpiryAlertsEnabled;
                 this.playerEspEnabled = loaded.playerEspEnabled;
+                this.nameEspThroughWalls = loaded.nameEspThroughWalls != null ? loaded.nameEspThroughWalls : Boolean.TRUE;
+                this.nameEspColorByRelation = loaded.nameEspColorByRelation != null ? loaded.nameEspColorByRelation : Boolean.TRUE;
+                this.nameEspOnlyKnown = loaded.nameEspOnlyKnown != null ? loaded.nameEspOnlyKnown : Boolean.FALSE;
+                this.nameEspMaxDistance = Math.max(0, Math.min(256, loaded.nameEspMaxDistance));
+                this.nameEspScaleDivisor = Math.max(2, Math.min(40,
+                        loaded.nameEspScaleDivisor <= 0 ? 8 : loaded.nameEspScaleDivisor));
                 this.chestOrganizerEnabled = loaded.chestOrganizerEnabled;
                 this.ironDoorSoundsEnabled = loaded.ironDoorSoundsEnabled;
                 this.playerLoggerEnabled = loaded.playerLoggerEnabled;

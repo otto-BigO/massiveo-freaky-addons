@@ -17,12 +17,16 @@ import org.lwjgl.opengl.GL11;
 import java.util.UUID;
 
 /**
- * Renders player nametags through walls (Nametag ESP), keeping them readable at a distance.
- * Includes native support for LabyMod blue wolf head logo and VoiceChat speaker status badges.
+ * Nametag ESP: draws player names through walls and keeps them readable at a
+ * distance. Also carries the LabyMod badge and VoiceChat speaker status.
  *
- * SHELVED: intentionally parked. Not registered on the event bus (see
- * MassiveOsFreakyAddons.init) and its hub tile is commented out in AddonList. Kept
- * for when the addon is picked up again - do not delete.
+ * A distant nametag drawn at its normal size collapses into an unreadable
+ * smudge, so the tag grows with distance and never shrinks below normal. How
+ * fast it grows is the scale divisor in the settings.
+ *
+ * Names are tinted by who the player is, which is the part that makes this
+ * useful in a crowd: bande and friends one colour, vagter another, everyone
+ * else a third, sharing the Bande ESP palette so the two addons agree.
  */
 public class PlayerEsp {
 
@@ -39,11 +43,69 @@ public class PlayerEsp {
         if (player == mc.thePlayer) {
             return; // Don't render a tag above ourselves
         }
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (mc.thePlayer == null) {
+            return;
+        }
+
+        double dist = player.getDistanceToEntity(mc.thePlayer);
+        int maxDist = cfg.nameEspMaxDistance;
+        if (maxDist > 0 && dist > maxDist) {
+            // Past the limit, leave the vanilla tag alone rather than hiding the
+            // player entirely: cancelling here would remove their name outright.
+            return;
+        }
+        if (Boolean.TRUE.equals(cfg.nameEspOnlyKnown) && relationOf(mc, player) == REL_OTHER) {
+            return;
+        }
 
         // Cancel vanilla nameplate rendering
         event.setCanceled(true);
 
         renderCustomNametag(player, event.x, event.y, event.z);
+    }
+
+    static final int REL_BANDE = 0;
+    static final int REL_VAGT = 1;
+    static final int REL_OTHER = 2;
+
+    /**
+     * Who this player is to you. Shares the Bande ESP's idea of bande, friends
+     * and vagter so the two addons never disagree about someone's colour.
+     */
+    static int relationOf(Minecraft mc, EntityPlayer p) {
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null || p == null || p.getName() == null) {
+            return REL_OTHER;
+        }
+        String name = p.getName();
+        if (cfg.isBandeMember(name)) {
+            return REL_BANDE;
+        }
+        if (cfg.friendsList != null) {
+            for (String f : cfg.friendsList) {
+                if (f != null && f.equalsIgnoreCase(name)) {
+                    return REL_BANDE;
+                }
+            }
+        }
+        if (VagtRoster.contains(name)) {
+            return REL_VAGT;
+        }
+        return REL_OTHER;
+    }
+
+    /** Tag colour for a player, or plain white when colouring is switched off. */
+    private static int nameColor(Minecraft mc, EntityPlayer p) {
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null || !Boolean.TRUE.equals(cfg.nameEspColorByRelation)) {
+            return -1;
+        }
+        switch (relationOf(mc, p)) {
+            case REL_BANDE: return 0xFF000000 | cfg.espColorBande;
+            case REL_VAGT:  return 0xFF000000 | cfg.espColorVagt;
+            default:        return 0xFF000000 | cfg.espColorOther;
+        }
     }
 
     private void renderCustomNametag(EntityPlayer player, double x, double y, double z) {
@@ -55,8 +117,11 @@ public class PlayerEsp {
         UUID uuid = player.getUniqueID();
 
         float distance = player.getDistanceToEntity(mc.thePlayer);
-        // Keep nametag readable by growing it slightly with distance
-        float scaleMultiplier = Math.max(1.0F, Math.min(distance / 15.0F, 4.0F));
+        // Grows with distance and never shrinks below normal, so a far-off name
+        // stays legible. Capped, because without a ceiling a name across the map
+        // covers the screen.
+        int divisor = Math.max(2, MassiveOsFreakyAddons.config.nameEspScaleDivisor);
+        float scaleMultiplier = Math.max(1.0F, Math.min(distance / divisor, 6.0F));
         float f = 1.6F * scaleMultiplier;
         float f1 = 0.016666668F * f;
 
@@ -69,9 +134,14 @@ public class PlayerEsp {
         GlStateManager.rotate(renderManager.playerViewX, 1.0F, 0.0F, 0.0F);
         GlStateManager.scale(-f1, -f1, f1);
 
-        // Disable depth testing so it renders through blocks/walls!
-        GlStateManager.disableDepth();
-        GlStateManager.depthMask(false);
+        // Through walls is the whole point of an ESP tag, but it is a switch:
+        // with it off these behave like vanilla tags and stay hidden behind
+        // geometry, while keeping the sizing and colouring.
+        boolean through = Boolean.TRUE.equals(MassiveOsFreakyAddons.config.nameEspThroughWalls);
+        if (through) {
+            GlStateManager.disableDepth();
+            GlStateManager.depthMask(false);
+        }
 
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
@@ -134,9 +204,9 @@ public class PlayerEsp {
         }
 
         // Draw name text with shadow for extra readability
-        fontRenderer.drawStringWithShadow(name, -width, 0, -1);
+        fontRenderer.drawStringWithShadow(name, -width, 0, nameColor(mc, player));
 
-        // Re-enable depth testing and mask for standard rendering pipeline health
+        // Always restore, whether or not it was turned off above.
         GlStateManager.enableDepth();
         GlStateManager.depthMask(true);
 

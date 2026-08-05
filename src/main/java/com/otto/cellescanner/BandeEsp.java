@@ -39,6 +39,18 @@ public class BandeEsp {
     private static final FloatBuffer PROJ_MATRIX = BufferUtils.createFloatBuffer(16);
     private static final int[] VIEWPORT = new int[4];
 
+    /**
+     * Whether the Pre handler actually changed GL state for the player currently
+     * being drawn.
+     *
+     * Pre bails out before pushing anything for a player who is not highlighted,
+     * but Post used to pop regardless. Popping a matrix that was never pushed
+     * underflows the stack, and from that point the whole world renders against
+     * the wrong matrix. With outline mode on and one unhighlighted player in
+     * sight, that was every frame.
+     */
+    private boolean outlineStatePushed = false;
+
     @SubscribeEvent
     public void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
         CelleConfig cfg = MassiveOsFreakyAddons.config;
@@ -79,6 +91,7 @@ public class BandeEsp {
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
         GL11.glLineWidth(2.5f);
         GlStateManager.color(r, g, b, 1.0f);
+        outlineStatePushed = true;
     }
 
     @SubscribeEvent
@@ -92,6 +105,11 @@ public class BandeEsp {
         EntityPlayer p = event.entityPlayer;
         Minecraft mc = Minecraft.getMinecraft();
         if (p == null || p == mc.thePlayer) return;
+
+        // Only undo what Pre actually did. Restoring state that was never
+        // changed pops a matrix nobody pushed, which corrupts every draw after it.
+        if (!outlineStatePushed) return;
+        outlineStatePushed = false;
 
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         GlStateManager.enableLighting();
