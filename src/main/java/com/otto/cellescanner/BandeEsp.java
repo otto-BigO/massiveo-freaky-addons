@@ -85,7 +85,14 @@ public class BandeEsp {
         }
 
         GlStateManager.pushMatrix();
+        // Turning the depth test off is not enough on its own: the model
+        // renderer sets up its own state between here and the actual draw and
+        // switches it straight back on, so the outline ended up hidden behind
+        // walls anyway. Forcing the comparison to always pass survives that,
+        // because it is the test itself that is neutered rather than a flag
+        // somebody else is free to flip back.
         GlStateManager.disableDepth();
+        GlStateManager.depthFunc(GL11.GL_ALWAYS);
         GlStateManager.depthMask(false);
         GlStateManager.disableLighting();
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
@@ -114,6 +121,9 @@ public class BandeEsp {
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
         GlStateManager.enableLighting();
         GlStateManager.enableDepth();
+        // Back to the normal comparison, or everything drawn afterwards ignores
+        // depth too and the world renders inside out.
+        GlStateManager.depthFunc(GL11.GL_LEQUAL);
         GlStateManager.depthMask(true);
         GlStateManager.popMatrix();
     }

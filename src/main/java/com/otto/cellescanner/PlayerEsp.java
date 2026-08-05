@@ -1,6 +1,7 @@
 package com.otto.cellescanner;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -34,6 +35,19 @@ public class PlayerEsp {
     @SubscribeEvent
     public void onRenderNameplate(RenderLivingEvent.Specials.Pre event) {
         if (!MassiveOsFreakyAddons.config.playerEspEnabled) {
+            return;
+        }
+        // The server shows player names as invisible armour stands hovering above
+        // them, not as the player's own nametag. Recolouring only the player's
+        // tag therefore changed nothing visible, which is why names stayed grey.
+        // An armour stand is only treated as somebody's name when a player is
+        // actually standing under it, so holograms and celle signs are left be.
+        if (event.entity instanceof EntityArmorStand) {
+            EntityPlayer owner = ownerOfTag((EntityArmorStand) event.entity);
+            if (owner == null) {
+                return;
+            }
+            renderStandTag((EntityArmorStand) event.entity, owner, event);
             return;
         }
         if (!(event.entity instanceof EntityPlayer)) {
@@ -72,6 +86,39 @@ public class PlayerEsp {
      * only a genuinely dark custom colour gets lifted.
      */
     private static final double MIN_TEXT_LUM = 115.0;
+
+    /**
+     * The player an armour-stand nametag belongs to, or null when it is not a
+     * player's name at all. Same reach the bande tag lookup uses, so the two
+     * agree on which stand belongs to whom.
+     */
+    static EntityPlayer ownerOfTag(EntityArmorStand stand) {
+        if (stand == null || !stand.hasCustomName()) {
+            return null;
+        }
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.theWorld == null) {
+            return null;
+        }
+        String label = EnumChatFormatting.getTextWithoutFormattingCodes(stand.getCustomNameTag()).trim();
+        if (label.isEmpty()) {
+            return null;
+        }
+        EntityPlayer best = null;
+        double bestH = 1.3 * 1.3;
+        for (Object o : mc.theWorld.playerEntities) {
+            if (!(o instanceof EntityPlayer)) continue;
+            EntityPlayer p = (EntityPlayer) o;
+            if (p == mc.thePlayer) continue;
+            double dx = stand.posX - p.posX;
+            double dz = stand.posZ - p.posZ;
+            double h = dx * dx + dz * dz;
+            if (h > bestH || Math.abs(stand.posY - p.posY) > 3.0) continue;
+            bestH = h;
+            best = p;
+        }
+        return best;
+    }
 
     static final int REL_BANDE = 0;
     static final int REL_VAGT = 1;
@@ -161,6 +208,81 @@ public class PlayerEsp {
     private static double lumOf(int r, int g, int b) {
         // Green-weighted, the way an eye actually judges brightness.
         return 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+
+    /**
+     * Draws an armour-stand nametag in the addon's own colour.
+     *
+     * The stand's label is kept as the server wrote it, minus the colour codes,
+     * because that label is what the player is actually called here, rank and
+     * all. Only the colour changes, and it changes to something readable.
+     */
+    private void renderStandTag(EntityArmorStand stand, EntityPlayer owner,
+                                RenderLivingEvent.Specials.Pre event) {
+        Minecraft mc = Minecraft.getMinecraft();
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (mc.thePlayer == null || cfg == null) {
+            return;
+        }
+        double dist = owner.getDistanceToEntity(mc.thePlayer);
+        if (cfg.nameEspMaxDistance > 0 && dist > cfg.nameEspMaxDistance) {
+            return;
+        }
+        if (Boolean.TRUE.equals(cfg.nameEspOnlyKnown) && relationOf(mc, owner) == REL_OTHER) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(cfg.nameEspColorByRelation)
+                && !Boolean.TRUE.equals(cfg.nameEspThroughWalls)) {
+            // Nothing would differ from vanilla, so leave it alone entirely.
+            return;
+        }
+
+        event.setCanceled(true);
+
+        String label = EnumChatFormatting.getTextWithoutFormattingCodes(stand.getCustomNameTag()).trim();
+        FontRenderer fr = mc.fontRendererObj;
+        RenderManager rm = mc.getRenderManager();
+
+        int divisor = Math.max(2, cfg.nameEspScaleDivisor);
+        float scale = Math.max(1.0F, Math.min((float) dist / divisor, 6.0F));
+        float f1 = 0.016666668F * (1.6F * scale);
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate((float) event.x, (float) event.y + 0.3F, (float) event.z);
+        GL11.glNormal3f(0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(-rm.playerViewY, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(rm.playerViewX, 1.0F, 0.0F, 0.0F);
+        GlStateManager.scale(-f1, -f1, f1);
+
+        boolean through = Boolean.TRUE.equals(cfg.nameEspThroughWalls);
+        if (through) {
+            GlStateManager.disableDepth();
+            GlStateManager.depthMask(false);
+        }
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+
+        int half = fr.getStringWidth(label) / 2;
+
+        GlStateManager.disableTexture2D();
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        wr.pos(-half - 2, -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        wr.pos(-half - 2, 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        wr.pos(half + 2, 8.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        wr.pos(half + 2, -1.0D, 0.0D).color(0.0F, 0.0F, 0.0F, 0.7F).endVertex();
+        tess.draw();
+        GlStateManager.enableTexture2D();
+
+        fr.drawStringWithShadow(label, -half, 0, nameColor(mc, owner));
+
+        GlStateManager.enableDepth();
+        GlStateManager.depthMask(true);
+        GlStateManager.disableBlend();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        GlStateManager.popMatrix();
     }
 
     private void renderCustomNametag(EntityPlayer player, double x, double y, double z) {

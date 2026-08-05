@@ -2,6 +2,23 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.8.2
+
+- Navne ESP now colours the name you actually see. The server does not use
+  player nametags at all: it hangs an invisible armour stand above each player
+  and puts the name on that. The addon only ever touched the player's own tag,
+  which nothing renders, so recolouring it changed nothing and names stayed
+  grey. Armour stands are handled now, and only when a player is standing under
+  one, so holograms and celle signs are left alone.
+- The label is kept exactly as the server writes it, rank and all, minus the
+  colour codes. Only the colour changes.
+- Bande ESP's outline renders through walls again. Switching the depth test off
+  was not enough on its own, because the model renderer sets up its own state
+  between that and the actual draw and turns it straight back on. Forcing the
+  depth comparison to always pass survives that, since it neuters the test
+  itself rather than setting a flag somebody else is free to flip back.
+- The build no longer drops a copy of the jar on the Desktop.
+
 ## 4.8.1
 
 - Navne ESP drew names in whatever dark colour the server prefixes them with,
