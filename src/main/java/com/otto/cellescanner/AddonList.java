@@ -40,9 +40,18 @@ public final class AddonList {
                 // a reason to leave the rest half-configured.
             }
         }
+        // Two stay on. Reporting is what feeds the shared celle picture and the
+        // user list, and a client that never reports is invisible to everyone
+        // else; auto-update is how a new install stops being an old one. Both
+        // are set after the sweep rather than skipped during it, so this does
+        // not depend on matching an addon by name.
+        config.botReportEnabled = true;
+        config.autoUpdateEnabled = true;
+
         config.firstRun = false;
         config.save();
-        System.out.println("[CelleScanner] First run: switched " + off + " addons off.");
+        System.out.println("[CelleScanner] First run: switched " + off
+                + " addons off, kept Celle Bot and Opdatering on.");
     }
 
     /** Registers every addon exactly once. Safe to call repeatedly (e.g. each hub open). */

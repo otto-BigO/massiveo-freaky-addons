@@ -75,6 +75,32 @@ public class CelleScanner {
         }
     };
 
+    /** Set once we have announced ourselves on this connection. */
+    private boolean announcedThisJoin = false;
+
+    /**
+     * Says hello to the bot when the player joins a world, so they appear on
+     * the user list straight away rather than only after walking past a celle.
+     * Reset on disconnect, so a reconnect announces again.
+     */
+    @SubscribeEvent
+    public void onJoinWorld(net.minecraftforge.event.entity.EntityJoinWorldEvent event) {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || event.entity != mc.thePlayer) {
+            return;
+        }
+        if (announcedThisJoin) {
+            return;
+        }
+        announcedThisJoin = true;
+        ReportWebhookClient.announcePresence();
+    }
+
+    @SubscribeEvent
+    public void onDisconnect(net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        announcedThisJoin = false;
+    }
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {

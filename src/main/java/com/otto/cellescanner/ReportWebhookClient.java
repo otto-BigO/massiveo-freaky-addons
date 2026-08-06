@@ -178,6 +178,45 @@ public final class ReportWebhookClient {
         t.start();
     }
 
+    /**
+     * Announces this client on joining a server.
+     *
+     * A report with no celler in it, which is enough: the bot records who sent
+     * a report before it looks at what is in it. Without this someone shows up
+     * on the user list only once they have walked past a celle sign, so a new
+     * install looks like it is not working.
+     */
+    public static void announcePresence() {
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null || !cfg.botReportEnabled) {
+            return;
+        }
+        final String url = CelleConfig.reportsWebhookUrl();
+        if (url == null || url.trim().isEmpty()) {
+            return;
+        }
+        final String reporter = reporterName();
+        if ("ukendt".equals(reporter)) {
+            return;   // no name yet, so nothing worth announcing
+        }
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JsonObject payload = buildReportPayload(reporter,
+                            Collections.<Snap>emptyList(), Collections.<String>emptyList());
+                    payload.addProperty("event", "join");
+                    postWithRetry(url.trim(), payload);
+                } catch (Exception e) {
+                    // Nothing depends on this landing, so it fails quietly.
+                    System.err.println("[CelleScanner] Presence announce failed: " + e);
+                }
+            }
+        }, "CelleScanner-Presence");
+        t.setDaemon(true);
+        t.start();
+    }
+
     private static void ensureWorker() {
         synchronized (WORKER_LOCK) {
             if (worker == null) {
