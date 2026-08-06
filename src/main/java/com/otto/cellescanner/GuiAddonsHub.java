@@ -497,6 +497,11 @@ public class GuiAddonsHub extends GuiScreen {
 
             // The backdrop fades with everything else, so the whole panel eases
             // in and out as one thing.
+            // A near-solid fill first. The card style is translucent by design,
+            // and the server's scoreboard sits right behind this corner of the
+            // screen, so the names were reading straight through it.
+            int backing = (((int) (aVal * 236.0f) & 0xFF) << 24) | 0x0A0A0F;
+            drawRect(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom, backing);
             Style.panel(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom, aVal);
 
             drawString(this.fontRendererObj,
@@ -580,9 +585,12 @@ public class GuiAddonsHub extends GuiScreen {
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
-        // Render other buttons (back/close/theme) outside scissor
+        // Render other buttons (back/close/theme) outside scissor.
+        // The active-panel rows go here too. This screen never calls
+        // super.drawScreen for its buttons, it draws them by hand, so a button
+        // that is in neither list is simply never drawn.
         for (GuiButton b : this.buttonList) {
-            if (b.id == ID_CLOSE || b.id == ID_BACK || b.id == ID_THEME) {
+            if (b.id == ID_CLOSE || b.id == ID_BACK || b.id == ID_THEME || b.id >= ACTIVE_BASE) {
                 b.drawButton(this.mc, mouseX, mouseY);
             }
         }
