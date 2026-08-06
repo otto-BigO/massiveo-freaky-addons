@@ -177,10 +177,10 @@ public class GuiNameEsp extends GuiScreen {
         if (scaleStepper != null) scaleStepper.draw(this.mc, mouseX, mouseY, scaleLabel());
         if (distStepper != null) distStepper.draw(this.mc, mouseX, mouseY, distLabel());
 
-        // The palette is shared with Bande ESP, so say where to change it rather
-        // than offering a second set of colours that could disagree.
+        // The palette is shared with the ESP addon, so say where to change it
+        // rather than offering a second set of colours that could disagree.
         drawCenteredString(this.fontRendererObj,
-                EnumChatFormatting.DARK_GRAY + "Farverne deles med Bande ESP",
+                EnumChatFormatting.DARK_GRAY + "Farverne deles med ESP",
                 cx, cy + 92, 0x888888);
 
         GL11.glPopMatrix();

@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Control screen for the Bande ESP addon - Apple Motion Physics.
+ * Control screen for the ESP addon - Apple Motion Physics.
  */
-public class GuiBande extends GuiScreen {
+public class GuiEsp extends GuiScreen {
 
     private static final int ID_ADD = 0;
     private static final int ID_CLEAR = 1;
@@ -124,19 +124,19 @@ public class GuiBande extends GuiScreen {
     }
 
     private String espLabel() {
-        return "ESP: " + (MassiveOsFreakyAddons.config.bandeEspEnabled ? "Til" : "Fra");
+        return "ESP: " + (MassiveOsFreakyAddons.config.espAddonEnabled ? "Til" : "Fra");
     }
 
     private String autoLabel() {
-        return "Auto-hold: " + (MassiveOsFreakyAddons.config.bandeAutoTeam ? "Til" : "Fra");
+        return "Auto-hold: " + (MassiveOsFreakyAddons.config.espAutoTeam ? "Til" : "Fra");
     }
 
     private String allLabel() {
-        return "ESP på alle: " + (MassiveOsFreakyAddons.config.bandeEspAll ? "Til" : "Fra");
+        return "ESP på alle: " + (MassiveOsFreakyAddons.config.espAllPlayers ? "Til" : "Fra");
     }
 
     private String modeLabel() {
-        String m = MassiveOsFreakyAddons.config.bandeEspMode != null ? MassiveOsFreakyAddons.config.bandeEspMode : "2D";
+        String m = MassiveOsFreakyAddons.config.espMode != null ? MassiveOsFreakyAddons.config.espMode : "2D";
         return "Tilstand: " + m;
     }
 
@@ -165,27 +165,27 @@ public class GuiBande extends GuiScreen {
                 this.initGui();
                 break;
             case ID_ESP:
-                CelleActions.toggleBandeEsp();
+                CelleActions.toggleEspAddon();
                 espButton.displayString = espLabel();
                 break;
             case ID_AUTO:
-                CelleActions.toggleBandeAutoTeam();
+                CelleActions.toggleEspAutoTeam();
                 autoButton.displayString = autoLabel();
                 break;
             case ID_ALL:
-                CelleActions.toggleBandeEspAll();
+                CelleActions.toggleEspAllPlayers();
                 allButton.displayString = allLabel();
                 break;
             case ID_MODE:
-                String curr = MassiveOsFreakyAddons.config.bandeEspMode != null ? MassiveOsFreakyAddons.config.bandeEspMode : "2D";
+                String curr = MassiveOsFreakyAddons.config.espMode != null ? MassiveOsFreakyAddons.config.espMode : "2D";
                 if (curr.equalsIgnoreCase("2D")) {
-                    MassiveOsFreakyAddons.config.bandeEspMode = "Corners";
+                    MassiveOsFreakyAddons.config.espMode = "Corners";
                 } else if (curr.equalsIgnoreCase("Corners")) {
-                    MassiveOsFreakyAddons.config.bandeEspMode = "3D";
+                    MassiveOsFreakyAddons.config.espMode = "3D";
                 } else if (curr.equalsIgnoreCase("3D")) {
-                    MassiveOsFreakyAddons.config.bandeEspMode = "Outline";
+                    MassiveOsFreakyAddons.config.espMode = "Outline";
                 } else {
-                    MassiveOsFreakyAddons.config.bandeEspMode = "2D";
+                    MassiveOsFreakyAddons.config.espMode = "2D";
                 }
                 MassiveOsFreakyAddons.config.save();
                 modeButton.displayString = modeLabel();
@@ -249,7 +249,7 @@ public class GuiBande extends GuiScreen {
         Style.card(this.width, this.height);
 
         int titleY = this.height / 2 - 118 - 22;
-        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "Bande ESP", this.width / 2, titleY, Style.getAccentColor());
+        drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "ESP", this.width / 2, titleY, Style.getAccentColor());
         drawCenteredString(this.fontRendererObj, "Bande = grøn kasse. \"ESP på alle\" = rød kasse på alle andre.", this.width / 2, titleY + 12, 0xAAAAAA);
 
         nameField.drawTextBox();

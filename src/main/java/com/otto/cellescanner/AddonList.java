@@ -129,11 +129,11 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Bande ESP";
+                return "ESP";
             }
 
             public String description() {
-                return "Grøn kasse gennem vægge på spillere i din bande";
+                return "Se spillere gennem vægge, farvet efter bande, vagt eller andre";
             }
 
             public String category() {
@@ -141,7 +141,7 @@ public final class AddonList {
             }
 
             public boolean isActive() {
-                return config.bandeEspEnabled;
+                return config.espAddonEnabled;
             }
 
             public boolean hasSettings() {
@@ -149,11 +149,11 @@ public final class AddonList {
             }
 
             public void open() {
-                CelleActions.openBande();
+                CelleActions.openEsp();
             }
 
             public void toggle() {
-                config.bandeEspEnabled = !config.bandeEspEnabled; config.save();
+                config.espAddonEnabled = !config.espAddonEnabled; config.save();
             }
         });
 

@@ -111,16 +111,32 @@ public class CelleConfig {
     // moves the player, which stricter idle checks want, without drifting away.
     public boolean antiAfkStrafe = false;
 
-    // Bande ESP addon: draws a green outline through walls around players who
+    // ESP addon: draws an outline through walls around players, coloured by who
     // are in your bande. Membership is a manual name list (reliable on any
     // server), optionally augmented by "same scoreboard team" auto-detection
     // if the server happens to back bande membership with a real team.
-    public boolean bandeEspEnabled = true;
-    public boolean bandeAutoTeam = false;
+    public boolean espAddonEnabled = true;
+    public boolean espAutoTeam = false;
     // When on, the ESP boxes EVERY player - bande members green, everyone else
     // red - so you can see all players through walls, not just your bande.
-    public boolean bandeEspAll = false;
-    public String bandeEspMode = "2D"; // "2D", "Corners", "3D", "Outline"
+    public boolean espAllPlayers = false;
+    public String espMode = "2D"; // "2D", "Corners", "3D", "Outline"
+
+    /**
+     * The keys this addon used before it was renamed from Bande ESP to ESP.
+     *
+     * Boxed, so "the file does not have this" is distinguishable from "it is
+     * set to false". They are read once and then set to null, which drops them
+     * from the file on the next save, so an existing setup carries across
+     * without the old names hanging around forever.
+     *
+     * Gson 2.2.4 ships with 1.8.9 and predates @SerializedName(alternate), so
+     * this is done by hand rather than with an annotation.
+     */
+    public Boolean bandeEspEnabled;
+    public String bandeEspMode;
+    public Boolean bandeEspAll;
+    public Boolean bandeAutoTeam;
     public List<String> bandeMembers = new ArrayList<String>();
 
     // Venne Telefon / Friend ESP fields
@@ -568,10 +584,24 @@ public class CelleConfig {
                 this.antiAfkRotate = loaded.antiAfkRotate;
                 this.antiAfkJump = loaded.antiAfkJump;
                 this.antiAfkStrafe = loaded.antiAfkStrafe;
-                this.bandeEspEnabled = loaded.bandeEspEnabled;
-                this.bandeAutoTeam = loaded.bandeAutoTeam;
-                this.bandeEspAll = loaded.bandeEspAll;
-                this.bandeEspMode = loaded.bandeEspMode != null ? loaded.bandeEspMode : "2D";
+                // A pre-rename key wins when it is present, because that is the
+                // only way the file could have been written before the new one
+                // existed. Cleared afterwards so it never applies twice.
+                this.espAddonEnabled = loaded.bandeEspEnabled != null
+                        ? loaded.bandeEspEnabled.booleanValue() : loaded.espAddonEnabled;
+                this.espAutoTeam = loaded.bandeAutoTeam != null
+                        ? loaded.bandeAutoTeam.booleanValue() : loaded.espAutoTeam;
+                this.espAllPlayers = loaded.bandeEspAll != null
+                        ? loaded.bandeEspAll.booleanValue() : loaded.espAllPlayers;
+                if (loaded.bandeEspMode != null && !loaded.bandeEspMode.isEmpty()) {
+                    this.espMode = loaded.bandeEspMode;
+                } else {
+                    this.espMode = loaded.espMode != null ? loaded.espMode : "2D";
+                }
+                this.bandeEspEnabled = null;
+                this.bandeEspMode = null;
+                this.bandeEspAll = null;
+                this.bandeAutoTeam = null;
                 this.bandeMembers = loaded.bandeMembers != null ? loaded.bandeMembers : new ArrayList<String>();
                 this.chestAlarmEnabled = loaded.chestAlarmEnabled;
                 this.chestAlarmToast = loaded.chestAlarmToast;

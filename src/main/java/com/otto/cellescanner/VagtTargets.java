@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * Shared identification of vagter and officers, and a best effort read of how much
  * health one has left.
  *
- * The detection was previously private to BandeEsp. Anything that needs to know what
+ * The detection was previously private to Esp. Anything that needs to know what
  * counts as a vagt goes through here instead, so the ESP and the VK Stealer cannot
  * end up disagreeing about which entity is a guard.
  */
@@ -76,7 +76,7 @@ public final class VagtTargets {
         if (hasRankWord(displayName)) {
             return true;
         }
-        String tag = BandeEsp.bandeTag(p);
+        String tag = Esp.bandeTag(p);
         if (tag != null) {
             String tLower = tag.toLowerCase();
             if (!containsAny(tLower, NOT_A_GUARD) && hasRankWord(tLower)) {
@@ -138,7 +138,7 @@ public final class VagtTargets {
         if (p == null) {
             return -1f;
         }
-        float fromTag = tagHealthFraction(BandeEsp.bandeTag(p));
+        float fromTag = tagHealthFraction(Esp.bandeTag(p));
         if (fromTag >= 0f) {
             return fromTag;
         }
@@ -181,7 +181,7 @@ public final class VagtTargets {
 
     /** The absolute health number in a floating tag, or -1 when there is none. */
     public static float rawTagHealth(EntityPlayer p) {
-        String tag = BandeEsp.bandeTag(p);
+        String tag = Esp.bandeTag(p);
         if (tag == null || tag.isEmpty()) {
             return -1f;
         }

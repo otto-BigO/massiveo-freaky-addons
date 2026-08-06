@@ -28,7 +28,7 @@ import java.util.UUID;
  *
  * Names are tinted by who the player is, which is the part that makes this
  * useful in a crowd: bande and friends one colour, vagter another, everyone
- * else a third, sharing the Bande ESP palette so the two addons agree.
+ * else a third, sharing the ESP addon palette so the two agree.
  */
 public class PlayerEsp {
 
@@ -125,7 +125,7 @@ public class PlayerEsp {
     static final int REL_OTHER = 2;
 
     /**
-     * Who this player is to you. Shares the Bande ESP's idea of bande, friends
+     * Who this player is to you. Shares the ESP addon's idea of bande, friends
      * and vagter so the two addons never disagree about someone's colour.
      */
     static int relationOf(Minecraft mc, EntityPlayer p) {
@@ -482,8 +482,8 @@ public class PlayerEsp {
                 continue;
             }
 
-            // Exclude bande members so they are not double-boxed (BandeEsp renders them green)
-            if (MassiveOsFreakyAddons.config.bandeEspEnabled && MassiveOsFreakyAddons.config.isBandeMember(p.getName())) {
+            // Exclude bande members so they are not double-boxed (Esp renders them green)
+            if (MassiveOsFreakyAddons.config.espAddonEnabled && MassiveOsFreakyAddons.config.isBandeMember(p.getName())) {
                 continue;
             }
 

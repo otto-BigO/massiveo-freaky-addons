@@ -292,8 +292,8 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiAntiAfk());
     }
 
-    public static void openBande() {
-        Minecraft.getMinecraft().displayGuiScreen(new GuiBande());
+    public static void openEsp() {
+        Minecraft.getMinecraft().displayGuiScreen(new GuiEsp());
     }
 
     public static void openChestAlarm() {
@@ -507,7 +507,7 @@ public final class CelleActions {
                 break;
             }
         }
-        message(" -> bande: \"" + BandeEsp.bandeTag(tp) + "\"  (navn: \"" + BandeEsp.bandeName(tp) + "\")");
+        message(" -> bande: \"" + Esp.bandeTag(tp) + "\"  (navn: \"" + Esp.bandeName(tp) + "\")");
     }
 
     private static String show(String s) {
@@ -660,22 +660,23 @@ public final class CelleActions {
         Minecraft.getMinecraft().displayGuiScreen(new GuiPhone());
     }
 
-    public static void toggleBandeEsp() {
-        MassiveOsFreakyAddons.config.bandeEspEnabled = !MassiveOsFreakyAddons.config.bandeEspEnabled;
+    /** The player ESP addon. Not toggleEsp, which is the celle box outline. */
+    public static void toggleEspAddon() {
+        MassiveOsFreakyAddons.config.espAddonEnabled = !MassiveOsFreakyAddons.config.espAddonEnabled;
         MassiveOsFreakyAddons.config.save();
-        message("Bande ESP er nu " + (MassiveOsFreakyAddons.config.bandeEspEnabled ? "til" : "fra") + ".");
+        message("ESP er nu " + (MassiveOsFreakyAddons.config.espAddonEnabled ? "til" : "fra") + ".");
     }
 
-    public static void toggleBandeAutoTeam() {
-        MassiveOsFreakyAddons.config.bandeAutoTeam = !MassiveOsFreakyAddons.config.bandeAutoTeam;
+    public static void toggleEspAutoTeam() {
+        MassiveOsFreakyAddons.config.espAutoTeam = !MassiveOsFreakyAddons.config.espAutoTeam;
         MassiveOsFreakyAddons.config.save();
-        message("Bande auto (samme hold): " + (MassiveOsFreakyAddons.config.bandeAutoTeam ? "til" : "fra"));
+        message("Bande auto (samme hold): " + (MassiveOsFreakyAddons.config.espAutoTeam ? "til" : "fra"));
     }
 
-    public static void toggleBandeEspAll() {
-        MassiveOsFreakyAddons.config.bandeEspAll = !MassiveOsFreakyAddons.config.bandeEspAll;
+    public static void toggleEspAllPlayers() {
+        MassiveOsFreakyAddons.config.espAllPlayers = !MassiveOsFreakyAddons.config.espAllPlayers;
         MassiveOsFreakyAddons.config.save();
-        message("ESP på alle spillere: " + (MassiveOsFreakyAddons.config.bandeEspAll ? "til" : "fra"));
+        message("ESP på alle spillere: " + (MassiveOsFreakyAddons.config.espAllPlayers ? "til" : "fra"));
     }
 
     public static void addBandeMember(String name) {

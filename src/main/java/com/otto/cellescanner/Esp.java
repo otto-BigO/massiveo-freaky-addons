@@ -33,7 +33,7 @@ import java.nio.FloatBuffer;
  * - Green : Vagter (Prison Guards)
  * - Red   : Other Players
  */
-public class BandeEsp {
+public class Esp {
 
     private static final FloatBuffer MODEL_MATRIX = BufferUtils.createFloatBuffer(16);
     private static final FloatBuffer PROJ_MATRIX = BufferUtils.createFloatBuffer(16);
@@ -54,9 +54,9 @@ public class BandeEsp {
     @SubscribeEvent
     public void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
         CelleConfig cfg = MassiveOsFreakyAddons.config;
-        if (cfg == null || !cfg.bandeEspEnabled) return;
+        if (cfg == null || !cfg.espAddonEnabled) return;
 
-        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        String mode = cfg.espMode != null ? cfg.espMode : "2D";
         if (!mode.equalsIgnoreCase("Outline")) return;
 
         EntityPlayer p = event.entityPlayer;
@@ -67,7 +67,7 @@ public class BandeEsp {
         boolean bande = isBande(mc, p);
         boolean vagt = isVagt(mc, p);
 
-        if (!friend && !bande && !vagt && !cfg.bandeEspAll) return;
+        if (!friend && !bande && !vagt && !cfg.espAllPlayers) return;
 
         float r, g, b;
         if (friend || bande) {
@@ -104,9 +104,9 @@ public class BandeEsp {
     @SubscribeEvent
     public void onRenderPlayerPost(RenderPlayerEvent.Post event) {
         CelleConfig cfg = MassiveOsFreakyAddons.config;
-        if (cfg == null || !cfg.bandeEspEnabled) return;
+        if (cfg == null || !cfg.espAddonEnabled) return;
 
-        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        String mode = cfg.espMode != null ? cfg.espMode : "2D";
         if (!mode.equalsIgnoreCase("Outline")) return;
 
         EntityPlayer p = event.entityPlayer;
@@ -131,7 +131,7 @@ public class BandeEsp {
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
         CelleConfig cfg = MassiveOsFreakyAddons.config;
-        if (cfg == null || !cfg.bandeEspEnabled) return;
+        if (cfg == null || !cfg.espAddonEnabled) return;
 
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer == null || mc.theWorld == null) return;
@@ -142,7 +142,7 @@ public class BandeEsp {
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
         double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
 
-        String mode = cfg.bandeEspMode != null ? cfg.bandeEspMode : "2D";
+        String mode = cfg.espMode != null ? cfg.espMode : "2D";
         if (mode.equalsIgnoreCase("Outline")) return; // Rendered via RenderPlayerEvent above
 
         if (mode.equalsIgnoreCase("2D") || mode.equalsIgnoreCase("Corners")) {
@@ -175,7 +175,7 @@ public class BandeEsp {
             boolean bande = isBande(mc, p);
             boolean vagt = isVagt(mc, p);
 
-            if (!friend && !bande && !vagt && !cfg.bandeEspAll) continue;
+            if (!friend && !bande && !vagt && !cfg.espAllPlayers) continue;
 
             float r, g, b;
             if (friend || bande) {

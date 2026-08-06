@@ -85,7 +85,7 @@ public class GuiPlayerInfo extends GuiScreen {
             name = target.getName();
         }
         this.playerName = name;
-        this.bande = null; // bande detection shelved - see BandeEsp.bandeTag
+        this.bande = null; // bande detection shelved - see Esp.bandeTag
         for (int i = 0; i < 4; i++) {
             ItemStack s = target.getCurrentArmor(i);
             armor[i] = s == null ? null : s.copy();
@@ -252,7 +252,7 @@ public class GuiPlayerInfo extends GuiScreen {
         int x = mx0 + MODEL_W + 12;
         int y = cardT + 28;
 
-        // Bande line shelved (detection unreliable) - see BandeEsp.bandeTag.
+        // Bande line shelved (detection unreliable) - see Esp.bandeTag.
         y = drawCelle(x, y);
         y += 6;
 

@@ -94,7 +94,7 @@ public class MassiveOsFreakyAddons {
         MinecraftForge.EVENT_BUS.register(esp);
 
         MinecraftForge.EVENT_BUS.register(new AntiAfk());
-        MinecraftForge.EVENT_BUS.register(new BandeEsp());
+        MinecraftForge.EVENT_BUS.register(new Esp());
         MinecraftForge.EVENT_BUS.register(new PlayerEsp());
         MinecraftForge.EVENT_BUS.register(new ChestAlarm());
         MinecraftForge.EVENT_BUS.register(new ArmorSkins());
