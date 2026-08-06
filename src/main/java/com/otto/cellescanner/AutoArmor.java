@@ -10,7 +10,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -31,14 +30,26 @@ public class AutoArmor {
     private boolean isEquipOperation = true;
     private boolean isExecuting = false;
 
+    /**
+     * One container click. Equipping is a pick-up followed by a put-down rather
+     * than a shift-click, because vanilla only routes a shift-clicked armour
+     * piece to its armour slot when that slot is empty. Any other time it falls
+     * through to shuffling the item between the inventory and the hotbar, which
+     * looks exactly like "it moved the armour but did not put it on".
+     */
     private static class ArmorTask {
-        int slot;
-        boolean isEquip;
+        final int slot;
+        final int mode;   // 0 = plain click (pick up / put down), 1 = shift-click
 
-        ArmorTask(int slot, boolean isEquip) {
+        ArmorTask(int slot, int mode) {
             this.slot = slot;
-            this.isEquip = isEquip;
+            this.mode = mode;
         }
+    }
+
+    /** Container slot for an armour piece, from its ItemArmor.armorType. */
+    private static int armorSlotForType(int armorType) {
+        return 5 + armorType;   // 5 helmet, 6 chestplate, 7 leggings, 8 boots
     }
 
     private AutoArmor() {
@@ -69,29 +80,38 @@ public class AutoArmor {
         isEquipOperation = !hasEquippedArmor;
 
         if (hasEquippedArmor) {
-            // Queue stripping armor (slots 5..8 in ContainerPlayer)
+            // Taking armour off is the one case shift-click handles correctly,
+            // since the destination is just "anywhere in the inventory".
             for (int slot = 5; slot <= 8; slot++) {
                 ItemStack stack = player.inventoryContainer.getSlot(slot).getStack();
                 if (stack != null) {
-                    taskQueue.add(new ArmorTask(slot, false));
+                    taskQueue.add(new ArmorTask(slot, 1));
                 }
             }
         } else {
-            // Queue equipping best armor from inventory (slots 9..44)
+            // Putting it on is a pick-up then a put-down into the armour slot.
+            // The two clicks belong together, so they are added as a pair and
+            // the queue is not shuffled: reordering them would drop the piece
+            // into whatever slot came next.
             for (int type = 0; type < 4; type++) {
                 if (player.getCurrentArmor(type) != null) {
                     continue;
                 }
                 int bestSlot = findBestArmorSlot(player, type);
-                if (bestSlot != -1) {
-                    taskQueue.add(new ArmorTask(bestSlot, true));
+                if (bestSlot == -1) {
+                    continue;
                 }
+                ItemStack stack = player.inventoryContainer.getSlot(bestSlot).getStack();
+                if (stack == null || !(stack.getItem() instanceof ItemArmor)) {
+                    continue;
+                }
+                int dest = armorSlotForType(((ItemArmor) stack.getItem()).armorType);
+                taskQueue.add(new ArmorTask(bestSlot, 0));   // pick it up
+                taskQueue.add(new ArmorTask(dest, 0));       // put it in the armour slot
             }
         }
 
         if (!taskQueue.isEmpty()) {
-            // Shuffle task order so slot swap sequence is unique every time
-            Collections.shuffle(taskQueue, RANDOM);
             isExecuting = true;
 
             // Open the real client GuiInventory so the server anti-cheat validates the inventory GUI state
@@ -143,6 +163,17 @@ public class AutoArmor {
         isExecuting = false;
         taskQueue.clear();
 
+        // Anything still on the cursor has to go back in the inventory. Slot
+        // -999 would throw it on the floor instead, which is the one outcome
+        // worth going out of the way to avoid.
+        if (mc.thePlayer != null && mc.thePlayer.inventory != null
+                && mc.thePlayer.inventory.getItemStack() != null) {
+            int free = firstFreeSlot(mc.thePlayer);
+            if (free != -1) {
+                mc.playerController.windowClick(0, free, 0, 0, mc.thePlayer);
+            }
+        }
+
         if (mc.currentScreen instanceof GuiInventory) {
             mc.thePlayer.closeScreen();
         }
@@ -156,9 +187,17 @@ public class AutoArmor {
 
     private void executeTask(Minecraft mc, ArmorTask task) {
         EntityPlayer player = mc.thePlayer;
+        mc.playerController.windowClick(0, task.slot, 0, task.mode, player);
+    }
 
-        // Perform shift-click slot swap inside the open GuiInventory container
-        mc.playerController.windowClick(0, task.slot, 0, 1, player);
+    /** An empty inventory or hotbar slot, or -1 when the inventory is full. */
+    private static int firstFreeSlot(EntityPlayer player) {
+        for (int slot = 9; slot < 45; slot++) {
+            if (player.inventoryContainer.getSlot(slot).getStack() == null) {
+                return slot;
+            }
+        }
+        return -1;
     }
 
     private static int findBestArmorSlot(EntityPlayer player, int targetType) {
