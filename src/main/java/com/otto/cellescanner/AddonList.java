@@ -743,6 +743,10 @@ public final class AddonList {
                 return true;
             }
 
+            public boolean showInActive() {
+                return false;   // a page you open, not something running
+            }
+
             public boolean hasSettings() {
                 return true;
             }
@@ -771,6 +775,10 @@ public final class AddonList {
 
             public boolean isActive() {
                 return config.autoUpdateEnabled;
+            }
+
+            public boolean showInActive() {
+                return false;   // a page you open, not something running
             }
 
             public boolean hasSettings() {

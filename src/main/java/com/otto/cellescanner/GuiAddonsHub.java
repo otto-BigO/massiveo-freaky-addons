@@ -34,11 +34,13 @@ public class GuiAddonsHub extends GuiScreen {
      * doing something are reachable without hunting for them.
      */
     private static final int ACTIVE_BASE = 2000;
-    private static final int ACTIVE_W = 148;
-    private static final int ACTIVE_ROW = 20;
-    private static final int ACTIVE_MAX_ROWS = 10;
+    /** Same width, row height and button height as the main list, so it reads as the same thing. */
+    private static final int ACTIVE_W = PANEL_W;
+    private static final int ACTIVE_ROW = ROW_H;
+    private static final int ACTIVE_MAX_ROWS = 9;
     private final List<MassiveoAddons.Addon> activeAddons = new ArrayList<MassiveoAddons.Addon>();
     private int activeHidden = 0;
+    private int activeScroll = 0;
     private int activeX = 0;
     private int activeTopY = 0;
     private boolean showActive = false;
@@ -173,14 +175,38 @@ public class GuiAddonsHub extends GuiScreen {
     public void handleMouseInput() throws IOException {
         super.handleMouseInput();
         int d = Mouse.getDWheel();
+        if (d == 0) {
+            return;
+        }
+
+        // Whichever list the pointer is over is the one that scrolls, so the
+        // main list does not move while you are reading the panel.
+        if (showActive && pointerOverActive()) {
+            int maxOffset = Math.max(0, activeAddons.size() - ACTIVE_MAX_ROWS);
+            int next = Math.max(0, Math.min(maxOffset, activeScroll + (d > 0 ? -1 : 1)));
+            if (next != activeScroll) {
+                activeScroll = next;
+                pendingRebuild = true;
+            }
+            return;
+        }
+
         if (d > 0) {
             targetScroll -= ROW_H * 2; // Smooth 2-row glide up
-        } else if (d < 0) {
+        } else {
             targetScroll += ROW_H * 2; // Smooth 2-row glide down
         }
-        if (d != 0) {
-            clampScroll();
-        }
+        clampScroll();
+    }
+
+    /** Whether the mouse is inside the active panel right now. */
+    private boolean pointerOverActive() {
+        int mx = Mouse.getX() * this.width / this.mc.displayWidth;
+        int my = this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
+        int rows = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
+        int bottom = activeTopY + rows * ACTIVE_ROW + 12;
+        return mx >= activeX - 6 && mx <= activeX + ACTIVE_W + 6
+                && my >= activeTopY - 20 && my <= bottom;
     }
 
     private void rebuild() {
@@ -280,7 +306,7 @@ public class GuiAddonsHub extends GuiScreen {
         for (String cat : MassiveoAddons.categories()) {
             for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
                 try {
-                    if (a.isActive()) {
+                    if (a.isActive() && a.showInActive()) {
                         activeAddons.add(a);
                     }
                 } catch (Throwable ignored) {
@@ -294,15 +320,21 @@ public class GuiAddonsHub extends GuiScreen {
         }
 
         showActive = true;
-        activeTopY = cy - 96;
-        int shown = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
-        activeHidden = activeAddons.size() - shown;
+        activeTopY = cy - 104;
 
+        int shown = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
+        int maxOffset = Math.max(0, activeAddons.size() - ACTIVE_MAX_ROWS);
+        if (activeScroll > maxOffset) activeScroll = maxOffset;
+        if (activeScroll < 0) activeScroll = 0;
+        activeHidden = maxOffset - activeScroll;
+
+        // Scrolling moves which addons the rows show rather than moving the
+        // rows, so nothing can ever slide out past the edge of the panel.
         int y = activeTopY;
         for (int i = 0; i < shown; i++) {
-            MassiveoAddons.Addon a = activeAddons.get(i);
-            this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, ACTIVE_W, ACTIVE_ROW - 2,
-                    Style.getAccentFormatting() + trimTo(a.name(), 17)));
+            MassiveoAddons.Addon a = activeAddons.get(activeScroll + i);
+            this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, ACTIVE_W, BTN_H,
+                    addonLabel(a)));
             y += ACTIVE_ROW;
         }
     }
@@ -313,7 +345,7 @@ public class GuiAddonsHub extends GuiScreen {
         for (String cat : MassiveoAddons.categories()) {
             for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
                 try {
-                    if (a.isActive()) {
+                    if (a.isActive() && a.showInActive()) {
                         n++;
                     }
                 } catch (Throwable ignored) {
@@ -338,7 +370,7 @@ public class GuiAddonsHub extends GuiScreen {
      * any, right always toggles, which matches how the main list behaves.
      */
     private boolean handleActiveClick(int id, boolean toggleInstead) {
-        int index = id - ACTIVE_BASE;
+        int index = activeScroll + (id - ACTIVE_BASE);
         if (index < 0 || index >= activeAddons.size()) {
             return false;
         }
@@ -493,23 +525,25 @@ public class GuiAddonsHub extends GuiScreen {
         if (showActive && aVal > 0.01f) {
             int aBits = ((int) (aVal * 255.0f) & 0xFF) << 24;
             int rows = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
-            int bottom = activeTopY + rows * ACTIVE_ROW + (activeHidden > 0 ? 12 : 4);
+            int bottom = activeTopY + rows * ACTIVE_ROW + (activeHidden > 0 || activeScroll > 0 ? 12 : 2);
 
             // The backdrop fades with everything else, so the whole panel eases
             // in and out as one thing.
-            // A near-solid fill first. The card style is translucent by design,
-            // and the server's scoreboard sits right behind this corner of the
-            // screen, so the names were reading straight through it.
-            int backing = (((int) (aVal * 236.0f) & 0xFF) << 24) | 0x0A0A0F;
-            drawRect(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom, backing);
-            Style.panel(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom, aVal);
+            // Same card treatment as the rest of the menu, so it sits in the
+            // interface rather than on top of it. A solid slab was tried to stop
+            // the scoreboard reading through, and it just looked like a
+            // different program. The rows fill the panel now, which does the
+            // same job without breaking the style.
+            Style.panel(activeX - 6, activeTopY - 20, activeX + ACTIVE_W + 6, bottom, aVal);
 
             drawString(this.fontRendererObj,
                     EnumChatFormatting.BOLD + "Aktive " + EnumChatFormatting.GRAY + "(" + activeAddons.size() + ")",
-                    activeX, activeTopY - 13, aBits | (Style.getAccentColor() & 0x00FFFFFF));
-            if (activeHidden > 0) {
+                    activeX, activeTopY - 15, aBits | (Style.getAccentColor() & 0x00FFFFFF));
+            if (activeHidden > 0 || activeScroll > 0) {
+                String more = (activeScroll > 0 ? "▲ " + activeScroll + "  " : "")
+                        + (activeHidden > 0 ? "▼ " + activeHidden : "");
                 drawString(this.fontRendererObj,
-                        EnumChatFormatting.DARK_GRAY + "+" + activeHidden + " mere",
+                        EnumChatFormatting.DARK_GRAY + more.trim(),
                         activeX, activeTopY + rows * ACTIVE_ROW + 1, aBits | 0x888888);
             }
         }

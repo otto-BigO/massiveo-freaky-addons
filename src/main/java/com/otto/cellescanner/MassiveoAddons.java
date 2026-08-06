@@ -45,6 +45,18 @@ public final class MassiveoAddons {
          * drift, since both are written at the same time.
          */
         boolean hasSettings();
+
+        /**
+         * Whether this belongs in the "aktive" panel beside the hub.
+         *
+         * A default, unlike hasSettings, because getting it wrong here is only
+         * a tidiness question rather than a broken tile. Reference screens say
+         * no: a price guide being "on" is not something you are running, it is
+         * just a page you can open, and listing it as active is noise.
+         */
+        default boolean showInActive() {
+            return true;
+        }
     }
 
     private static final List<Addon> ADDONS = new ArrayList<Addon>();
