@@ -2,6 +2,41 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.10.0
+
+- Bande ESP is just ESP. It has not been bande-only for a long time: it
+  colours bande and friends, vagter and everyone else, and the all-players
+  switch made the old name actively misleading. An existing config carries
+  across, and the bande concept itself stays, since that is still who the
+  colours are about.
+- The menu shows what is switched on. A panel beside it lists every active
+  addon wherever it lives in the categories, left-click for its settings,
+  right-click to switch it off. It scrolls, fades in and out with the last
+  addon, and only appears when there is room beside the card.
+- Reference screens are not listed as active. A price guide being "on" is not
+  something you are running.
+- Auto Armour actually puts the armour on. It shift-clicked the piece, and
+  vanilla only routes that into the armour slot when the slot is empty; any
+  other time it moves the item between the inventory and the hotbar, which is
+  why the inventory opened, armour moved, and none of it ended up worn.
+- A hovered menu button lost its left and right edges. The list is clipped to
+  exactly the button width and hovering grows a button by 2%, so the sides fell
+  outside the clip and left two lines hanging in the air.
+- The menu replayed its entrance animation continuously. It decided the active
+  panel was out of date by comparing how many addons are on against how many
+  rows fit, which with more than nine active is never equal, so it rebuilt
+  itself every tick at every screen size.
+- Tving genhentning on the Opdatering screen, and `/celler update force`.
+  Reinstalls the newest release whatever the version numbers say, for a jar
+  that is the right version but wrong: a build replaced under the same number,
+  or a download that landed damaged.
+- A fresh install starts with every addon switched off, so nothing begins doing
+  things to your game before you have asked. Celle Bot and Opdatering stay on,
+  since a client that never reports is invisible to everyone else and
+  auto-update is how a new install stops being an old one.
+- Joining a server tells the bot you are here, so you appear on the website's
+  user list straight away instead of only after walking past a celle sign.
+
 ## 4.9.0
 
 - A green vagt box no longer lands on anyone whose username happens to contain
