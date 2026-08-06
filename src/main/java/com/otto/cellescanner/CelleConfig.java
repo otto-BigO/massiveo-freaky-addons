@@ -29,6 +29,18 @@ public class CelleConfig {
     private final transient File file;
     private final transient Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
+    /**
+     * True until the first run has been handled. A fresh install starts with
+     * every addon switched off, so nothing begins doing things to your game
+     * before you have asked for it.
+     *
+     * Marked on the config rather than by changing each default, because the
+     * defaults are also what an older config falls back to for a field that did
+     * not exist when it was written. Flipping those to false would have
+     * switched features off for people who already had them on.
+     */
+    public boolean firstRun = true;
+
     public boolean enabled = true;
     public int minHours = 1;
     public int maxHours = 10;
@@ -636,6 +648,7 @@ public class CelleConfig {
                 this.mineAreaY2 = loaded.mineAreaY2;
                 this.mineAreaZ2 = loaded.mineAreaZ2;
                 this.mineAreaDim = loaded.mineAreaDim;
+                this.firstRun = loaded.firstRun;
                 if (loaded.mineProfiles != null) {
                     this.mineProfiles = loaded.mineProfiles;
                 }

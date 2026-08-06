@@ -14,6 +14,37 @@ public final class AddonList {
     private AddonList() {
     }
 
+    /**
+     * Switches every addon off, once, on a fresh install.
+     *
+     * The registry is the source of truth rather than a list of config fields:
+     * most of those booleans are how an addon behaves rather than whether it is
+     * on, and turning off the likes of "show seconds" or "use iron pickaxes"
+     * would be nonsense. Anything that reports itself active gets toggled.
+     */
+    public static void applyFirstRunDefaults() {
+        CelleConfig config = MassiveOsFreakyAddons.config;
+        if (config == null || !config.firstRun) {
+            return;
+        }
+        ensureRegistered();
+        int off = 0;
+        for (MassiveoAddons.Addon a : MassiveoAddons.all()) {
+            try {
+                if (a.isActive()) {
+                    a.toggle();
+                    off++;
+                }
+            } catch (Throwable ignored) {
+                // One addon that cannot report or change its own state is not
+                // a reason to leave the rest half-configured.
+            }
+        }
+        config.firstRun = false;
+        config.save();
+        System.out.println("[CelleScanner] First run: switched " + off + " addons off.");
+    }
+
     /** Registers every addon exactly once. Safe to call repeatedly (e.g. each hub open). */
     public static void ensureRegistered() {
         if (registered) {

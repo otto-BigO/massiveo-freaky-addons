@@ -41,6 +41,10 @@ public class MassiveOsFreakyAddons {
     public void preInit(FMLPreInitializationEvent event) {
         config = new CelleConfig(event.getSuggestedConfigurationFile());
         config.load();
+        // Only touches anything on a genuinely fresh install, where it turns
+        // every addon off. Registration is normally deferred to the first hub
+        // open to keep startup light, so this pays that cost exactly once.
+        AddonList.applyFirstRunDefaults();
         CellePositions.init(event.getSuggestedConfigurationFile().getParentFile());
         CelleTimingLog.init(event.getSuggestedConfigurationFile().getParentFile());
         ItemValues.init(event.getSuggestedConfigurationFile().getParentFile());

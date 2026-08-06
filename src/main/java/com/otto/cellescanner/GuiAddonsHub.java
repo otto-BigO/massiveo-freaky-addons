@@ -649,9 +649,14 @@ public class GuiAddonsHub extends GuiScreen {
         // Render viewport with scissoring & Apple staggered item card entrance
         ScaledResolution sr = new ScaledResolution(this.mc);
         int scale = sr.getScaleFactor();
-        int scissorX = (cx - PANEL_W / 2) * scale;
+        // The clip has to be wider than the buttons. They are exactly PANEL_W
+        // across and grow by 2% when hovered, so a clip of exactly PANEL_W cut
+        // the left and right edges off the button under the cursor and left
+        // just its top and bottom lines hanging in the air.
+        int overscan = 6;
+        int scissorX = (cx - PANEL_W / 2 - overscan) * scale;
         int scissorY = (this.mc.displayHeight - (cy + 100) * scale);
-        int scissorW = PANEL_W * scale;
+        int scissorW = (PANEL_W + overscan * 2) * scale;
         int scissorH = 180 * scale;
 
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
