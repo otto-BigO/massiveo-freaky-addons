@@ -149,7 +149,7 @@ public class GuiAddonsHub extends GuiScreen {
     public void updateScreen() {
         if (pendingRebuild) {
             pendingRebuild = false;
-            initGui();
+            rebuildActivePanelOnly();
         }
 
         // The active set can change from outside this screen, so it is checked
@@ -361,6 +361,41 @@ public class GuiAddonsHub extends GuiScreen {
             this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, activeW, BTN_H,
                     addonLabel(a)));
             y += ACTIVE_ROW;
+        }
+    }
+
+    /**
+     * Rebuilds only the active panel.
+     *
+     * initGui restarts the screen's entrance animation, so using it to reflect
+     * a scroll or a toggle replayed the whole menu's pop-in every time. This
+     * touches nothing but the panel's own buttons.
+     */
+    private void rebuildActivePanelOnly() {
+        for (int i = this.buttonList.size() - 1; i >= 0; i--) {
+            GuiButton b = (GuiButton) this.buttonList.get(i);
+            if (b.id >= ACTIVE_BASE) {
+                this.buttonList.remove(i);
+            }
+        }
+        buildActivePanel();
+        refreshVisibleAddonLabels();
+    }
+
+    /**
+     * Re-labels the main list, since toggling from the panel changes a state
+     * the list is also showing.
+     */
+    private void refreshVisibleAddonLabels() {
+        String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";
+        boolean isSearching = !query.isEmpty();
+        for (int i = 0; i < itemButtons.size(); i++) {
+            GuiButton b = itemButtons.get(i);
+            if (isSearching && b.id < searchResults.size()) {
+                b.displayString = addonLabel(searchResults.get(b.id));
+            } else if (!isSearching && category != null && b.id < levelAddons.size()) {
+                b.displayString = addonLabel(levelAddons.get(b.id));
+            }
         }
     }
 
