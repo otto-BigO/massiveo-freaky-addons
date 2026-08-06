@@ -250,7 +250,12 @@ public class GuiEsp extends GuiScreen {
 
         int titleY = this.height / 2 - 118 - 22;
         drawCenteredString(this.fontRendererObj, net.minecraft.util.EnumChatFormatting.BOLD + "ESP", this.width / 2, titleY, Style.getAccentColor());
-        drawCenteredString(this.fontRendererObj, "Bande = grøn kasse. \"ESP på alle\" = rød kasse på alle andre.", this.width / 2, titleY + 12, 0xAAAAAA);
+        // The old line named the colours, and named them wrongly: bande is blue
+        // by default, green is the vagt colour. It says who gets a box instead,
+        // which is the part that does not change when the palette does.
+        drawCenteredString(this.fontRendererObj,
+                "Bande, venner og vagter har hver sin farve. \"ESP på alle\" tager alle andre med.",
+                this.width / 2, titleY + 12, 0xAAAAAA);
 
         nameField.drawTextBox();
 
