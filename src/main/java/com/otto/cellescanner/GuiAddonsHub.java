@@ -28,6 +28,30 @@ public class GuiAddonsHub extends GuiScreen {
     private static final int BTN_H = 20;
     private static final int PANEL_W = 200;
 
+    /**
+     * The "aktive" panel down the right-hand side: every addon currently
+     * switched on, wherever it lives in the categories, so the ones actually
+     * doing something are reachable without hunting for them.
+     */
+    private static final int ACTIVE_BASE = 2000;
+    private static final int ACTIVE_W = 148;
+    private static final int ACTIVE_ROW = 20;
+    private static final int ACTIVE_MAX_ROWS = 10;
+    private final List<MassiveoAddons.Addon> activeAddons = new ArrayList<MassiveoAddons.Addon>();
+    private int activeHidden = 0;
+    private int activeX = 0;
+    private int activeTopY = 0;
+    private boolean showActive = false;
+    /**
+     * Rebuild the screen on the next tick rather than mid-click.
+     *
+     * GuiScreen.mouseClicked keeps walking the button list after calling
+     * actionPerformed. Rebuilding from inside that means the row below the one
+     * just switched off slides up under the cursor and gets pressed as well, so
+     * one click would switch off two addons.
+     */
+    private boolean pendingRebuild = false;
+
     private final String category;
 
     private final List<String> levelCategories = new ArrayList<String>();
@@ -103,6 +127,10 @@ public class GuiAddonsHub extends GuiScreen {
 
     @Override
     public void updateScreen() {
+        if (pendingRebuild) {
+            pendingRebuild = false;
+            initGui();
+        }
         long now = System.currentTimeMillis();
         float dt = Math.max(0.001f, (now - lastFrameTimeMs) / 1000.0f);
         lastFrameTimeMs = now;
@@ -203,6 +231,86 @@ public class GuiAddonsHub extends GuiScreen {
         maxScroll = Math.max(0, totalHeight - 170);
         clampScroll();
         updateButtonPositions();
+
+        buildActivePanel();
+    }
+
+    /**
+     * Lays out the active-addon panel beside the card.
+     *
+     * Only when there is genuinely room for it: at a large GUI scale the screen
+     * is narrow enough that this would sit on top of the card, and a panel
+     * overlapping the thing it is meant to complement is worse than no panel.
+     */
+    private void buildActivePanel() {
+        activeAddons.clear();
+        activeHidden = 0;
+        showActive = false;
+
+        int cx = this.width / 2;
+        int cy = this.height / 2;
+        activeX = cx + Style.cardHalfWidth(this.width) + 10;
+        if (activeX + ACTIVE_W + 6 > this.width) {
+            return;
+        }
+
+        for (String cat : MassiveoAddons.categories()) {
+            for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
+                try {
+                    if (a.isActive()) {
+                        activeAddons.add(a);
+                    }
+                } catch (Throwable ignored) {
+                    // An addon that cannot report its own state is not worth
+                    // taking the whole menu down for.
+                }
+            }
+        }
+        if (activeAddons.isEmpty()) {
+            return;
+        }
+
+        showActive = true;
+        activeTopY = cy - 96;
+        int shown = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
+        activeHidden = activeAddons.size() - shown;
+
+        int y = activeTopY;
+        for (int i = 0; i < shown; i++) {
+            MassiveoAddons.Addon a = activeAddons.get(i);
+            this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, ACTIVE_W, ACTIVE_ROW - 2,
+                    Style.getAccentFormatting() + trimTo(a.name(), 17)));
+            y += ACTIVE_ROW;
+        }
+    }
+
+    /** Keeps a name inside the narrow panel rather than letting it run over the edge. */
+    private static String trimTo(String s, int max) {
+        if (s == null) {
+            return "";
+        }
+        return s.length() <= max ? s : s.substring(0, max - 1) + "…";
+    }
+
+    /**
+     * A click in the active panel. Left opens the addon's settings when it has
+     * any, right always toggles, which matches how the main list behaves.
+     */
+    private boolean handleActiveClick(int id, boolean toggleInstead) {
+        int index = id - ACTIVE_BASE;
+        if (index < 0 || index >= activeAddons.size()) {
+            return false;
+        }
+        MassiveoAddons.Addon addon = activeAddons.get(index);
+        if (toggleInstead || !addon.hasSettings()) {
+            addon.toggle();
+            // Switching one off takes it out of the panel, so the rows have to
+            // be rebuilt. Deferred, for the reason on pendingRebuild.
+            pendingRebuild = true;
+        } else {
+            addon.open();
+        }
+        return true;
     }
 
     private static String addonLabel(MassiveoAddons.Addon addon) {
@@ -245,6 +353,10 @@ public class GuiAddonsHub extends GuiScreen {
             } else {
                 this.mc.displayGuiScreen(new GuiAddonsHub());
             }
+            return;
+        }
+        if (button.id >= ACTIVE_BASE) {
+            handleActiveClick(button.id, false);
             return;
         }
         if (button.id >= 0) {
@@ -329,6 +441,22 @@ public class GuiAddonsHub extends GuiScreen {
         GL11.glTranslatef(0.0f, -offsetY, 0.0f);
 
         Style.card(this.width, this.height);
+
+        // Backdrop for the active-addon panel, drawn before super.drawScreen so
+        // the buttons in it land on top.
+        if (showActive) {
+            int rows = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
+            int bottom = activeTopY + rows * ACTIVE_ROW + (activeHidden > 0 ? 12 : 4);
+            Style.panel(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom);
+            drawString(this.fontRendererObj,
+                    EnumChatFormatting.BOLD + "Aktive " + EnumChatFormatting.GRAY + "(" + activeAddons.size() + ")",
+                    activeX, activeTopY - 13, Style.getAccentColor());
+            if (activeHidden > 0) {
+                drawString(this.fontRendererObj,
+                        EnumChatFormatting.DARK_GRAY + "+" + activeHidden + " mere",
+                        activeX, activeTopY + rows * ACTIVE_ROW + 1, 0x888888);
+            }
+        }
 
         int cx = this.width / 2;
         int cy = this.height / 2;
@@ -479,6 +607,20 @@ public class GuiAddonsHub extends GuiScreen {
         boolean clickInViewport = (mouseY >= cy - 80 && mouseY <= cy + 100);
 
         if (mouseButton == 1) {
+            // The panel sits outside the scrolling viewport, so it is checked
+            // first and on its own.
+            int hitActive = -1;
+            for (GuiButton b : this.buttonList) {
+                if (b.id >= ACTIVE_BASE && b.mousePressed(this.mc, mouseX, mouseY) && b.enabled) {
+                    b.playPressSound(this.mc.getSoundHandler());
+                    hitActive = b.id;
+                    break;
+                }
+            }
+            if (hitActive >= 0) {
+                handleActiveClick(hitActive, true);
+                return;
+            }
             if (clickInViewport) {
                 for (GuiButton b : this.buttonList) {
                     if (b.id >= 0 && b.id < 1000 && b.mousePressed(this.mc, mouseX, mouseY) && b.enabled) {
