@@ -35,12 +35,24 @@ public class GuiAddonsHub extends GuiScreen {
      */
     private static final int ACTIVE_BASE = 2000;
     /** Same width, row height and button height as the main list, so it reads as the same thing. */
-    private static final int ACTIVE_W = PANEL_W;
+    private static final int ACTIVE_W_FULL = PANEL_W;
+    private static final int ACTIVE_W_NARROW = 140;
+    private int activeW = PANEL_W;
     private static final int ACTIVE_ROW = ROW_H;
     private static final int ACTIVE_MAX_ROWS = 9;
     private final List<MassiveoAddons.Addon> activeAddons = new ArrayList<MassiveoAddons.Addon>();
     private int activeHidden = 0;
     private int activeScroll = 0;
+    /**
+     * The active count the panel was last built against, so "needs rebuilding"
+     * never depends on how many rows ended up on screen.
+     *
+     * Comparing the live count to the number of rows meant a panel that could
+     * not fit, and therefore built no rows at all, looked permanently out of
+     * date. It asked for a rebuild every tick, which restarted the menu's open
+     * animation every tick.
+     */
+    private int activeBuiltFor = -1;
     private int activeX = 0;
     private int activeTopY = 0;
     private boolean showActive = false;
@@ -145,7 +157,7 @@ public class GuiAddonsHub extends GuiScreen {
         int live = countActive();
         if (live > 0) {
             activeAlpha.animateTo(1.0f, 220);
-            if (live != activeAddons.size()) {
+            if (live != activeBuiltFor) {
                 pendingRebuild = true;
             }
         } else {
@@ -155,6 +167,7 @@ public class GuiAddonsHub extends GuiScreen {
             if (!activeAddons.isEmpty() && activeAlpha.getValue() <= 0.02f) {
                 pendingRebuild = true;
             }
+            activeBuiltFor = 0;
         }
         long now = System.currentTimeMillis();
         float dt = Math.max(0.001f, (now - lastFrameTimeMs) / 1000.0f);
@@ -205,7 +218,7 @@ public class GuiAddonsHub extends GuiScreen {
         int my = this.height - Mouse.getY() * this.height / this.mc.displayHeight - 1;
         int rows = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
         int bottom = activeTopY + rows * ACTIVE_ROW + 12;
-        return mx >= activeX - 6 && mx <= activeX + ACTIVE_W + 6
+        return mx >= activeX - 6 && mx <= activeX + activeW + 6
                 && my >= activeTopY - 20 && my <= bottom;
     }
 
@@ -295,11 +308,23 @@ public class GuiAddonsHub extends GuiScreen {
         activeAddons.clear();
         activeHidden = 0;
         showActive = false;
+        // Recorded before any early return, so every path leaves the panel
+        // agreeing with what it was built for.
+        activeBuiltFor = countActive();
 
         int cx = this.width / 2;
         int cy = this.height / 2;
         activeX = cx + Style.cardHalfWidth(this.width) + 10;
-        if (activeX + ACTIVE_W + 6 > this.width) {
+
+        // As wide as the main list when there is room, narrower when there is
+        // not, and only dropped when even that will not fit. It used to be one
+        // fixed width, so widening it to match the list pushed it off narrower
+        // screens entirely.
+        activeW = ACTIVE_W_FULL;
+        if (activeX + activeW + 6 > this.width) {
+            activeW = ACTIVE_W_NARROW;
+        }
+        if (activeX + activeW + 6 > this.width) {
             return;
         }
 
@@ -333,7 +358,7 @@ public class GuiAddonsHub extends GuiScreen {
         int y = activeTopY;
         for (int i = 0; i < shown; i++) {
             MassiveoAddons.Addon a = activeAddons.get(activeScroll + i);
-            this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, ACTIVE_W, BTN_H,
+            this.buttonList.add(new StyledButton(ACTIVE_BASE + i, activeX, y, activeW, BTN_H,
                     addonLabel(a)));
             y += ACTIVE_ROW;
         }
@@ -534,7 +559,7 @@ public class GuiAddonsHub extends GuiScreen {
             // the scoreboard reading through, and it just looked like a
             // different program. The rows fill the panel now, which does the
             // same job without breaking the style.
-            Style.panel(activeX - 6, activeTopY - 20, activeX + ACTIVE_W + 6, bottom, aVal);
+            Style.panel(activeX - 6, activeTopY - 20, activeX + activeW + 6, bottom, aVal);
 
             drawString(this.fontRendererObj,
                     EnumChatFormatting.BOLD + "Aktive " + EnumChatFormatting.GRAY + "(" + activeAddons.size() + ")",
