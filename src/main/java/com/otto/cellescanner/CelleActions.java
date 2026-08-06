@@ -559,6 +559,16 @@ public final class CelleActions {
         message("Tjekker for opdatering...");
     }
 
+    /**
+     * Reinstalls the newest release even when the version numbers already match,
+     * for a jar that is the right version but wrong: a build replaced under the
+     * same number, or a download that landed damaged.
+     */
+    public static void forceUpdateNow() {
+        AutoUpdater.forceAsync();
+        message("Henter nyeste release igen, uanset version...");
+    }
+
     public static void toggleItemValues() {
         MassiveOsFreakyAddons.config.itemValueEnabled = !MassiveOsFreakyAddons.config.itemValueEnabled;
         MassiveOsFreakyAddons.config.save();

@@ -128,6 +128,12 @@ public class CommandCeller extends CommandBase {
             CelleActions.message("Log: " + CelleTimingLog.path());
         } else if ("bot".equals(sub)) {
             handleBot(args);
+        } else if ("update".equals(sub) || "opdater".equals(sub)) {
+            if (args.length > 1 && ("force".equalsIgnoreCase(args[1]) || "tving".equalsIgnoreCase(args[1]))) {
+                CelleActions.forceUpdateNow();
+            } else {
+                CelleActions.checkForUpdateNow();
+            }
         } else if ("buyer".equals(sub) || "koeb".equals(sub)) {
             handleBuyer(args);
         } else if ("special".equals(sub)) {
@@ -328,6 +334,8 @@ public class CommandCeller extends CommandBase {
         CelleActions.message("/celler bot - åbn Celle Bot-skærmen");
         CelleActions.message("/celler bot <on|off> - slå deling af scannede celler til eller fra");
         CelleActions.message("/celler bot test - send en test-rapport");
+        CelleActions.message("/celler update - tjek for en ny version");
+        CelleActions.message("/celler update force - hent nyeste release igen, uanset version");
         CelleActions.message("/celler buyer - åbn Celle Buyer-skærmen");
         CelleActions.message("/celler buyer <on|off> - slå automatisk køb til eller fra");
         CelleActions.message("/celler buyer add <id> - vælg en celle den må købe");

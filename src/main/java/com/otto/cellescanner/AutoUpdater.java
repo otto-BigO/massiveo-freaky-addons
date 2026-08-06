@@ -59,6 +59,23 @@ public class AutoUpdater {
 
     /** Starts the version check on a background daemon thread. Called when the Opdatering screen opens; no-op if a check is already running. */
     public static void checkAsync() {
+        runAsync(false);
+    }
+
+    /**
+     * Fetches and installs the newest release whatever the version numbers say.
+     *
+     * For the case the normal check cannot help with: the jar on disk is the
+     * right version but wrong, because a build was replaced under the same
+     * number or a download landed damaged. A plain check just says "opdateret"
+     * and does nothing. This also ignores the auto-update switch, since asking
+     * for it by hand is a clearer answer than the setting.
+     */
+    public static void forceAsync() {
+        runAsync(true);
+    }
+
+    private static void runAsync(final boolean force) {
         if (checking) {
             return;
         }
@@ -67,7 +84,7 @@ public class AutoUpdater {
             @Override
             public void run() {
                 try {
-                    check();
+                    check(force);
                 } catch (Exception e) {
                     status = "tjek fejlede: " + e.getMessage();
                     System.err.println("[CelleScanner] Update check failed: " + e);
@@ -80,8 +97,8 @@ public class AutoUpdater {
         t.start();
     }
 
-    private static void check() throws Exception {
-        status = "tjekker...";
+    private static void check(boolean force) throws Exception {
+        status = force ? "henter igen..." : "tjekker...";
         JsonObject release = fetchBestRelease();
         if (release == null || !release.has("tag_name")) {
             status = "ingen release fundet";
@@ -90,13 +107,13 @@ public class AutoUpdater {
         latestVersion = release.get("tag_name").getAsString();
         String current = MassiveOsFreakyAddons.VERSION;
 
-        if (compareVersions(latestVersion, current) <= 0) {
+        if (!force && compareVersions(latestVersion, current) <= 0) {
             status = "opdateret (" + current + ")";
             return;
         }
-        status = "ny version: " + latestVersion;
+        status = force ? "geninstallerer " + latestVersion : "ny version: " + latestVersion;
 
-        if (!MassiveOsFreakyAddons.config.autoUpdateEnabled) {
+        if (!force && !MassiveOsFreakyAddons.config.autoUpdateEnabled) {
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
                     + "Ny version " + latestVersion + " findes. Auto-opdatering er slået fra.";
             return;
@@ -125,7 +142,15 @@ public class AutoUpdater {
         download(assetUrl, tmp);
 
         File dest = new File(modsDir, assetName);
-        dest.delete(); // Delete target version if it exists from a previous failed update
+        // Reinstalling the version already running means the target and the
+        // running jar are the same file. Clearing "a leftover from a failed
+        // update" would then delete the jar the game is using and leave the
+        // mods folder empty until the next restart, so it is only cleared when
+        // it is genuinely a different file.
+        boolean sameFile = dest.getAbsolutePath().equals(self.getAbsolutePath());
+        if (!sameFile) {
+            dest.delete(); // a leftover from a previous failed update
+        }
         // Fast path: where the OS doesn't lock the running jar (Linux/macOS) we
         // can remove the old one and move the new one in right now.
         boolean swapped = false;

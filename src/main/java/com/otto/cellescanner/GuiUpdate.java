@@ -17,6 +17,7 @@ public class GuiUpdate extends GuiScreen {
     private static final int ID_CHECK = 1;
     private static final int ID_BACK = 2;
     private static final int ID_PRERELEASE = 3;
+    private static final int ID_FORCE = 4;
 
     private static final int BTN_H = 20;
     private static final int PANEL_W = 220;
@@ -45,6 +46,8 @@ public class GuiUpdate extends GuiScreen {
         y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_CHECK, left, y, PANEL_W, BTN_H, "Tjek for opdatering nu"));
         y += BTN_H + 6;
+        this.buttonList.add(new StyledButton(ID_FORCE, left, y, PANEL_W, BTN_H, "Tving genhentning"));
+        y += BTN_H + 6;
         this.buttonList.add(new StyledButton(ID_BACK, left, y, PANEL_W, BTN_H, "Tilbage"));
     }
 
@@ -61,6 +64,9 @@ public class GuiUpdate extends GuiScreen {
                 break;
             case ID_CHECK:
                 CelleActions.checkForUpdateNow();
+                break;
+            case ID_FORCE:
+                CelleActions.forceUpdateNow();
                 break;
             case ID_BACK:
                 CelleActions.openHub();
