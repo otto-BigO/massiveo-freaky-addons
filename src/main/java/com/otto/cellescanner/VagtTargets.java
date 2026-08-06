@@ -42,36 +42,85 @@ public final class VagtTargets {
             return true;
         }
 
-        if (containsAny(name, NOT_A_GUARD)) {
-            return false;
-        }
-        String displayName = p.getDisplayName() != null
-                ? p.getDisplayName().getUnformattedText().toLowerCase() : "";
-        if (displayName.contains("kills") || displayName.contains("top") || displayName.contains("shop")) {
-            return false;
-        }
-
         CelleConfig cfg = MassiveOsFreakyAddons.config;
+
+        // Your own staff list, matched on the whole username. It used to also
+        // accept the name appearing anywhere inside a display name, which turned
+        // one short entry into a match on half the server.
         if (cfg != null && cfg.staffList != null) {
             for (String staff : cfg.staffList) {
-                if (staff != null && !staff.isEmpty()) {
-                    String sLower = staff.toLowerCase();
-                    if (name.equals(sLower) || displayName.contains(sLower)) {
-                        return true;
-                    }
+                if (staff != null && !staff.isEmpty() && name.equals(staff.toLowerCase())) {
+                    return true;
                 }
             }
         }
 
-        if (containsAny(name, GUARD_WORDS) || containsAny(displayName, GUARD_WORDS)) {
-            return true;
+        // Everything below is guesswork from words like "vagt". It is off by
+        // default, because a plain substring test on a username marks anyone
+        // called something like Vagtel or Nomad as staff, and "mod" and "admin"
+        // are worse still. The roster holds every real account, so the guessing
+        // has nothing left to add.
+        if (cfg == null || !Boolean.TRUE.equals(cfg.vagtGuessByRank)) {
+            return false;
         }
 
+        String displayName = p.getDisplayName() != null
+                ? p.getDisplayName().getUnformattedText().toLowerCase() : "";
+        if (containsAny(name, NOT_A_GUARD) || containsAny(displayName, NOT_A_GUARD)) {
+            return false;
+        }
+
+        // Only ever a rank tag the server assigned, never the username itself.
+        // A rank reads as "[Vagt] Name", so the word has to sit inside brackets
+        // rather than merely appear somewhere in the text.
+        if (hasRankWord(displayName)) {
+            return true;
+        }
         String tag = BandeEsp.bandeTag(p);
         if (tag != null) {
             String tLower = tag.toLowerCase();
-            if (containsAny(tLower, GUARD_WORDS) && !tLower.contains("kills") && !tLower.contains("top")) {
+            if (!containsAny(tLower, NOT_A_GUARD) && hasRankWord(tLower)) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the text carries a staff rank in brackets, for example "[Vagt]".
+     *
+     * Requiring the brackets is the whole point: it is what separates a rank the
+     * server handed out from the same letters happening to appear in somebody's
+     * chosen username.
+     */
+    static boolean hasRankWord(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        for (String w : GUARD_WORDS) {
+            int from = 0;
+            while (true) {
+                int i = text.indexOf(w, from);
+                if (i < 0) {
+                    break;
+                }
+                int open = -1;
+                for (int j = i - 1; j >= 0 && i - j <= 3; j--) {
+                    char c = text.charAt(j);
+                    if (c == '[' || c == '(' || c == '<' || c == '\u00ab') { open = j; break; }
+                    if (c != ' ') { break; }
+                }
+                if (open >= 0) {
+                    for (int j = i + w.length(); j < text.length() && j - (i + w.length()) <= 6; j++) {
+                        char c = text.charAt(j);
+                        if (c == ']' || c == ')' || c == '>' || c == '\u00bb') {
+                            return true;
+                        }
+                        if (c == ' ') { continue; }
+                        if (!Character.isLetter(c)) { break; }
+                    }
+                }
+                from = i + 1;
             }
         }
         return false;

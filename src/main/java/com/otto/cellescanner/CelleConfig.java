@@ -268,6 +268,13 @@ public class CelleConfig {
     public Boolean autoMineStaffDisconnect = Boolean.FALSE;
     public Boolean autoMineSmartScaffold = Boolean.TRUE;
     public List<String> staffList = new ArrayList<String>();
+    /**
+     * Guess at staff from rank words when the roster has no match. Off, because
+     * it used to test the username for "vagt", "mod" and "admin" as plain
+     * substrings and marked ordinary players as guards. With it on the guessing
+     * only ever looks at a bracketed rank the server assigned.
+     */
+    public Boolean vagtGuessByRank = Boolean.FALSE;
 
     // VK Stealer (vagt kill). Off by default, this only runs when switched on.
     public boolean vkStealerEnabled = false;
@@ -633,6 +640,7 @@ public class CelleConfig {
                 this.autoMineStaffDisconnect = loaded.autoMineStaffDisconnect != null ? loaded.autoMineStaffDisconnect : Boolean.FALSE;
                 this.autoMineSmartScaffold = loaded.autoMineSmartScaffold != null ? loaded.autoMineSmartScaffold : Boolean.TRUE;
                 this.staffList = loaded.staffList != null ? loaded.staffList : new ArrayList<String>();
+                this.vagtGuessByRank = loaded.vagtGuessByRank != null ? loaded.vagtGuessByRank : Boolean.FALSE;
                 this.vkStealerEnabled = loaded.vkStealerEnabled;
                 this.vkStealOnly = loaded.vkStealOnly;
                 this.vkHealthThreshold = Math.max(0.05f, Math.min(1.0f,

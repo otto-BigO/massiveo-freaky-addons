@@ -30,6 +30,9 @@ public class PlayerLogger {
     public static final PlayerLogger INSTANCE = new PlayerLogger();
 
     private static final long EXPIRATION_TIME = 15 * 60 * 1000; // 15 minutes
+    /** Where players were last seen, kept until the server says they left. */
+    private static final int MAX_LAST_KNOWN = 200;
+    private final Map<String, PendingCheck> lastKnown = new java.util.LinkedHashMap<String, PendingCheck>();
     private static final double LABEL_SCALE = 0.02666667F;
 
     public static class LogoutMarker {
@@ -158,8 +161,17 @@ public class PlayerLogger {
         }
     }
 
+    /**
+     * A player's entity went away. That is not a disconnect.
+     *
+     * It happens every time somebody walks out of render distance, and this used
+     * to report those as logouts. The tab list was meant to tell the two apart,
+     * but this server drops distant players out of tab as well, so it confirmed
+     * the false ones instead of filtering them. The only thing that reliably
+     * means "disconnected" is the server saying so in chat, so the position is
+     * remembered here and nothing is reported until that arrives.
+     */
     private void handlePlayerRemoved(UUID uuid, PlayerSnapshot snapshot) {
-        // Filter out NPCs / fake players not verified to be real
         boolean isReal;
         synchronized (realPlayers) {
             isReal = realPlayers.contains(uuid);
@@ -167,11 +179,99 @@ public class PlayerLogger {
         if (!isReal) {
             return;
         }
+        synchronized (lastKnown) {
+            lastKnown.put(snapshot.name.toLowerCase(), new PendingCheck(
+                    snapshot.name, uuid, snapshot.x, snapshot.y, snapshot.z, snapshot.boundingBox));
+            while (lastKnown.size() > MAX_LAST_KNOWN) {
+                lastKnown.remove(lastKnown.keySet().iterator().next());
+            }
+        }
+    }
 
-        // All player removals must go through the 500ms tab list verification queue
-        // to prevent false logging when players teleport or walk out of server render distance.
-        synchronized (pendingChecks) {
-            pendingChecks.add(new PendingCheck(snapshot.name, uuid, snapshot.x, snapshot.y, snapshot.z, snapshot.boundingBox));
+    /**
+     * Chat lines that mean somebody actually left. Kept broad because servers
+     * word this differently, and matched against the plain text with the colour
+     * codes stripped.
+     */
+    private static final java.util.regex.Pattern[] LEAVE_PATTERNS = {
+            java.util.regex.Pattern.compile("^(?:\\[-\\]\\s*)?([A-Za-z0-9_]{3,16}) (?:har )?forlod spillet"),
+            java.util.regex.Pattern.compile("^(?:\\[-\\]\\s*)?([A-Za-z0-9_]{3,16}) har forladt spillet"),
+            java.util.regex.Pattern.compile("^(?:\\[-\\]\\s*)?([A-Za-z0-9_]{3,16}) (?:left the game|left the server|disconnected)"),
+            java.util.regex.Pattern.compile("^(?:\\[-\\]\\s*)?([A-Za-z0-9_]{3,16}) gik offline"),
+            java.util.regex.Pattern.compile("^\\[-\\]\\s*([A-Za-z0-9_]{3,16})\\s*$"),
+    };
+
+    /** The matching join lines, so a rejoin clears the marker. */
+    private static final java.util.regex.Pattern[] JOIN_PATTERNS = {
+            java.util.regex.Pattern.compile("^(?:\\[\\+\\]\\s*)?([A-Za-z0-9_]{3,16}) (?:kom ind i spillet|joined the game|joined the server|gik online)"),
+            java.util.regex.Pattern.compile("^\\[\\+\\]\\s*([A-Za-z0-9_]{3,16})\\s*$"),
+    };
+
+    /** The username in a leave line, or null when the line is not one. */
+    static String usernameFromLeave(String plain) {
+        return firstMatch(plain, LEAVE_PATTERNS);
+    }
+
+    /** The username in a join line, or null when the line is not one. */
+    static String usernameFromJoin(String plain) {
+        return firstMatch(plain, JOIN_PATTERNS);
+    }
+
+    private static String firstMatch(String plain, java.util.regex.Pattern[] patterns) {
+        if (plain == null) {
+            return null;
+        }
+        String t = plain.trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        for (java.util.regex.Pattern pat : patterns) {
+            java.util.regex.Matcher m = pat.matcher(t);
+            if (m.find()) {
+                return m.group(1);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The server telling us somebody left. This is the only thing that produces
+     * a logout marker now.
+     */
+    @SubscribeEvent
+    public void onChat(net.minecraftforge.client.event.ClientChatReceivedEvent event) {
+        CelleConfig cfg = MassiveOsFreakyAddons.config;
+        if (cfg == null || !cfg.playerLoggerEnabled || event.message == null) {
+            return;
+        }
+        String plain = net.minecraft.util.EnumChatFormatting
+                .getTextWithoutFormattingCodes(event.message.getUnformattedText());
+
+        String left = usernameFromLeave(plain);
+        if (left != null) {
+            PendingCheck seen;
+            synchronized (lastKnown) {
+                seen = lastKnown.remove(left.toLowerCase());
+            }
+            if (seen != null) {
+                // Only worth a marker when we know where they were standing.
+                addMarker(seen.name, seen.uuid, seen.x, seen.y, seen.z, seen.boundingBox);
+            }
+            return;
+        }
+
+        String joined = usernameFromJoin(plain);
+        if (joined != null) {
+            synchronized (markers) {
+                Iterator<LogoutMarker> it = markers.iterator();
+                while (it.hasNext()) {
+                    LogoutMarker marker = it.next();
+                    if (marker.name.equalsIgnoreCase(joined)) {
+                        it.remove();
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -282,14 +382,19 @@ public class PlayerLogger {
 
         long now = System.currentTimeMillis();
 
+        // The tab-list check used to turn these into logouts. It cannot tell a
+        // disconnect from someone walking off on this server, so the queue is
+        // only drained now and the chat handler decides.
         synchronized (pendingChecks) {
-            Iterator<PendingCheck> it = pendingChecks.iterator();
+            pendingChecks.clear();
+        }
+
+        // Last-known positions are not kept forever, or a player who left while
+        // we were away would be reported the moment their name came up.
+        synchronized (lastKnown) {
+            Iterator<Map.Entry<String, PendingCheck>> it = lastKnown.entrySet().iterator();
             while (it.hasNext()) {
-                PendingCheck check = it.next();
-                if (now - check.timestamp > 500) {
-                    if (mc.getNetHandler().getPlayerInfo(check.uuid) == null) {
-                        addMarker(check.name, check.uuid, check.x, check.y, check.z, check.boundingBox);
-                    }
+                if (now - it.next().getValue().timestamp > EXPIRATION_TIME) {
                     it.remove();
                 }
             }

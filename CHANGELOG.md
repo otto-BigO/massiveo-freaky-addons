@@ -2,6 +2,26 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.9.0
+
+- A green vagt box no longer lands on anyone whose username happens to contain
+  "vagt". The check tested the username for "vagt", "guard", "officer", "mod"
+  and "admin" as plain substrings, so Vagtel, Nomad and Modest were all staff as
+  far as it was concerned, and "mod" alone catches a lot of names.
+- The roster of 109 real accounts is the authority, and your own staff list is
+  matched on the whole username. It used to also accept a list entry appearing
+  anywhere inside a display name, which turned one short entry into a match on
+  half the server.
+- Guessing from rank words is off by default. With it on it only ever looks at a
+  bracketed rank the server assigned, like "[Vagt] Otto", never at the username.
+- Spiller Logger waits for the server to say somebody left. It reported anyone
+  walking out of render distance as a logout. The tab list was supposed to tell
+  those apart, but this server drops distant players out of tab too, so it
+  confirmed the false ones rather than filtering them.
+- Their last position is kept when their entity goes away, so when the leave
+  message does arrive the marker still lands where they were standing. A rejoin
+  message clears the marker.
+
 ## 4.8.2
 
 - Navne ESP now colours the name you actually see. The server does not use
