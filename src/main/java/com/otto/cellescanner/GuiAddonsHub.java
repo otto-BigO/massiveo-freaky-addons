@@ -51,6 +51,12 @@ public class GuiAddonsHub extends GuiScreen {
      * one click would switch off two addons.
      */
     private boolean pendingRebuild = false;
+    /**
+     * Opacity of the active panel, so it eases in when something is switched on
+     * and eases out when the last one goes off, rather than appearing and
+     * vanishing between two frames.
+     */
+    private final AnimationValue activeAlpha = new AnimationValue(0f);
 
     private final String category;
 
@@ -130,6 +136,23 @@ public class GuiAddonsHub extends GuiScreen {
         if (pendingRebuild) {
             pendingRebuild = false;
             initGui();
+        }
+
+        // The active set can change from outside this screen, so it is checked
+        // each tick instead of only when something here is clicked.
+        int live = countActive();
+        if (live > 0) {
+            activeAlpha.animateTo(1.0f, 220);
+            if (live != activeAddons.size()) {
+                pendingRebuild = true;
+            }
+        } else {
+            activeAlpha.animateTo(0.0f, 220);
+            // The rows are kept until the fade finishes, so they go out with the
+            // panel instead of blinking off while it is still visible.
+            if (!activeAddons.isEmpty() && activeAlpha.getValue() <= 0.02f) {
+                pendingRebuild = true;
+            }
         }
         long now = System.currentTimeMillis();
         float dt = Math.max(0.001f, (now - lastFrameTimeMs) / 1000.0f);
@@ -284,6 +307,24 @@ public class GuiAddonsHub extends GuiScreen {
         }
     }
 
+    /** How many addons report themselves as on right now. */
+    private static int countActive() {
+        int n = 0;
+        for (String cat : MassiveoAddons.categories()) {
+            for (MassiveoAddons.Addon a : MassiveoAddons.addonsIn(cat)) {
+                try {
+                    if (a.isActive()) {
+                        n++;
+                    }
+                } catch (Throwable ignored) {
+                    // Same reasoning as buildActivePanel: one broken addon does
+                    // not get to break the menu.
+                }
+            }
+        }
+        return n;
+    }
+
     /** Keeps a name inside the narrow panel rather than letting it run over the edge. */
     private static String trimTo(String s, int max) {
         if (s == null) {
@@ -299,6 +340,10 @@ public class GuiAddonsHub extends GuiScreen {
     private boolean handleActiveClick(int id, boolean toggleInstead) {
         int index = id - ACTIVE_BASE;
         if (index < 0 || index >= activeAddons.size()) {
+            return false;
+        }
+        // A row too faint to read should not be clickable either.
+        if (activeAlpha.getValue() < 0.5f) {
             return false;
         }
         MassiveoAddons.Addon addon = activeAddons.get(index);
@@ -444,17 +489,34 @@ public class GuiAddonsHub extends GuiScreen {
 
         // Backdrop for the active-addon panel, drawn before super.drawScreen so
         // the buttons in it land on top.
-        if (showActive) {
+        float aVal = activeAlpha.getValue();
+        if (showActive && aVal > 0.01f) {
+            int aBits = ((int) (aVal * 255.0f) & 0xFF) << 24;
             int rows = Math.min(activeAddons.size(), ACTIVE_MAX_ROWS);
             int bottom = activeTopY + rows * ACTIVE_ROW + (activeHidden > 0 ? 12 : 4);
-            Style.panel(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom);
+
+            // The backdrop fades with everything else, so the whole panel eases
+            // in and out as one thing.
+            Style.panel(activeX - 6, activeTopY - 18, activeX + ACTIVE_W + 6, bottom, aVal);
+
             drawString(this.fontRendererObj,
                     EnumChatFormatting.BOLD + "Aktive " + EnumChatFormatting.GRAY + "(" + activeAddons.size() + ")",
-                    activeX, activeTopY - 13, Style.getAccentColor());
+                    activeX, activeTopY - 13, aBits | (Style.getAccentColor() & 0x00FFFFFF));
             if (activeHidden > 0) {
                 drawString(this.fontRendererObj,
                         EnumChatFormatting.DARK_GRAY + "+" + activeHidden + " mere",
-                        activeX, activeTopY + rows * ACTIVE_ROW + 1, 0x888888);
+                        activeX, activeTopY + rows * ACTIVE_ROW + 1, aBits | 0x888888);
+            }
+        }
+
+        // The rows fade with the panel, and stop taking clicks once they are
+        // faint enough not to look present.
+        for (Object o : this.buttonList) {
+            GuiButton gb = (GuiButton) o;
+            if (gb.id >= ACTIVE_BASE && gb instanceof StyledButton) {
+                // Left enabled, so it keeps its normal colours while fading.
+                // Whether a click counts is decided in handleActiveClick.
+                ((StyledButton) gb).setAlpha(aVal);
             }
         }
 

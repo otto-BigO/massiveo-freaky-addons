@@ -24,15 +24,26 @@ public class StyledButton extends GuiButton {
      */
     private long pressUntilMs = 0L;
 
+    /**
+     * Overall opacity, so a whole group of buttons can fade in or out together.
+     * Everything the button draws is multiplied by this.
+     */
+    private float alpha = 1.0f;
+
+    public void setAlpha(float a) {
+        this.alpha = a < 0f ? 0f : (a > 1f ? 1f : a);
+    }
+
     public StyledButton(int id, int x, int y, int width, int height, String text) {
         super(id, x, y, width, height, text);
     }
 
     @Override
     public void drawButton(Minecraft mc, int mouseX, int mouseY) {
-        if (!this.visible) {
+        if (!this.visible || alpha <= 0.01f) {
             return;
         }
+        int alphaBits = ((int) (alpha * 255.0f) & 0xFF) << 24;
         FontRenderer fr = mc.fontRendererObj;
         this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition
                 && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
@@ -63,14 +74,14 @@ public class StyledButton extends GuiButton {
         int border;
 
         if (!this.enabled) {
-            fill = Style.BTN_BG_DISABLED;
-            text = Style.TEXT_DISABLED;
-            border = Style.BTN_BORDER;
+            fill = alphaBits | (Style.BTN_BG_DISABLED & 0x00FFFFFF);
+            text = alphaBits | (Style.TEXT_DISABLED & 0x00FFFFFF);
+            border = alphaBits | (Style.BTN_BORDER & 0x00FFFFFF);
         } else {
             int rF = (int) (0x26 + (0x36 - 0x26) * fade);
             int gF = (int) (0x26 + (0x36 - 0x26) * fade);
             int bF = (int) (0x2E + (0x42 - 0x2E) * fade);
-            fill = 0xFF000000 | (rF << 16) | (gF << 8) | bF;
+            fill = alphaBits | (rF << 16) | (gF << 8) | bF;
 
             int accent = Style.getAccentColor();
             int accR = (accent >> 16) & 0xFF;
@@ -80,12 +91,12 @@ public class StyledButton extends GuiButton {
             int rB = (int) (0x12 + (accR - 0x12) * fade);
             int gB = (int) (0x12 + (accG - 0x12) * fade);
             int bB = (int) (0x16 + (accB - 0x16) * fade);
-            border = 0xFF000000 | (rB << 16) | (gB << 8) | bB;
+            border = alphaBits | (rB << 16) | (gB << 8) | bB;
 
             int rT = (int) (0xE6 + (0xFF - 0xE6) * fade);
             int gT = (int) (0xE6 + (0xFF - 0xE6) * fade);
             int bT = (int) (0xEA + (0xFF - 0xEA) * fade);
-            text = 0xFF000000 | (rT << 16) | (gT << 8) | bT;
+            text = alphaBits | (rT << 16) | (gT << 8) | bT;
         }
 
         float cx = x1 + this.width / 2.0f;

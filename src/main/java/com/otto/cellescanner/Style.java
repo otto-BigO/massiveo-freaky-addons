@@ -119,6 +119,42 @@ public final class Style {
         Gui.drawRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, bgColor);
     }
 
+    /**
+     * The same card, scaled by an extra opacity so it can be faded in or out.
+     *
+     * Gui.drawRect sets its own GL colour from the alpha baked into each colour
+     * int, so wrapping a normal panel() in GlStateManager.color does nothing.
+     * The multiplier has to be applied to those ints instead.
+     */
+    public static void panel(int x1, int y1, int x2, int y2, float mul) {
+        if (mul >= 0.999f) {
+            panel(x1, y1, x2, y2);
+            return;
+        }
+        if (mul <= 0.001f) {
+            return;
+        }
+        int accent = getAccentColor();
+        float alpha = MassiveOsFreakyAddons.config != null ? MassiveOsFreakyAddons.config.themeBgAlpha : 0.65f;
+        int alphaInt = scaled(alpha, mul, 20);
+        int borderAlpha = scaled(alpha, mul, 30);
+        int glowAlpha = scaled(alpha * 0.5f, mul, 20);
+
+        drawOutline(x1, y1, x2, y2, (borderAlpha << 24) | 0x14151E);
+        drawOutline(x1 + 1, y1 + 1, x2 - 1, y2 - 1, (glowAlpha << 24) | (accent & 0xFFFFFF));
+        Gui.drawRect(x1 + 2, y1 + 2, x2 - 2, y2 - 2, (alphaInt << 24) | 0x0A0A0F);
+    }
+
+    /**
+     * The floor is deliberately scaled too. panel() clamps each alpha up to a
+     * minimum so a card is never invisible, and keeping that floor here would
+     * stop a fade-out ever reaching zero.
+     */
+    private static int scaled(float base, float mul, int floor) {
+        int v = (int) (Math.max(floor, Math.min(255, base * 255)) * mul);
+        return Math.max(0, Math.min(255, v));
+    }
+
     /** Half width of the centered card. Exposed so callers do not re-derive it. */
     public static int cardHalfWidth(int screenW) {
         return Math.min(screenW / 2 - 8, 170);
