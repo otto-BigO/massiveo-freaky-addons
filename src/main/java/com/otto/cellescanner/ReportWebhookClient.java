@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.EnumChatFormatting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,6 +130,33 @@ public final class ReportWebhookClient {
         return LAST_SEND_FAILED.getAndSet(false);
     }
 
+    /** The last state we told the player about, so a warning is not repeated. */
+    private static volatile int lastWarnedState = BotHealth.UNKNOWN;
+
+    /**
+     * Says something in chat when the bot's reachability changes, and only
+     * then. A warning on every report would be noise, and a warning that never
+     * clears would leave the player thinking it is still broken.
+     */
+    private static void announceHealthChange() {
+        int now = BotHealth.state();
+        if (now == BotHealth.UNKNOWN || now == lastWarnedState) {
+            return;
+        }
+        int previous = lastWarnedState;
+        lastWarnedState = now;
+
+        if (now == BotHealth.UNREACHABLE) {
+            notifyMain(EnumChatFormatting.RED + "Endpoint ikke tilgængeligt. "
+                    + EnumChatFormatting.RESET + "Rapporter sendes stadig, og botten læser dem når den er tilbage.");
+        } else if (now == BotHealth.STALE) {
+            notifyMain(EnumChatFormatting.GOLD + "Botten svarer ikke. "
+                    + EnumChatFormatting.RESET + "Rapporter sendes stadig og bliver læst når den kommer i gang igen.");
+        } else if (now == BotHealth.ONLINE && previous != BotHealth.UNKNOWN) {
+            notifyMain(EnumChatFormatting.GREEN + "Botten er online igen.");
+        }
+    }
+
     public static void report(final List<Celle> celler, final List<String> specialIds) {
         final String url = CelleConfig.reportsWebhookUrl();
         if (url == null || url.trim().isEmpty()) {
@@ -148,6 +176,10 @@ public final class ReportWebhookClient {
                 specials.add(id.trim());
             }
         }
+
+        // Cheap: does nothing unless the interval is up, and never blocks.
+        BotHealth.checkIfDue();
+        announceHealthChange();
 
         PENDING.set(new Report(url.trim(), reporterName(), snaps, specials,
                 CelleTimingLog.drainPending()));

@@ -40,6 +40,8 @@ public class GuiCelleBot extends GuiScreen {
 
     @Override
     public void initGui() {
+        // Opening the screen is a good moment to find out for certain.
+        BotHealth.checkNow();
         this.buttonList.clear();
         screenIntro.restart();
 
@@ -107,6 +109,10 @@ public class GuiCelleBot extends GuiScreen {
                 cx, cy - 30, 0xFFFFFF);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
+
+        // Live reachability, so the screen answers "is this actually working"
+        // rather than only "is the switch on".
+        drawCenteredString(this.fontRendererObj, BotHealth.line(), cx, cy + 30, 0xFFFFFF);
 
         if (!statusLine.isEmpty()) {
             drawCenteredString(this.fontRendererObj, EnumChatFormatting.GRAY + statusLine,
