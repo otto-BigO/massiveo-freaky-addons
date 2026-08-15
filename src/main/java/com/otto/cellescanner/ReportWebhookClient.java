@@ -482,6 +482,24 @@ public final class ReportWebhookClient {
         return "ukendt";
     }
 
+    /**
+     * The account behind the name, when the client knows it.
+     *
+     * A name is not an identity: Minecraft accounts can be renamed, and the
+     * old name is then free for someone else to take. Keyed on the name alone,
+     * a rename reads as a brand new person and splits one player's history in
+     * two. The UUID does not change, and the client already has it, so this
+     * costs no request.
+     */
+    private static String reporterId() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer != null && mc.thePlayer.getGameProfile() != null
+                && mc.thePlayer.getGameProfile().getId() != null) {
+            return mc.thePlayer.getGameProfile().getId().toString();
+        }
+        return null;
+    }
+
     private static JsonObject buildReportPayload(String reporter, List<Snap> celler, List<String> specialIds) {
         return buildReportPayload(reporter, celler, specialIds, null);
     }
@@ -490,6 +508,10 @@ public final class ReportWebhookClient {
                                                  List<String> specialIds, List<String> timing) {
         JsonObject payload = new JsonObject();
         payload.addProperty("reporter", reporter);
+        String senderId = reporterId();
+        if (senderId != null) {
+            payload.addProperty("reporterId", senderId);
+        }
 
         // Timing events ride along on the first chunk only, so a multi message
         // report does not send them repeatedly.
