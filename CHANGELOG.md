@@ -2,6 +2,15 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.12.1
+
+- To overlays tændte for blending og slukkede aldrig igen. GL-tilstand er
+  global, så alt hvad spillet tegner bagefter arver den. Det er sådan en HUD
+  bliver ved med at ændre hvordan helt andre ting ser ud, og kun mens den
+  tilfældigvis er på skærmen. Begge rydder op efter sig nu.
+- Telefonens ur byggede en ny datoformatter for hvert billede for at tegne et
+  klokkeslæt der skifter én gang i minuttet. Nu bliver den lavet én gang.
+
 ## 4.12.0
 
 - Rapporter sender nu hvor cellen faktisk står, og hvilken gang den er på.
