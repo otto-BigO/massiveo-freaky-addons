@@ -2,6 +2,16 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.12.0
+
+- Rapporter sender nu hvor cellen faktisk står, og hvilken gang den er på.
+  Modet har hele tiden vidst det: CellePositions husker hvert skilt klienten
+  har scannet, og gangen kommer fra serverens eget svar. Det er bare aldrig
+  blevet sendt, så alle andre havde en liste over celler uden at vide hvor
+  nogen af dem er henne.
+- En position bliver kun overskrevet af en rapport der selv har en, så en
+  ældre klient ikke kan slette hvad en anden har bidraget med.
+
 ## 4.11.1
 
 - Rapporter sender nu kontoens id med. Et Minecraft-navn er ikke en identitet:

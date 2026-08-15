@@ -96,6 +96,23 @@ public final class ReportWebhookClient {
         final long lastSeen;
         final boolean confirmed;
 
+        /**
+         * Where the sign is, and which corridor it is on.
+         *
+         * This client already knows both - CellePositions has recorded every
+         * sign it ever scanned, and GangInfo fills in the corridor - but none
+         * of it was ever sent, so everyone else had a list of celler with no
+         * idea where any of them physically are. Taken at snapshot time on the
+         * client thread with everything else.
+         *
+         * hasPos is false when this celle was seen live but never made it into
+         * the position store, which is possible for a sign read at the very
+         * edge of a chunk load.
+         */
+        final boolean hasPos;
+        final int x, y, z, dimension;
+        final String gang;
+
         Snap(Celle c) {
             this.id = c.celleId;
             this.status = c.status == CelleStatus.TIL_SALG ? "TIL_SALG" : "SOLGT";
@@ -103,6 +120,18 @@ public final class ReportWebhookClient {
             this.remainingSeconds = c.liveRemainingSeconds();
             this.lastSeen = c.lastSeen;
             this.confirmed = c.timerConfirmed;
+
+            CellePositions.Entry at = c.celleId == null ? null : CellePositions.get(c.celleId);
+            if (at != null) {
+                this.hasPos = true;
+                this.x = at.x; this.y = at.y; this.z = at.z;
+                this.dimension = at.dimension;
+                this.gang = at.gang;
+            } else {
+                this.hasPos = false;
+                this.x = 0; this.y = 0; this.z = 0; this.dimension = 0;
+                this.gang = null;
+            }
         }
     }
 
@@ -551,6 +580,15 @@ public final class ReportWebhookClient {
             // ago (still in cache but out of render distance) as brand new.
             entry.addProperty("lastSeen", Long.valueOf(c.lastSeen));
             entry.addProperty("confirmed", Boolean.valueOf(c.confirmed));
+            if (c.hasPos) {
+                entry.addProperty("x", Integer.valueOf(c.x));
+                entry.addProperty("y", Integer.valueOf(c.y));
+                entry.addProperty("z", Integer.valueOf(c.z));
+                entry.addProperty("dim", Integer.valueOf(c.dimension));
+            }
+            if (c.gang != null && !c.gang.isEmpty()) {
+                entry.addProperty("gang", c.gang);
+            }
             celleArray.add(entry);
         }
         payload.add("celler", celleArray);
