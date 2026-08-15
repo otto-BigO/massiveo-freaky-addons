@@ -71,6 +71,7 @@ public class MajesticaDownloader {
             public void run() {
                 InputStream is = null;
                 FileOutputStream fos = null;
+                HttpURLConnection conn = null;
                 File mcDir = Minecraft.getMinecraft().mcDataDir;
                 File zipFile = new File(mcDir, "config/cellescanner/majestica_assets.zip");
 
@@ -78,7 +79,7 @@ public class MajesticaDownloader {
                     zipFile.getParentFile().mkdirs();
 
                     URL url = new URL(ASSET_URL);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(10000);
                     conn.setReadTimeout(15000);
                     conn.setRequestProperty("User-Agent", "Mozilla/5.0");
@@ -110,6 +111,9 @@ public class MajesticaDownloader {
                     }
                     if (is != null) {
                         try { is.close(); } catch (IOException ignored) {}
+                    }
+                    if (conn != null) {
+                        conn.disconnect();
                     }
                 }
 

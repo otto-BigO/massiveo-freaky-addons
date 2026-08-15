@@ -55,9 +55,15 @@ public class AccessSystem {
             conn.setConnectTimeout(5000);
             conn.setReadTimeout(5000);
 
-            int code = conn.getResponseCode();
-            InputStream in = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
-            String body = readBody(in);
+            int code;
+            String body;
+            try {
+                code = conn.getResponseCode();
+                InputStream in = (code >= 200 && code < 400) ? conn.getInputStream() : conn.getErrorStream();
+                body = readBody(in);
+            } finally {
+                conn.disconnect();
+            }
 
             boolean success = body != null && body.replace(" ", "").contains("\"status\":\"success\"");
             if (success) {

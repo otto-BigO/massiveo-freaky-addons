@@ -124,6 +124,16 @@ public final class BotHealth {
 
     private static void probe() throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(STATUS_URL).openConnection();
+        try {
+            probeOn(conn);
+        } finally {
+            // Checked every few minutes for as long as the game is open, so a
+            // socket left in the keep-alive pool each time adds up.
+            conn.disconnect();
+        }
+    }
+
+    private static void probeOn(HttpURLConnection conn) throws Exception {
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(6000);
         conn.setReadTimeout(6000);
