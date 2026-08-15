@@ -2,6 +2,18 @@
 
 Older releases are on the GitHub releases page.
 
+## Ikke udgivet
+
+- Deling siger til hvis botten ikke er der. En webhook der svarer 204 beviser
+  kun at Discord tog imod beskeden, ikke at noget har læst den. Modet kigger
+  derfor på botens eget output og hvornår det sidst blev skrevet: friskt
+  betyder online, gammelt betyder at den er gået i stå, og intet svar betyder
+  at endpointet ikke er tilgængeligt. Status står på Celle Bot-skærmen, og
+  chatten siger kun til når tilstanden skifter, ikke ved hver rapport.
+- Rapporter sendes uanset hvad status siger. Botten læser nu det der ligger og
+  venter i kanalen når den starter op, så en rapport sendt under nedetid bliver
+  forsinket i stedet for tabt.
+
 ## 4.10.0
 
 - Bande ESP is just ESP. It has not been bande-only for a long time: it
