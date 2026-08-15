@@ -2,6 +2,17 @@
 
 Older releases are on the GitHub releases page.
 
+## Ikke udgivet
+
+- Rapporter sender nu kontoens id med. Et Minecraft-navn er ikke en identitet:
+  en konto kan skifte navn, og det gamle navn er derefter frit for en anden at
+  tage. Kun på navnet ser et navneskift ud som en ny person og deler én
+  spillers historik i to. Klienten har allerede id'et fra sin egen spilprofil,
+  så det koster ingen forespørgsel.
+- Forbindelser bliver lukket efter brug. Tre steder kaldte aldrig disconnect,
+  så hver forespørgsel efterlod sin socket. Bot-tjekket er det der betyder
+  noget, for det kører hvert par minutter så længe spillet er åbent.
+
 ## 4.11.0
 
 - Deling siger til hvis botten ikke er der. En webhook der svarer 204 beviser
