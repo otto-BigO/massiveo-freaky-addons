@@ -2,7 +2,7 @@
 
 Older releases are on the GitHub releases page.
 
-## Ikke udgivet
+## 4.11.0
 
 - Deling siger til hvis botten ikke er der. En webhook der svarer 204 beviser
   kun at Discord tog imod beskeden, ikke at noget har læst den. Modet kigger
