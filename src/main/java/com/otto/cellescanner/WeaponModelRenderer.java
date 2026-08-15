@@ -58,6 +58,9 @@ public final class WeaponModelRenderer {
 
         RenderHelper.disableStandardItemLighting();
         GlStateManager.disableRescaleNormal();
+        // popMatrix restores the transform but not the blend state, which was
+        // enabled above; that has to be undone by hand.
+        GlStateManager.disableBlend();
         GlStateManager.popMatrix();
     }
 }

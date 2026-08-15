@@ -256,5 +256,10 @@ public class ItemPickupNotify {
             y += lineH;
         }
         GlStateManager.color(1f, 1f, 1f, 1f);
+        // Blend was switched on above and has to be switched off again. Left
+        // on, it is inherited by whatever the game draws next, which is how a
+        // HUD overlay ends up quietly changing how unrelated elements look
+        // while these notifications happen to be on screen.
+        GlStateManager.disableBlend();
     }
 }

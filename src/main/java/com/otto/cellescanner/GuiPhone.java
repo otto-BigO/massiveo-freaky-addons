@@ -62,6 +62,24 @@ public class GuiPhone extends GuiScreen {
     // Chat History Buffer for iMessage View
     private static final List<ChatMessage> chatHistory = new ArrayList<ChatMessage>();
 
+    /**
+     * One formatter for the clock, rather than a new one per frame.
+     *
+     * Constructing a SimpleDateFormat parses the pattern and loads locale data.
+     * The status bar was building one on every single frame to draw a time that
+     * changes once a minute. Safe as a single instance because everything that
+     * touches it is on the client thread; it is not shared with the workers.
+     */
+    private static final SimpleDateFormat CLOCK = new SimpleDateFormat("HH:mm");
+
+    /** Reused as well, so the clock costs no allocation at all per frame. */
+    private static final Date CLOCK_DATE = new Date();
+
+    private static String clockNow() {
+        CLOCK_DATE.setTime(System.currentTimeMillis());
+        return CLOCK.format(CLOCK_DATE);
+    }
+
     public static class ChatMessage {
         public final String sender;
         public final String text;
@@ -72,7 +90,7 @@ public class GuiPhone extends GuiScreen {
             this.sender = sender;
             this.text = text;
             this.isMe = isMe;
-            this.time = new SimpleDateFormat("HH:mm").format(new Date());
+            this.time = clockNow();
         }
     }
 
@@ -336,7 +354,7 @@ public class GuiPhone extends GuiScreen {
 
         // --- Status Bar (Top Header) ---
         drawRect(phoneX, curPhoneY, phoneX + PHONE_W, curPhoneY + 16, 0xFF121824);
-        String timeStr = new SimpleDateFormat("HH:mm").format(new Date());
+        String timeStr = clockNow();
         fontRendererObj.drawStringWithShadow(timeStr, phoneX + 4, curPhoneY + 4, 0xFF00E676);
         fontRendererObj.drawStringWithShadow("BRC-5G", phoneX + PHONE_W - 52, curPhoneY + 4, 0xFF00E5FF);
 
