@@ -2,7 +2,7 @@
 
 Older releases are on the GitHub releases page.
 
-## Ikke udgivet
+## 4.11.1
 
 - Rapporter sender nu kontoens id med. Et Minecraft-navn er ikke en identitet:
   en konto kan skifte navn, og det gamle navn er derefter frit for en anden at
