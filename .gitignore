@@ -20,3 +20,9 @@ bin/
 # OS
 .DS_Store
 majestica_assets.zip
+
+# Local only. deploy.sh has this machine's paths and LabyMod instance id in it,
+# and the agent notes and scratch plans were never meant to be published.
+deploy.sh
+.agents/
+*_PLAN.md
