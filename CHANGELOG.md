@@ -2,6 +2,11 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.13.1
+
+- Licenstjekket spørger nu license.klunkefar.com. Begge navne rammer den samme
+  tjeneste gennem den samme tunnel, så ældre versioner virker stadig.
+
 ## 4.13.0
 
 - Siden er flyttet til klunkefar.com, og bot-tjekket spørger nu den adresse.

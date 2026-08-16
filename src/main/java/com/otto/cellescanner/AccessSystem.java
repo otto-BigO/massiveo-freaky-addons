@@ -16,7 +16,11 @@ public class AccessSystem {
     public static boolean isVerified = false;
 
     // Licensing API (self-hosted on the Mac Mini behind a Cloudflare tunnel).
-    private static final String API_URL = "https://license.ottomansfield.com/verify";
+    //
+    // Builds before 4.13.1 ask license.ottomansfield.com. Both names reach the
+    // same service through the same tunnel, so nothing already out there stops
+    // verifying because of this move.
+    private static final String API_URL = "https://license.klunkefar.com/verify";
 
     /**
      * Verify a license key against the backend.
