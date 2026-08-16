@@ -2,6 +2,12 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.13.0
+
+- Siden er flyttet til klunkefar.com, og bot-tjekket spørger nu den adresse.
+  ottomansfield.com svarer stadig med den samme fil, så ældre versioner
+  bliver ved med at virke - de spørger bare det gamle sted.
+
 ## 4.12.1
 
 - To overlays tændte for blending og slukkede aldrig igen. GL-tilstand er

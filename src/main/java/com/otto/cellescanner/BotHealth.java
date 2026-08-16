@@ -24,8 +24,14 @@ import java.nio.charset.Charset;
  */
 public final class BotHealth {
 
-    /** The bot's own published output. Its timestamp is the heartbeat. */
-    private static final String STATUS_URL = "https://ottomansfield.com/data/celler.json";
+    /**
+     * The bot's own published output. Its timestamp is the heartbeat.
+     *
+     * Builds before 4.13.0 ask ottomansfield.com for this, and that address
+     * still answers the same file from the same container, so nothing already
+     * out there stops working by this moving.
+     */
+    private static final String STATUS_URL = "https://klunkefar.com/data/celler.json";
 
     /** Older than this and the bot is not keeping up, whatever the reason. */
     private static final long STALE_AFTER_MS = 30 * 60 * 1000L;
