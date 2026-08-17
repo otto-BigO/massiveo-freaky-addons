@@ -1,15 +1,15 @@
 # Massiveo's Freaky Addons
 
-En client-side Forge 1.8.9 addon-hub til prison-serveren FreakyVille. Tryk **B**
-(eller skriv `/celler`) for at åbne hubben og vælge en addon. Alt kører på din
+En client side Forge 1.8.9 addon-hub til prison serveren FreakyVille. Tryk **B**
+(eller skriv `/celler`) for at åbne dens hud og vælge et addon. Alt kører på din
 egen klient.
 
 ## Installation
 
 1. Installer Forge til Minecraft 1.8.9.
-2. Hent jar-filen fra [nyeste release](../../releases/latest) og læg den i din
+2. Hent jar filen fra [nyeste release](../../releases/latest) og læg den i din
    `mods`-mappe.
-3. Start spillet. Auto-opdatering holder den ajour (kan slås fra under
+3. Start spillet. Auto-opdatering holder den opdateret (kan slås fra under
    Opdatering-addonen).
 
 ## Funktioner
@@ -75,7 +75,7 @@ på eget ansvar.
 - **Opdatering**: auto-opdatering fra GitHub, med en valgfri test-kanal til
   pre-releases.
 
-Tandhjulet i hubben åbner en HUD-editor, hvor du kan trække hvert HUD derhen
+Tandhjulet i hubben åbner en HUD editor, hvor du kan trække hvert HUD derhen
 hvor du vil have det.
 
 </details>
