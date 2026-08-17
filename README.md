@@ -26,8 +26,8 @@ egen klient.
 - **Celle Bot**: deler dine scannede celler med de andre (til/fra).
 - **Celle Buyer**: køber cellen i det sekund den bliver ledig. Automatisering,
   slået fra som standard, på eget ansvar.
-- **Kiste Organisering**: venstreklik en kiste for at tilføje et flydende
-  3D-ikon.
+- **Celle Alarm**: lyd og nedtælling på skærmen når en fulgt celle udløber
+  (2m, 1m, 30s og countdown).
 
 ### Tracking
 
@@ -38,8 +38,9 @@ egen klient.
 - **Spiller Logger**: viser i 3D hvor andre spillere loggede ud.
 - **Chest Alarm**: notifikation og lyd når en kiste bliver åbnet i chatten.
 - **PvP Mine**: drop-timer på et HUD, plus alarm når nogen går ind i PvP-minen.
-- **Mine Tracker**: holder øje med Iron Ore i minuttet og estimerede
-  diamantblokke.
+- **VK Stealer**: tager sidste hit på vagter. Den venter til målet er lavt nok,
+  fordi der som regel står en flok og banker på den samme vagt, og det er sidste
+  hit der tæller. På eget ansvar.
 
 ### Automatisering
 
@@ -59,18 +60,21 @@ på eget ansvar.
 - **Auto Armour**: tryk R for hurtigt at tage rustning på eller af.
 - **Skralde-Filter**: smider automatisk skrald ud (cobblestone, jord, træ- og
   stenredskaber).
+- **Mine Tracker**: holder øje med Iron Ore i minuttet og estimerede
+  diamantblokke.
 
 ### Quality of life
 
 - **Troll Lyde**: fjollede lyde på død, kill, hop og AFK. Kun du kan høre dem.
-- **Celle Alarm**: lyd og nedtælling på skærmen når en fulgt celle udløber
-  (2m, 1m, 30s og countdown).
+- **Kiste Organisering**: venstreklik en kiste for at tilføje et flydende
+  3D-ikon.
 - **Armour HUD**: viser rustningens holdbarhed og advarer når den er lav.
 - **Armour Skins**: forskellige teksturer på Protection 1-4 jern og diamant, så
   du kan kende dem fra hinanden uden en hel texture pack.
 - **Prisguide**: bladr i FreakyVilles prisguide inde i spillet, hentet live.
 - **Flip Case**: CS:GO-agtig case-åbning når du flipper, i stedet for
   flip-kisten.
+- **Item Log**: en lille "+N item"-besked nede i hjørnet når du samler noget op.
 - **Jernlåge Lyde**: afspiller dør-lyde når jernlåger åbnes og lukkes.
 - **Opdatering**: auto-opdatering fra GitHub, med en valgfri test-kanal til
   pre-releases.
