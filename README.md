@@ -23,7 +23,6 @@ egen klient.
   vægge på celler der snart bliver ledige, og kan dele fundene med de andre.
 - **Celle Finder**: søg efter en bestemt celle og få vist vej til den.
 - **Mine Celler**: se og find dine egne, delte og inviterede celler.
-- **Gange**: alle gange og deres celle-timere (højreklik skilte).
 - **Celle Bot**: deler dine scannede celler med de andre (til/fra).
 - **Celle Buyer**: køber cellen i det sekund den bliver ledig. Automatisering,
   slået fra som standard, på eget ansvar.
@@ -34,8 +33,6 @@ egen klient.
 
 - **ESP**: se spillere gennem vægge, farvet efter bande, vagt eller andre.
 - **Navne ESP**: navneskilte gennem vægge, farvet på samme måde.
-- **Venne Telefon**: iPhone-agtig mobil til at styre venner, iMessage-whispers
-  og blå ESP.
 - **Spiller Info**: shift + højreklik en spiller for at se 3D-model, rustning,
   fortryllelser og celle-oplysninger. Virker også på spillere der er offline.
 - **Spiller Logger**: viser i 3D hvor andre spillere loggede ud.
@@ -71,13 +68,10 @@ på eget ansvar.
 - **Armour HUD**: viser rustningens holdbarhed og advarer når den er lav.
 - **Armour Skins**: forskellige teksturer på Protection 1-4 jern og diamant, så
   du kan kende dem fra hinanden uden en hel texture pack.
-- **Item Værdi**: varens værdi i DB eller diamanter direkte i tooltippet, hentet
-  fra FreakyVilles prisguide.
 - **Prisguide**: bladr i FreakyVilles prisguide inde i spillet, hentet live.
 - **Flip Case**: CS:GO-agtig case-åbning når du flipper, i stedet for
   flip-kisten.
 - **Jernlåge Lyde**: afspiller dør-lyde når jernlåger åbnes og lukkes.
-- **Mod-brugere**: lilla ikon foran navnet på andre der kører modet.
 - **Opdatering**: auto-opdatering fra GitHub, med en valgfri test-kanal til
   pre-releases.
 
