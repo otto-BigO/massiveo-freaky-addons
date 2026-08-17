@@ -1,76 +1,103 @@
 # Massiveo's Freaky Addons
 
-A client-side Forge 1.8.9 addon hub for the FreakyVille prison server. Press
-**B** (or type `/celler`) to open the hub and pick an addon. Everything runs on
-your own client.
+En client-side Forge 1.8.9 addon-hub til prison-serveren FreakyVille. Tryk **B**
+(eller skriv `/celler`) for at åbne hubben og vælge en addon. Alt kører på din
+egen klient.
 
-## Install
+## Installation
 
-1. Install Forge for Minecraft 1.8.9.
-2. Download the jar from the [latest release](../../releases/latest) and drop it
-   in your `mods` folder.
-3. Launch. Auto-update keeps it current (toggle it under the Opdatering addon).
+1. Installer Forge til Minecraft 1.8.9.
+2. Hent jar-filen fra [nyeste release](../../releases/latest) og læg den i din
+   `mods`-mappe.
+3. Start spillet. Auto-opdatering holder den ajour (kan slås fra under
+   Opdatering-addonen).
 
-## Features
+## Funktioner
 
 <details>
-<summary><b>Show all features</b></summary>
+<summary><b>Vis alle addons</b></summary>
 
 ### Celler
 
-- **Celle Scanner**: scans celle signs in loaded chunks, HUD + through-wall ESP of celler that free up soon, optional report to a shared Discord dashboard.
-- **Celle Finder**: search for a specific celle id and pathfind / walk directly to it.
-- **Mine Celler**: highlights celler you own, share, or are invited to from `/ce find`.
-- **Celle Alarm**: sound and screen countdown alerts when a followed celle expires (2m, 1m, 30s, and countdown).
+- **Celle Scanner**: scanner celle-skilte i indlæste chunks, HUD og ESP gennem
+  vægge på celler der snart bliver ledige, og kan dele fundene med de andre.
+- **Celle Finder**: søg efter en bestemt celle og få vist vej til den.
+- **Mine Celler**: se og find dine egne, delte og inviterede celler.
+- **Gange**: alle gange og deres celle-timere (højreklik skilte).
+- **Celle Bot**: deler dine scannede celler med de andre (til/fra).
+- **Celle Buyer**: køber cellen i det sekund den bliver ledig. Automatisering,
+  slået fra som standard, på eget ansvar.
+- **Kiste Organisering**: venstreklik en kiste for at tilføje et flydende
+  3D-ikon.
 
 ### Tracking
 
-- **Bande ESP**: green outline boxes through walls on players in your bande (manual name list).
-- **Chest Alarm**: notification + note-block sound when the chest-alarm line hits chat.
-- **Spiller Info**: shift + right-click a player for a 3D model, armor + enchants, held items, skin preview, and celle details (works on offline players too).
-- **PvP Mine**: drop-timer sign on a HUD, plus an alert when a player enters the PvP mine.
+- **ESP**: se spillere gennem vægge, farvet efter bande, vagt eller andre.
+- **Navne ESP**: navneskilte gennem vægge, farvet på samme måde.
+- **Venne Telefon**: iPhone-agtig mobil til at styre venner, iMessage-whispers
+  og blå ESP.
+- **Spiller Info**: shift + højreklik en spiller for at se 3D-model, rustning,
+  fortryllelser og celle-oplysninger. Virker også på spillere der er offline.
+- **Spiller Logger**: viser i 3D hvor andre spillere loggede ud.
+- **Chest Alarm**: notifikation og lyd når en kiste bliver åbnet i chatten.
+- **PvP Mine**: drop-timer på et HUD, plus alarm når nogen går ind i PvP-minen.
+- **Mine Tracker**: holder øje med Iron Ore i minuttet og estimerede
+  diamantblokke.
 
-### Automation
+### Automatisering
 
-- **Auto Mine**: mines a fixed mine area on a serpentine pattern, pathfinds to deposit when full, auto-eats, and climbs ladders. Features state machine navigation, immediate reach mining, smart ghost block auto-resync, and player obstacle detour pathfinding. Automation, off by default, use at your own risk.
-- **Auto Fish**: automated fishing bot that reels in on splash and recasts in fish zones.
-- **Auto Crate**: automated crate opener that right-clicks crates holding keys.
-- **Fast Mine**: double-speed block mining synchronized with manual player left-clicking.
-- **Anti-AFK**: small periodic actions (strafes, swings, rotations) so the idle timer never trips.
-- **Farm-bot**: automatically harvests and replants mature crops.
-- **Auto-Følg**: automatically pathfinds, walks, and runs behind another player (`/følg <navn>`).
+Alt herunder er automatisering. Det er slået fra som standard, og du bruger det
+på eget ansvar.
+
+- **Auto Mine**: miner et fast mine-område i slangemønster, finder selv vej hen
+  for at aflevere når der er fyldt op, spiser undervejs og kravler på stiger.
+- **Auto Fish**: fisker automatisk i fiske-zoner, hiver ind på plask og kaster
+  ud igen.
+- **Auto Crate**: åbner kasser automatisk så længe du har nøgler.
+- **Fast Mine**: miner i takt med musen når du graver.
+- **Farm Bot**: høster og genplanter modne afgrøder automatisk.
+- **Auto Følg**: går og løber bag en anden spiller automatisk (`/følg <navn>`).
+- **Anti AFK**: små bevægelser med jævne mellemrum, så inaktivitets-timeren
+  aldrig når at slå til.
+- **Auto Armour**: tryk R for hurtigt at tage rustning på eller af.
+- **Skralde-Filter**: smider automatisk skrald ud (cobblestone, jord, træ- og
+  stenredskaber).
 
 ### Quality of life
 
-- **Troll Lyde**: goofy client-side sounds on death, kill, jump, AFK (only you hear them).
-- **Item-log**: a small "+N item" notification toast in the bottom-right on item pickup.
-- **Rustnings-skins**: distinct textures for Protection 1-4 iron and diamond armor so you can tell gear apart without a full texture pack.
-- **Rustnings-HUD**: equipped armor display with durability and low-durability warning.
-- **Item Værdi**: item worth (DB or diamonds) in tooltips from the FreakyVille price guide.
-- **Prisguide**: browse FreakyVille's price guide in-game, fetched live.
-- **Opdatering**: GitHub auto-updater with an optional pre-release test channel.
-- **Flip Case**: CS:GO-style case opening animation when flipping players (replaces flip chest GUI).
-- **Kiste-organisering**: left-click chests to add floating 3D icons for inventory organization.
-- **Jernlåge-lyde**: plays door sounds when iron doors open/close on the server.
-- **Spiller-logger**: displays 3D logout markers where other players logged off.
-- **Spiller ESP**: renders 3D player bounding boxes and nametags through walls.
+- **Troll Lyde**: fjollede lyde på død, kill, hop og AFK. Kun du kan høre dem.
+- **Celle Alarm**: lyd og nedtælling på skærmen når en fulgt celle udløber
+  (2m, 1m, 30s og countdown).
+- **Armour HUD**: viser rustningens holdbarhed og advarer når den er lav.
+- **Armour Skins**: forskellige teksturer på Protection 1-4 jern og diamant, så
+  du kan kende dem fra hinanden uden en hel texture pack.
+- **Item Værdi**: varens værdi i DB eller diamanter direkte i tooltippet, hentet
+  fra FreakyVilles prisguide.
+- **Prisguide**: bladr i FreakyVilles prisguide inde i spillet, hentet live.
+- **Flip Case**: CS:GO-agtig case-åbning når du flipper, i stedet for
+  flip-kisten.
+- **Jernlåge Lyde**: afspiller dør-lyde når jernlåger åbnes og lukkes.
+- **Mod-brugere**: lilla ikon foran navnet på andre der kører modet.
+- **Opdatering**: auto-opdatering fra GitHub, med en valgfri test-kanal til
+  pre-releases.
 
-A settings gear in the hub opens a HUD editor to drag every HUD where you want it.
+Tandhjulet i hubben åbner en HUD-editor, hvor du kan trække hvert HUD derhen
+hvor du vil have det.
 
 </details>
 
-The mod id stays `cellescanner` internally, so older config and save files keep
-working.
+Mod-id'et hedder stadig `cellescanner` internt, så gammel config og gamle
+gemte filer bliver ved med at virke.
 
-## Build
+## Byg selv
 
 ```
 ./gradlew clean build
 ```
 
-Requires Java 8. The jar lands in `build/libs`.
+Kræver Java 8. Jar-filen lander i `build/libs`.
 
-## License
+## Licens
 
-Code is released under the [MIT License](LICENSE). Bundled sound effects are the
-property of their respective owners and are included for personal use only.
+Koden er udgivet under [MIT-licensen](LICENSE). De medfølgende lydeffekter
+tilhører deres respektive ejere og er kun med til personlig brug.
