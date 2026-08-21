@@ -97,6 +97,22 @@ public class AutoUpdater {
         t.start();
     }
 
+    /**
+     * Whether the release says it must be installed.
+     *
+     * Marked by putting PAAKRAEVET in the release notes, which is a thing the
+     * release already carries rather than a second file to keep in step. Any
+     * client old enough not to know about it simply does not look, and falls
+     * back to its own auto-update setting.
+     */
+    private static boolean isMandatory(JsonObject release) {
+        if (release == null || !release.has("body") || release.get("body").isJsonNull()) {
+            return false;
+        }
+        String body = release.get("body").getAsString();
+        return body != null && body.toUpperCase().contains("PAAKRAEVET");
+    }
+
     private static void check(boolean force) throws Exception {
         status = force ? "henter igen..." : "tjekker...";
         JsonObject release = fetchBestRelease();
@@ -113,7 +129,18 @@ public class AutoUpdater {
         }
         status = force ? "geninstallerer " + latestVersion : "ny version: " + latestVersion;
 
-        if (!force && !MassiveOsFreakyAddons.config.autoUpdateEnabled) {
+        /* A release can declare itself required, and then auto-update being
+           switched off does not get a say.
+
+           This only reaches clients running this version or newer. A client
+           already out there decides with the code it was built with, so
+           nothing here can reach back and change how 4.13.1 behaves; for those,
+           the only lever is the auto-update setting they already have. */
+        if (!force && !MassiveOsFreakyAddons.config.autoUpdateEnabled && isMandatory(release)) {
+            pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
+                    + "Version " + latestVersion + " er påkrævet og bliver hentet, "
+                    + "selvom auto-opdatering er slået fra.";
+        } else if (!force && !MassiveOsFreakyAddons.config.autoUpdateEnabled) {
             pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
                     + "Ny version " + latestVersion + " findes. Auto-opdatering er slået fra.";
             return;

@@ -44,8 +44,8 @@ public class KeyHandler {
         // if (MassiveOsFreakyAddons.majesticaKey != null && MassiveOsFreakyAddons.majesticaKey.isPressed()) {
         //     mc.displayGuiScreen(new GuiWeaponSelector());
         // }
-        // if (MassiveOsFreakyAddons.freecamKey != null && MassiveOsFreakyAddons.freecamKey.isPressed()) {
-        //     Freecam.INSTANCE.toggle();
-        // }
+        if (MassiveOsFreakyAddons.freecamKey != null && MassiveOsFreakyAddons.freecamKey.isPressed()) {
+            Freecam.INSTANCE.toggle();
+        }
     }
 }

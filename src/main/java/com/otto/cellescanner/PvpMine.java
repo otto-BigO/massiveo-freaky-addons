@@ -114,7 +114,7 @@ public class PvpMine {
                 if (!inMine.contains(n)) {
                     mc.thePlayer.addChatMessage(new ChatComponentText(
                             EnumChatFormatting.RED + "[PvP Mine] " + EnumChatFormatting.WHITE + n + " er i minen!"));
-                    mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
+                    MassiveOsFreakyAddons.playAlert(1.0F, 1.5F);
                 }
             }
         }

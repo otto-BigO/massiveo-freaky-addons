@@ -365,7 +365,7 @@ public class PathWalker {
         }
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer != null) {
-            Pathfinder.renderPath(path, mc.thePlayer, event.partialTicks, 0.4f, 1.0f, 0.45f);
+            Pathfinder.renderPath(path, MassiveOsFreakyAddons.renderViewer(), event.partialTicks, 0.4f, 1.0f, 0.45f);
         }
     }
 }

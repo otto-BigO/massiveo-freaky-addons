@@ -13,7 +13,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderLivingEvent;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 import java.util.UUID;
@@ -445,99 +444,12 @@ public class PlayerEsp {
         return null;
     }
 
-    @SubscribeEvent
-    public void onRenderWorldLast(RenderWorldLastEvent event) {
-        if (!MassiveOsFreakyAddons.config.playerEspEnabled) {
-            return;
-        }
+    /* The orange bounding boxes used to be drawn here.
 
-        Minecraft mc = Minecraft.getMinecraft();
-        if (mc.thePlayer == null || mc.theWorld == null) {
-            return;
-        }
+       They are gone on purpose. This addon is Navne ESP: names through walls,
+       and nothing else. Boxes are the other addon's job, and having both meant
+       every player got outlined twice over with a special case in here to stop
+       bande members being double-boxed. That special case went with them.
 
-        float partialTicks = event.partialTicks;
-        Entity viewer = mc.thePlayer;
-        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
-        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
-        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
-
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(-px, -py, -pz);
-
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-        GlStateManager.depthMask(false);
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-        GlStateManager.disableTexture2D();
-        GL11.glLineWidth(2.0f);
-
-        for (Object obj : mc.theWorld.playerEntities) {
-            if (!(obj instanceof EntityPlayer)) {
-                continue;
-            }
-            EntityPlayer p = (EntityPlayer) obj;
-            if (p == mc.thePlayer) {
-                continue;
-            }
-
-            // Exclude bande members so they are not double-boxed (Esp renders them green)
-            if (MassiveOsFreakyAddons.config.espAddonEnabled && MassiveOsFreakyAddons.config.isBandeMember(p.getName())) {
-                continue;
-            }
-
-            // Draw orange bounding box around normal players
-            drawBox(p, partialTicks, 1.0F, 0.6F, 0.0F);
-        }
-
-        GlStateManager.enableTexture2D();
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-        GlStateManager.enableDepth();
-        GlStateManager.depthMask(true);
-        GlStateManager.disableBlend();
-        GlStateManager.enableLighting();
-        GlStateManager.popMatrix();
-    }
-
-    private void drawBox(EntityPlayer p, float partialTicks, float r, float g, float b) {
-        double x = p.lastTickPosX + (p.posX - p.lastTickPosX) * partialTicks;
-        double y = p.lastTickPosY + (p.posY - p.lastTickPosY) * partialTicks;
-        double z = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * partialTicks;
-
-        double w = p.width / 2.0 + 0.06;
-        double minX = x - w;
-        double maxX = x + w;
-        double minY = y - 0.06;
-        double maxY = y + p.height + 0.06;
-        double minZ = z - w;
-        double maxZ = z + w;
-
-        GlStateManager.color(r, g, b, 0.8f);
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINE_LOOP);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_LINES);
-        GL11.glVertex3d(minX, minY, minZ);
-        GL11.glVertex3d(minX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, minZ);
-        GL11.glVertex3d(maxX, maxY, minZ);
-        GL11.glVertex3d(maxX, minY, maxZ);
-        GL11.glVertex3d(maxX, maxY, maxZ);
-        GL11.glVertex3d(minX, minY, maxZ);
-        GL11.glVertex3d(minX, maxY, maxZ);
-        GL11.glEnd();
-    }
+       The name drawing is untouched and lives further up this file. */
 }

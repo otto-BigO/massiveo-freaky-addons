@@ -32,13 +32,14 @@ egen klient.
 ### Tracking
 
 - **ESP**: se spillere gennem vægge, farvet efter bande, vagt eller andre.
-- **Navne ESP**: navneskilte gennem vægge, farvet på samme måde.
+- **Navne ESP**: kun navneskilte gennem vægge, farvet på samme måde. Ingen
+  kasser, det er ESP-addonens opgave.
 - **Spiller Info**: shift + højreklik en spiller for at se 3D-model, rustning,
   fortryllelser og celle-oplysninger. Virker også på spillere der er offline.
 - **Spiller Logger**: viser i 3D hvor andre spillere loggede ud.
 - **Chest Alarm**: notifikation og lyd når en kiste bliver åbnet i chatten.
 - **PvP Mine**: drop-timer på et HUD, plus alarm når nogen går ind i PvP-minen.
-- **VK Stealer**: tager sidste hit på vagter. Den venter til målet er lavt nok,
+- **Last hit**: tager sidste hit på vagter. Den venter til målet er lavt nok,
   fordi der som regel står en flok og banker på den samme vagt, og det er sidste
   hit der tæller. På eget ansvar.
 
@@ -57,11 +58,6 @@ på eget ansvar.
 - **Auto Følg**: går og løber bag en anden spiller automatisk (`/følg <navn>`).
 - **Anti AFK**: små bevægelser med jævne mellemrum, så inaktivitets-timeren
   aldrig når at slå til.
-- **Auto Armour**: tryk R for hurtigt at tage rustning på eller af.
-- **Skralde-Filter**: smider automatisk skrald ud (cobblestone, jord, træ- og
-  stenredskaber).
-- **Mine Tracker**: holder øje med Iron Ore i minuttet og estimerede
-  diamantblokke.
 
 ### Quality of life
 
@@ -75,7 +71,10 @@ på eget ansvar.
 - **Flip Case**: CS:GO-agtig case-åbning når du flipper, i stedet for
   flip-kisten.
 - **Item Log**: en lille "+N item"-besked nede i hjørnet når du samler noget op.
-- **Jernlåge Lyde**: afspiller dør-lyde når jernlåger åbnes og lukkes.
+- **Freecam**: flyv rundt med kameraet mens du selv står stille. Alt sker
+  hos dig: din spiller bliver hvor den er, sender ingen bevægelse, og du
+  kan hverken slå eller bygge så længe kameraet er ude.
+- **Iron door lyde**: afspiller dør-lyde når jernlåger åbnes og lukkes.
 - **Opdatering**: auto-opdatering fra GitHub, med en valgfri test-kanal til
   pre-releases.
 

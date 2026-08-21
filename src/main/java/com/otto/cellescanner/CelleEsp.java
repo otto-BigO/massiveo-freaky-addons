@@ -82,7 +82,7 @@ public class CelleEsp {
             return;
         }
 
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         float partialTicks = event.partialTicks;
         double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;

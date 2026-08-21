@@ -35,7 +35,7 @@ public class ChestAlarm {
         if (cfg.chestAlarmSound) {
             Minecraft mc = Minecraft.getMinecraft();
             if (mc.thePlayer != null) {
-                mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
+                MassiveOsFreakyAddons.playAlert(1.0F, 1.0F);
             }
         }
     }

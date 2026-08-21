@@ -32,7 +32,7 @@ public class ModUserIcon {
             return;
         }
         float pt = event.partialTicks;
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         double camX = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * pt;
         double camY = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * pt;
         double camZ = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * pt;

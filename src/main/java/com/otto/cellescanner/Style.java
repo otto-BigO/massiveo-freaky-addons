@@ -1,5 +1,7 @@
 package com.otto.cellescanner;
 
+import net.minecraft.client.gui.FontRenderer;
+
 import net.minecraft.client.gui.Gui;
 
 /**
@@ -72,6 +74,65 @@ public final class Style {
     /**
      * Draws a 4-sided crisp border outline.
      */
+    /**
+     * Draws a heading in whichever title style the theme is set to.
+     *
+     * The setting had been sitting in the config unread, so all three styles
+     * looked identical. The three are:
+     *
+     *   0 Regnbue     hue sweeps along the string, so each letter is a
+     *                 different colour and the whole thing scrolls
+     *   1 Pulserende  the accent colour breathing between dim and full
+     *   2 Statisk     the accent colour, flat
+     *
+     * Time is read off the wall clock rather than a tick counter, so it keeps
+     * moving at the same rate whatever the frame rate is doing.
+     *
+     * @param x left edge, not centre. Callers that centre should subtract half
+     *          the string width themselves, since the rainbow branch has to
+     *          walk the string a character at a time anyway.
+     */
+    public static void drawThemedTitle(FontRenderer fr, String text, int x, int y) {
+        int style = MassiveOsFreakyAddons.config != null
+                ? MassiveOsFreakyAddons.config.themeTitleStyle : 0;
+        long now = System.currentTimeMillis();
+
+        if (style == 2) {
+            fr.drawString(text, x, y, getAccentColor(), true);
+            return;
+        }
+
+        if (style == 1) {
+            // 0.35 to 1.0 rather than 0 to 1: a title that fades out entirely
+            // reads as a bug, not as a pulse.
+            float phase = (now % 1800L) / 1800.0f;
+            float wave = 0.675f + 0.325f * (float) Math.sin(phase * Math.PI * 2.0);
+            fr.drawString(text, x, y, dim(getAccentColor(), wave), true);
+            return;
+        }
+
+        // Regnbue. Per character, with the hue offset by position so the
+        // colours travel along the word instead of the whole thing flashing.
+        int cx = x;
+        float base = (now % 2600L) / 2600.0f;
+        for (int i = 0; i < text.length(); i++) {
+            String ch = String.valueOf(text.charAt(i));
+            float hue = (base + i * 0.035f) % 1.0f;
+            int rgb = java.awt.Color.HSBtoRGB(hue, 0.72f, 1.0f) & 0xFFFFFF;
+            fr.drawString(ch, cx, y, 0xFF000000 | rgb, true);
+            cx += fr.getStringWidth(ch);
+        }
+    }
+
+    /** Same colour, scaled toward black. Alpha is left alone. */
+    private static int dim(int argb, float factor) {
+        int a = argb >>> 24;
+        int r = (int) (((argb >> 16) & 0xFF) * factor);
+        int g = (int) (((argb >> 8) & 0xFF) * factor);
+        int b = (int) ((argb & 0xFF) * factor);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
     public static void drawOutline(int x1, int y1, int x2, int y2, int color) {
         Gui.drawRect(x1 + 1, y1, x2 - 1, y1 + 1, color);       // Top border
         Gui.drawRect(x1 + 1, y2 - 1, x2 - 1, y2, color);       // Bottom border

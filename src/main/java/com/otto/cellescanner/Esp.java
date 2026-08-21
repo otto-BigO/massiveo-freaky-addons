@@ -137,7 +137,7 @@ public class Esp {
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
         float partialTicks = event.partialTicks;
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
         double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;
@@ -336,7 +336,7 @@ public class Esp {
     }
 
     private float[] getScreenBounds(Minecraft mc, EntityPlayer p, float partialTicks) {
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * partialTicks;
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * partialTicks;
         double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * partialTicks;

@@ -165,21 +165,21 @@ public class CelleScanner {
         if (seconds <= 120 && seconds > 60 && !c.alert120Fired) {
             c.alert120Fired = true;
             if (MassiveOsFreakyAddons.config.alert2mEnabled) {
-                mc.thePlayer.playSound("note.pling", 1.0F, 1.0F);
+                MassiveOsFreakyAddons.playAlert(1.0F, 1.0F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.YELLOW + "Ledig om 2 minutter!", 10, 40, 10);
             }
         } else if (seconds <= 60 && seconds > 30 && !c.alert60Fired) {
             c.alert60Fired = true;
             if (MassiveOsFreakyAddons.config.alert1mEnabled) {
-                mc.thePlayer.playSound("note.pling", 1.0F, 1.2F);
+                MassiveOsFreakyAddons.playAlert(1.0F, 1.2F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.YELLOW + "Ledig om 1 minut!", 10, 40, 10);
             }
         } else if (seconds <= 30 && seconds > 10 && !c.alert30Fired) {
             c.alert30Fired = true;
             if (MassiveOsFreakyAddons.config.alert30sEnabled) {
-                mc.thePlayer.playSound("note.pling", 1.0F, 1.5F);
+                MassiveOsFreakyAddons.playAlert(1.0F, 1.5F);
                 showTitle(mc, EnumChatFormatting.GOLD + c.celleId,
                         EnumChatFormatting.RED + "Ledig om 30 sekunder!", 10, 40, 10);
             }

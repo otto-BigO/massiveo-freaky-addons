@@ -424,7 +424,7 @@ public class PlayerLogger {
         }
 
         Minecraft mc = Minecraft.getMinecraft();
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         if (viewer == null) return;
 
         float pt = event.partialTicks;

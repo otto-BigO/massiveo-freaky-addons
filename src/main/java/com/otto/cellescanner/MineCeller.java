@@ -81,7 +81,7 @@ public class MineCeller {
         }
         int dim = mc.theWorld.provider.getDimensionId();
 
-        Entity viewer = mc.thePlayer;
+        Entity viewer = MassiveOsFreakyAddons.renderViewer();
         float pt = event.partialTicks;
         double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * pt;
         double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * pt;

@@ -633,7 +633,7 @@ public class GuiAddonsHub extends GuiScreen {
         int scaledCx = (int) (cx / titleScale);
 
         int titleW = this.fontRendererObj.getStringWidth(MassiveoAddons.BRAND);
-        this.fontRendererObj.drawString(MassiveoAddons.BRAND, scaledCx - titleW / 2, scaledTitleY, accent, true);
+        Style.drawThemedTitle(this.fontRendererObj, MassiveoAddons.BRAND, scaledCx - titleW / 2, scaledTitleY);
         GL11.glPopMatrix();
 
         String query = searchField != null ? searchField.getText().trim().toLowerCase() : "";

@@ -407,7 +407,7 @@ public class AutoMine {
 
         // Existing: the travel path while mining.
         if (MassiveOsFreakyAddons.config.autoMineEnabled && path != null) {
-            Pathfinder.renderPath(path, mc.thePlayer, event.partialTicks, 0.35f, 0.9f, 1.0f);
+            Pathfinder.renderPath(path, MassiveOsFreakyAddons.renderViewer(), event.partialTicks, 0.35f, 0.9f, 1.0f);
         }
 
         // The mine-area box: shown while picking it, or while the bot is enabled
@@ -420,9 +420,10 @@ public class AutoMine {
             return;
         }
 
-        double px = mc.thePlayer.lastTickPosX + (mc.thePlayer.posX - mc.thePlayer.lastTickPosX) * event.partialTicks;
-        double py = mc.thePlayer.lastTickPosY + (mc.thePlayer.posY - mc.thePlayer.lastTickPosY) * event.partialTicks;
-        double pz = mc.thePlayer.lastTickPosZ + (mc.thePlayer.posZ - mc.thePlayer.lastTickPosZ) * event.partialTicks;
+        net.minecraft.entity.Entity viewer = MassiveOsFreakyAddons.renderViewer();
+        double px = viewer.lastTickPosX + (viewer.posX - viewer.lastTickPosX) * event.partialTicks;
+        double py = viewer.lastTickPosY + (viewer.posY - viewer.lastTickPosY) * event.partialTicks;
+        double pz = viewer.lastTickPosZ + (viewer.posZ - viewer.lastTickPosZ) * event.partialTicks;
 
         GlStateManager.pushMatrix();
         GlStateManager.translate(-px, -py, -pz);

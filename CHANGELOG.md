@@ -2,6 +2,29 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.14.0
+
+- **Freecam.** Kameraet kobles af spilleren og flyver frit, mens du selv står
+  stille. Alt sker hos dig: spilleren bliver hvor den er, sender ingen
+  bevægelse, og museklik bliver slugt så længe kameraet er ude. Sigtelinjen
+  udgår fra kameraet, så et enkelt klik ville ellers sende et pakke om en blok
+  hundredvis af blokke væk og gennem vægge.
+- ESP, navneskilte, stier og de andre overlays regnede deres position ud fra
+  spilleren, men verden bliver tegnet omkring kameraet. De to er de samme lige
+  indtil Freecam skiller dem ad, og så lå kasserne og drev i luften præcis så
+  langt som kameraet var fløjet. Rettet ni steder, alle gennem den samme
+  hjælper nu.
+- **Navne ESP** tegner kun navne. Kasserne var ESP-addonens opgave i forvejen,
+  og med begge tændt fik hver spiller to.
+- Titel og Lyd under Tema virker nu. De blev gemt og indlæst og aldrig læst af
+  noget som helst, så alle tre titelstile så ens ud og alle alarmer spillede
+  det samme. Lyd-knappen afspiller valget så man kan høre det.
+- VK Stealer hedder Last hit. Jernlåge Lyde hedder Iron door lyde.
+- Auto Armour, Mine Tracker og Skralde-Filter er lagt på hylden. Auto Armour
+  fordi serveren afviser begge veje til at tage rustning på: både klik i
+  inventaret og højreklik. Det er ikke modet, det sker også når man selv
+  shift-klikker.
+
 ## 4.13.1
 
 - Licenstjekket spørger nu license.klunkefar.com. Begge navne rammer den samme

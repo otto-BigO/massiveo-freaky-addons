@@ -398,7 +398,7 @@ public class CelleConfig {
     public int themeAccentColor = 0x00FF88; // Default Emerald Matrix (#00FF88)
     public float themeBgAlpha = 0.65f;
     public int themeTitleStyle = 0; // 0 = Rainbow HSB, 1 = Pulsing Glow, 2 = Static Accent
-    public String alertSound = "note.pling"; // note.pling, random.levelup, orb.pickup, random.click
+    public String alertSound = "note.pling"; // note.pling, random.levelup, random.orb, random.click
 
     // Custom ESP Colors
     public int espColorBande = 0x00A2FF; // Blue

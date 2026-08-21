@@ -65,6 +65,39 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
+                return "Freecam";
+            }
+
+            public String description() {
+                return "Flyv rundt med kameraet mens du selv står stille";
+            }
+
+            public String category() {
+                return "Quality of life";
+            }
+
+            /* This one reports whether the camera is actually out, not whether
+               a config flag is set. The hub is the way to start it: the key
+               binding ships unbound, so making this a flag would have left the
+               feature with no way to turn it on at all. */
+            public boolean isActive() {
+                return Freecam.INSTANCE.isActive();
+            }
+
+            public boolean hasSettings() {
+                return false;
+            }
+
+            public void open() {
+            }
+
+            public void toggle() {
+                Freecam.INSTANCE.toggle();
+            }
+        });
+
+        MassiveoAddons.register(new MassiveoAddons.Addon() {
+            public String name() {
                 return "Celle Scanner";
             }
 
@@ -442,7 +475,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "VK Stealer";
+                return "Last hit";
             }
 
             public String description() {
@@ -570,6 +603,16 @@ public final class AddonList {
             }
         });
 
+        /* Shelved 2026-08-21 - the server will not accept it.
+
+           FreakyVille rejects armour equips made by clicking in the inventory,
+           and that is not a bug in this code: shift-clicking a piece by hand
+           does the same thing, on for a moment and then the server sends the
+           inventory back as it was. Right-click-to-equip was tried next, as a
+           use-item packet rather than a window click, and that is refused too.
+
+           Kept in the repo. If a route that works is ever found, this is ready
+           to go back in.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Auto Armour";
@@ -600,6 +643,7 @@ public final class AddonList {
                 config.save();
             }
         });
+        */
 
         // Mod-brugere addon shelved for now - good idea, saved for later. The
         // code (GuiModIcon, ModUserIcon) is kept; to re-enable, restore this
@@ -936,7 +980,7 @@ public final class AddonList {
 
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
-                return "Jernlåge Lyde";
+                return "Iron door lyde";
             }
 
             public String description() {
@@ -1103,6 +1147,8 @@ public final class AddonList {
             }
         });
 
+        /* Shelved 2026-08-21 - the idea is worth keeping, the numbers were not
+           trustworthy enough to ship. Left in the repo to pick up later.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Mine Tracker";
@@ -1133,7 +1179,10 @@ public final class AddonList {
                 config.mineTrackerEnabled = !config.mineTrackerEnabled; config.save();
             }
         });
+        */
 
+        /* Shelved 2026-08-21 - does not actually drop anything. Kept for a
+           rewrite rather than deleted.
         MassiveoAddons.register(new MassiveoAddons.Addon() {
             public String name() {
                 return "Skralde-Filter";
@@ -1164,5 +1213,6 @@ public final class AddonList {
                 config.autoTrashEnabled = !config.autoTrashEnabled; config.save();
             }
         });
+        */
     }
 }

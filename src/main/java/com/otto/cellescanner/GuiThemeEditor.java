@@ -260,6 +260,9 @@ public class GuiThemeEditor extends GuiScreen {
                 else MassiveOsFreakyAddons.config.alertSound = "note.pling";
                 soundStyleBtn.displayString = soundStyleLabel();
                 MassiveOsFreakyAddons.config.save();
+                // Play it. A sound picker that makes no sound tells you nothing
+                // about what you just picked.
+                MassiveOsFreakyAddons.playAlert(1.0F, 1.0F);
                 break;
             case ID_HUD_EDITOR:
                 CelleActions.openHudEditor();
@@ -375,7 +378,11 @@ public class GuiThemeEditor extends GuiScreen {
         int left = cx - PANEL_W / 2;
 
         int titleY = cy - 142;
-        drawCenteredString(this.fontRendererObj, EnumChatFormatting.BOLD + "Tema & Udseende", cx, titleY, Style.getAccentColor());
+        // Drawn in the selected title style, so changing the setting shows
+        // itself on the very screen the setting lives on.
+        String heading = EnumChatFormatting.BOLD + "Tema & Udseende";
+        Style.drawThemedTitle(this.fontRendererObj, heading,
+                cx - this.fontRendererObj.getStringWidth(heading) / 2, titleY);
 
         // Handle active dragging mouse events
         if (Mouse.isButtonDown(0)) {
