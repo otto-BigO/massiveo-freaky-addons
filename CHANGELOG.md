@@ -2,6 +2,32 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.16.0
+
+- **Timeren var forkert, og den blev mere forkert jo længere ude cellen var.**
+  Et celle-skilt tæller ned i skridt på tyve minutter, og både nedtællingen og
+  Celle Buyer regnede fremad ved at gange en konstant med antallet af skridt.
+  Konstanten var 1199600 ms. Toogtyve målinger fra din egen log siger cirka
+  1200468 ms, altså 868 ms for lidt pr. skridt: 2,6 sekunder for tidligt en
+  time ude, 10,4 sekunder fire timer ude, 52 sekunder tyve timer ude.
+- Skridtets længde bliver nu **målt i stedet for antaget**. Hver gang klienten
+  selv ser et skilt skifte, er tiden siden sidste skift en måling. Estimatet er
+  medianen af de seneste 32 og bliver gemt, så en ny session starter der hvor
+  den forrige slap. Nedtællingen og Celle Buyer læser det samme tal og kan
+  derfor ikke være uenige om hvornår nul er.
+- **Celle Buyer klikker tidligere jo mere usikker forudsigelsen er.** En celle
+  tyve minutter ude er præcis; en tyve timer ude er et gæt ganget med tres. At
+  klikke på et skilt der stadig er solgt koster ingenting, så forspringet er
+  det billige at bruge.
+- **Scanneren skanner hvert tick når et skridt er på vej**, i stedet for én
+  gang i sekundet hele tiden. Anker-øjeblikket var før op til et sekund for
+  sent, og alt andet arvede det. Det er et kort ryk hvert tyvende minut, ikke
+  en permanent hurtigere løkke.
+- Skanningen er nu pakket ind, så ét dårligt skilt ikke tager hele addonen med
+  sig indtil man logger ind igen.
+- Scanneren byggede fire strenge og to versaler-kopier for hvert skilt i
+  verden, hvert sekund. Det er nu cirka en tredjedel.
+
 ## 4.15.0
 
 - **Fjernbetjent tvungen opdatering.** Fra brugere-siden kan en opdatering

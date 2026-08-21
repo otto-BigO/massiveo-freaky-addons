@@ -28,7 +28,30 @@ public class CelleScanner {
 
     private static final String LINE_SOLGT = "SOLGT!";
     private static final String LINE_TIL_SALG = "TIL SALG!";
+    /**
+     * How often signs are read, in ticks, when nothing is about to happen.
+     *
+     * A second is plenty for a display that only moves every twenty minutes,
+     * and reading every sign in the world is the most expensive thing this
+     * addon does.
+     */
     private static final int SCAN_INTERVAL_TICKS = 20;
+
+    /**
+     * How often signs are read when a step is due, in ticks. Every one.
+     *
+     * This is the difference between an anchor that is right and an anchor that
+     * is up to a second late. The countdown and the buyer are both built on the
+     * moment a sign was seen to change, so a step noticed a second after it
+     * happened moves everything downstream a second with it. Scanning flat out
+     * for a couple of seconds either side of a due step costs almost nothing,
+     * because celle signs all step together on the server's own schedule: it is
+     * one short burst every twenty minutes, not a permanently faster loop.
+     */
+    private static final int FAST_SCAN_INTERVAL_TICKS = 1;
+
+    /** How close a due step has to be before the fast rate kicks in. */
+    private static final long FAST_SCAN_WINDOW_MS = 2500L;
     private static final long REPORT_COOLDOWN_MS = 15000L;
     // Same value/purpose as CelleScannerBot's state.js RENEWAL_SLACK_SECONDS -
     // ignore a tiny "increase" as reporting jitter rather than a genuine renewal.
@@ -36,6 +59,15 @@ public class CelleScanner {
 
     private final Map<BlockPos, Celle> cache = new HashMap<BlockPos, Celle>();
     private int tickCounter = 0;
+
+    /**
+     * Reused rather than allocated per scan. This runs every second, forever,
+     * over every sign in the world.
+     */
+    private final Set<BlockPos> seenThisScan = new HashSet<BlockPos>();
+
+    /** When the soonest step across everything tracked is due. 0 when unknown. */
+    private long nextStepDueAt = 0L;
 
     // Recomputed once per scan (every ~1s), not per render frame. HUD and
     // ESP both read this directly instead of re-filtering/re-sorting the
@@ -147,12 +179,41 @@ public class CelleScanner {
         }
 
         tickCounter++;
-        if (tickCounter < SCAN_INTERVAL_TICKS) {
+        if (tickCounter < currentScanInterval()) {
             return;
         }
         tickCounter = 0;
 
-        scan(mc.theWorld);
+        /* One bad sign, or the tile entity list being changed underneath the
+           loop, used to take the whole scanner down with it: this handler would
+           throw every tick and nothing would be tracked again until a relog.
+           A scan that fails is worth losing. The addon is not. */
+        try {
+            scan(mc.theWorld);
+        } catch (Throwable t) {
+            // Deliberately quiet. It runs again in a second, and a message per
+            // second would be worse than the fault.
+        }
+    }
+
+    /**
+     * Ticks between scans right now.
+     *
+     * Fast only while a step is actually due. Everything else in this addon
+     * hangs off the moment a sign is seen to change, so that moment is worth
+     * spending frames on, and nothing else is.
+     */
+    private int currentScanInterval() {
+        if (nextStepDueAt <= 0L) {
+            return SCAN_INTERVAL_TICKS;
+        }
+        long until = nextStepDueAt - System.currentTimeMillis();
+        // Late as well as early: if a step was due and has not been seen yet,
+        // it is about to land and this is exactly when to be looking.
+        if (until <= FAST_SCAN_WINDOW_MS && until >= -FAST_SCAN_WINDOW_MS) {
+            return FAST_SCAN_INTERVAL_TICKS;
+        }
+        return SCAN_INTERVAL_TICKS;
     }
 
     private void checkExpiryAlerts(Celle c, long seconds) {
@@ -213,7 +274,8 @@ public class CelleScanner {
     }
 
     private void scan(World world) {
-        Set<BlockPos> seen = new HashSet<BlockPos>();
+        Set<BlockPos> seen = seenThisScan;
+        seen.clear();
 
         // Constant for the whole scan - no need to re-query it per sign.
         int dimensionId = world.provider.getDimensionId();
@@ -228,31 +290,42 @@ public class CelleScanner {
                 continue;
             }
 
-            // Most signs in a loaded world are not celle signs, so decide from the
-            // first two lines before cleaning and upper casing the rest. This used
-            // to clean all four lines and build a joined string for every sign.
-            String line1 = clean(sign.signText[0].getUnformattedText());
-            String line2 = clean(sign.signText[1].getUnformattedText());
-            String u1 = line1.toUpperCase(java.util.Locale.ROOT);
-            String u2 = line2.toUpperCase(java.util.Locale.ROOT);
+            /* Almost every sign in a loaded world is somebody's shop or a
+               decoration, and this loop runs over all of them every second, so
+               the cost that matters is the cost of saying no.
 
-            boolean looksSold = u1.contains("SOLGT");
-            boolean looksForSale = u1.contains("TIL SALG") || u1.contains("LEDIG")
-                    || u2.contains("TIL SALG") || u2.contains("LEDIG");
+               Two things changed here. The upper cased copies are gone, since
+               matching case-insensitively takes no allocation at all; and the
+               second line is only read when the first has not already answered
+               the question. A sign that is not a celle sign now costs at most
+               two strings instead of four strings and two more upper cased
+               copies of them. */
+            String line1 = clean(sign.signText[0].getUnformattedText());
+
+            boolean looksSold = has(line1, "SOLGT");
+            boolean looksForSale = !looksSold
+                    && (has(line1, "TIL SALG") || has(line1, "LEDIG"));
+
+            String line2;
+            if (looksSold || looksForSale) {
+                line2 = clean(sign.signText[1].getUnformattedText());
+            } else {
+                line2 = clean(sign.signText[1].getUnformattedText());
+                looksForSale = has(line2, "TIL SALG") || has(line2, "LEDIG");
+            }
             if (!looksSold && !looksForSale) {
                 continue;
             }
 
             String line3 = clean(sign.signText[2].getUnformattedText());
             String line4 = clean(sign.signText[3].getUnformattedText());
-            String u3 = line3.toUpperCase(java.util.Locale.ROOT);
 
             CelleStatus status;
             String owner = null;
             String celleId;
             long remaining;
 
-            if (isInfoSign(u1) || isInfoSign(u2) || isInfoSign(u3)) {
+            if (isInfoSign(line1) || isInfoSign(line2) || isInfoSign(line3)) {
                 continue;
             }
 
@@ -264,14 +337,14 @@ public class CelleScanner {
                 if (remaining < 0) {
                     continue;
                 }
-            } else if (u1.contains("TIL SALG") || u1.contains("LEDIG") || u2.contains("TIL SALG") || u2.contains("LEDIG")) {
+            } else if (looksForSale) {
                 status = CelleStatus.TIL_SALG;
                 owner = null;
                 remaining = 0;
                 // Extract cell ID from whichever line holds it (e.g. "A-12", "Celle B-05")
-                if (!line2.isEmpty() && !u2.contains("TIL SALG") && !u2.contains("LEDIG") && !u2.contains("KR")) {
+                if (!line2.isEmpty() && !isForSaleText(line2)) {
                     celleId = line2;
-                } else if (!line3.isEmpty() && !u3.contains("TIL SALG") && !u3.contains("LEDIG") && !u3.contains("KR")) {
+                } else if (!line3.isEmpty() && !isForSaleText(line3)) {
                     celleId = line3;
                 } else {
                     celleId = line1;
@@ -347,6 +420,18 @@ public class CelleScanner {
             // what tells us the sign's real cadence and how far a prediction
             // lands from the moment a celle actually frees up.
             if (valueChanged && !isNew) {
+                /* This tick is a witnessed step, so the gap since the previous
+                   one measures how long a step really takes. That is the number
+                   everything else is built on, so it is learned from what the
+                   server does rather than assumed. */
+                if (CelleGrid.sample(System.currentTimeMillis() - celle.valueUpdatedAt,
+                        celle.remainingSeconds - remaining)
+                        && MassiveOsFreakyAddons.config != null) {
+                    // Only when the estimate actually moved, so this is not a
+                    // config write on every sign step.
+                    MassiveOsFreakyAddons.config.gridPeriodMs = CelleGrid.periodMs();
+                    MassiveOsFreakyAddons.config.save();
+                }
                 // This tick IS the witnessed change, so the anchor it creates is
                 // exact. celle.timerConfirmed still holds the value from before
                 // the update at this point, which is false the very first time,
@@ -427,7 +512,41 @@ public class CelleScanner {
 
         recomputeUpcoming();
         invalidateUpcoming();
+        recomputeNextStepDue();
         maybeReportToBot();
+    }
+
+    /**
+     * When the soonest step across everything tracked is expected.
+     *
+     * A celle's sign steps one period after it last stepped, so the next one is
+     * simply the anchor plus a period. Only celler this client watched change
+     * count: for anything else the anchor is a first sighting somewhere in the
+     * middle of a step, and a due time computed from it would send the scanner
+     * into its fast rate at an arbitrary moment.
+     *
+     * Anything already overdue is skipped once it is a whole period late, since
+     * that means the step was missed and the next real one is unknowable until
+     * the sign is seen to move again.
+     */
+    private void recomputeNextStepDue() {
+        long now = System.currentTimeMillis();
+        long period = CelleGrid.periodMs();
+        long soonest = 0L;
+
+        for (Celle c : cache.values()) {
+            if (!c.timerConfirmed || c.valueUpdatedAt <= 0L || c.remainingSeconds <= 0L) {
+                continue;
+            }
+            long due = c.valueUpdatedAt + period;
+            if (due < now - period) {
+                continue;
+            }
+            if (soonest == 0L || due < soonest) {
+                soonest = due;
+            }
+        }
+        nextStepDueAt = soonest;
     }
 
     private void recomputeUpcoming() {
@@ -585,17 +704,48 @@ public class CelleScanner {
     }
 
     /** Cheaper than celleId.matches(".*\\d+.*"), which compiled a Pattern per sign. */
-    /** Info boards, rule boards and shop signs that are not celler. */
-    private static boolean isInfoSign(String upper) {
-        return upper.contains("INFO") || upper.contains("REGLER") || upper.contains("SKILT")
-                || upper.contains("HJÆLP") || upper.contains("PRIS") || upper.contains("KLIK")
-                || upper.contains("VELKOMMEN") || upper.contains("SPAWN");
+    /** A line that is the "for sale" wording or a price, rather than the id. */
+    private static boolean isForSaleText(String line) {
+        return has(line, "TIL SALG") || has(line, "LEDIG") || has(line, "KR");
+    }
+
+    /**
+     * Info boards, rule boards and shop signs that are not celler.
+     *
+     * Takes the line as it reads. It used to take an already upper cased copy,
+     * which meant every sign in the world had two of those built for it on
+     * every scan just in case it turned out to be one of these.
+     */
+    private static boolean isInfoSign(String line) {
+        return has(line, "INFO") || has(line, "REGLER") || has(line, "SKILT")
+                || has(line, "HJÆLP") || has(line, "PRIS") || has(line, "KLIK")
+                || has(line, "VELKOMMEN") || has(line, "SPAWN");
     }
 
     private static boolean hasDigit(String s) {
         for (int i = 0; i < s.length(); i++) {
             char ch = s.charAt(i);
             if (ch >= '0' && ch <= '9') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Case-insensitive contains, without building an upper cased copy first.
+     *
+     * Worth having because it is called several times for every sign in the
+     * world, every second, and almost always to say no.
+     */
+    private static boolean has(String haystack, String needle) {
+        if (haystack == null) {
+            return false;
+        }
+        int n = needle.length();
+        int max = haystack.length() - n;
+        for (int i = 0; i <= max; i++) {
+            if (haystack.regionMatches(true, i, needle, 0, n)) {
                 return true;
             }
         }

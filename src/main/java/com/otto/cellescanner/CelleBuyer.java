@@ -18,11 +18,16 @@ import java.util.Map;
  *
  * The timing is not guesswork. Celle signs tick on a fixed grid: every countdown
  * value is an exact multiple of 1200 seconds, and the sign steps down one notch
- * every {@link #GRID_PERIOD_MS}. Measured over twelve consecutive ticks that
- * period is 1199.6s rather than a round 1200, which is small enough to ignore for
- * one step and large enough to miss by half a second if you extrapolate a day out.
- * So a celle that expires on schedule can be predicted from an anchor taken twenty
- * minutes earlier, and the addon arms itself before the sign visibly changes.
+ * every step period. How long a step really takes is measured rather than
+ * assumed, and lives in {@link CelleGrid}, which learns it from every step this
+ * client watches happen.
+ *
+ * That matters more than it sounds. The period used to be a constant taken from
+ * twelve samples, and being under 900 ms short of the truth is nothing for one
+ * step and ten seconds by the time it has been multiplied out over four hours.
+ * The lead this addon clicks on now grows with the number of steps as well, so a
+ * distant celle, whose predicted moment is the vaguest, is the one it starts
+ * clicking earliest for.
  *
  * Two things this deliberately does not try to beat. A celle can be dumped from
  * days out when an owner sells up, which nothing predicts, so the addon also fires
@@ -33,15 +38,6 @@ import java.util.Map;
  * Off unless switched on in the menu.
  */
 public class CelleBuyer {
-
-    /**
-     * Measured sign period. Twelve clean samples between two real ticks on the
-     * same celle all landed here, not on a round 1200000.
-     */
-    private static final long GRID_PERIOD_MS = 1199600L;
-
-    /** Every countdown value observed was an exact multiple of this. */
-    private static final long STEP_SECONDS = 1200L;
 
     /** Vanilla block reach. Anything past this is the extended reach setting. */
     public static final float VANILLA_REACH = 4.5f;
@@ -160,7 +156,15 @@ public class CelleBuyer {
         // Fire once it is actually buyable, or slightly before the predicted flip
         // so the click is already in flight when the server releases it. Clicking
         // a sold sign costs nothing, which is what makes the lead safe to spend.
-        boolean fire = bestBuyable || bestFreeIn <= cfg.celleBuyerPreClickMs;
+        /* The lead is not a fixed number any more.
+
+           A prediction is the measured length of a step multiplied by the steps
+           left, so its error grows with the count: a celle twenty minutes out is
+           a promise to the millisecond, one twenty hours out is not. Clicking a
+           sign that is still sold costs nothing, so the answer is to start
+           earlier on the vague ones rather than to trust them. */
+        long lead = cfg.celleBuyerPreClickMs + CelleGrid.uncertaintyMs(best.remainingSeconds);
+        boolean fire = bestBuyable || bestFreeIn <= lead;
 
         // Aim just before the click, not for the whole arm window. Arming can be
         // set as far out as ten minutes and it only means "watch this one", so
@@ -168,7 +172,7 @@ public class CelleBuyer {
         // when silent aim was off, and sent a steady stream of look packets at
         // one sign when it was on. The short lead is still enough for the
         // rotation to land ahead of the click rather than sharing its tick.
-        if (fire || bestFreeIn <= aimLeadMs(cfg)) {
+        if (fire || bestFreeIn <= aimLeadMs(cfg) + CelleGrid.uncertaintyMs(best.remainingSeconds)) {
             aimAt(mc, cfg, faceCenter(mc, bestPos));
         }
 
@@ -298,8 +302,7 @@ public class CelleBuyer {
         if (celle.remainingSeconds <= 0L) {
             return -1L;
         }
-        long steps = celle.remainingSeconds / STEP_SECONDS;
-        return celle.valueUpdatedAt + steps * GRID_PERIOD_MS;
+        return CelleGrid.freeAt(celle.remainingSeconds, celle.valueUpdatedAt);
     }
 
     /**

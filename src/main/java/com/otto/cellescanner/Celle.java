@@ -43,10 +43,20 @@ public class Celle {
         this.position = position;
     }
 
-    /** remainingSeconds, extrapolated down to "now" since it was last refreshed. Never negative. */
+    /**
+     * remainingSeconds, extrapolated down to "now". Never negative.
+     *
+     * Goes through {@link CelleGrid} rather than subtracting elapsed seconds
+     * one for one. The sign does not fall a second per second: it drops in
+     * twenty minute steps, and a step is not exactly twenty minutes of wall
+     * clock. Counting real seconds off a sign that reads twenty hours means
+     * being wrong by however far a step is from 1200 s, sixty times over.
+     */
     public long liveRemainingSeconds() {
-        long elapsedSeconds = (System.currentTimeMillis() - valueUpdatedAt) / 1000L;
-        return Math.max(0L, remainingSeconds - elapsedSeconds);
+        if (valueUpdatedAt <= 0L) {
+            return Math.max(0L, remainingSeconds);
+        }
+        return CelleGrid.remainingMs(remainingSeconds, valueUpdatedAt) / 1000L;
     }
 
     public double liveRemainingHours() {

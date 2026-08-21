@@ -400,6 +400,15 @@ public class CelleConfig {
     public int themeTitleStyle = 0; // 0 = Rainbow HSB, 1 = Pulsing Glow, 2 = Static Accent
     public String alertSound = "note.pling"; // note.pling, random.levelup, random.orb, random.click
 
+    /**
+     * The measured length of one celle countdown step, in milliseconds.
+     *
+     * Learned from steps this client watches happen, and saved so a new session
+     * starts from what the last one worked out rather than from a guess. See
+     * CelleGrid.
+     */
+    public long gridPeriodMs = CelleGrid.DEFAULT_PERIOD_MS;
+
     // Custom ESP Colors
     public int espColorBande = 0x00A2FF; // Blue
     public int espColorVagt = 0x00FF88;  // Green
@@ -773,6 +782,8 @@ public class CelleConfig {
                         : Math.max(0.20f, Math.min(1.0f, loaded.themeBgAlpha));
                 this.themeTitleStyle = loaded.themeTitleStyle;
                 this.alertSound = loaded.alertSound != null && !loaded.alertSound.isEmpty() ? loaded.alertSound : "note.pling";
+                this.gridPeriodMs = loaded.gridPeriodMs;
+                CelleGrid.load(this.gridPeriodMs);
                 this.espColorBande = loaded.espColorBande != 0 ? loaded.espColorBande : 0x00A2FF;
                 this.espColorVagt = loaded.espColorVagt != 0 ? loaded.espColorVagt : 0x00FF88;
                 this.espColorOther = loaded.espColorOther != 0 ? loaded.espColorOther : 0xFF3366;
