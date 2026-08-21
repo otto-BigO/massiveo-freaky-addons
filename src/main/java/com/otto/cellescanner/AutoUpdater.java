@@ -58,6 +58,72 @@ public class AutoUpdater {
     }
 
     /** Starts the version check on a background daemon thread. Called when the Opdatering screen opens; no-op if a check is already running. */
+    /* ---------------------------------------------------------------------
+       The remote switch.
+
+       Otto can turn on a forced update from the brugere site, which writes a
+       small flag into the feed that klunkefar.com serves. Clients poll that
+       flag, and when it names a version newer than the one they are running
+       they install it there and then, without asking and whether or not
+       auto-update is switched on.
+
+       The flag carries a version number and nothing else. It never carries a
+       download URL, so the worst a tampered flag can do is send clients to the
+       GitHub release they already trust, early. It cannot point them anywhere
+       new.
+
+       Polled rather than pushed, because a mod client has nothing listening.
+       The flag is about eighty bytes and it is checked every five minutes,
+       which is cheap enough to leave running and quick enough to be useful.
+       --------------------------------------------------------------------- */
+    private static final String FORCE_URL = "https://klunkefar.com/data/update.json";
+    private static final long FORCE_POLL_MS = 5L * 60L * 1000L;
+    private static long nextForcePoll = 0L;
+    private static boolean forcedThisSession = false;
+
+    public static void pollForcedUpdate() {
+        if (forcedThisSession) {
+            return;   // already acted on it; the swap needs a restart anyway
+        }
+        long now = System.currentTimeMillis();
+        if (now < nextForcePoll) {
+            return;
+        }
+        nextForcePoll = now + FORCE_POLL_MS;
+
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    JsonElement el = fetchJson(FORCE_URL);
+                    if (el == null || !el.isJsonObject()) {
+                        return;
+                    }
+                    JsonObject flag = el.getAsJsonObject();
+                    if (!flag.has("force") || !flag.get("force").getAsBoolean()) {
+                        return;
+                    }
+                    if (!flag.has("minVersion") || flag.get("minVersion").isJsonNull()) {
+                        return;
+                    }
+                    String want = flag.get("minVersion").getAsString();
+                    // Only when it actually names something newer. Without this
+                    // the flag would reinstall the running version on a loop,
+                    // since the version constant does not change until restart.
+                    if (compareVersions(want, MassiveOsFreakyAddons.VERSION) <= 0) {
+                        return;
+                    }
+                    forcedThisSession = true;
+                    pendingMessage = EnumChatFormatting.AQUA + "[Massiveo] " + EnumChatFormatting.RESET
+                            + "P\u00e5kr\u00e6vet opdatering til " + want + " hentes nu.";
+                    check(true);
+                } catch (Throwable ignored) {
+                    // The site being unreachable is not worth a word to the
+                    // player. It will be asked again in five minutes.
+                }
+            }
+        }, "Massiveo-ForceUpdate").start();
+    }
+
     public static void checkAsync() {
         runAsync(false);
     }
@@ -597,6 +663,9 @@ public class AutoUpdater {
             initialCheckTriggered = true;
             checkAsync();
         }
+
+        // And keep an eye on the remote switch for as long as the session runs.
+        pollForcedUpdate();
 
         if (!posted && pendingMessage != null) {
             posted = true;

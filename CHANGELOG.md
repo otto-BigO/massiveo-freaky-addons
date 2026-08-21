@@ -2,6 +2,18 @@
 
 Older releases are on the GitHub releases page.
 
+## 4.15.0
+
+- **Fjernbetjent tvungen opdatering.** Fra brugere-siden kan en opdatering
+  gøres påkrævet. Den skriver et lille flag ind i feeden som klunkefar.com
+  serverer, og klienter spørger efter det hvert femte minut. Nævner flaget en
+  nyere version end den der kører, bliver den hentet med det samme, uden at
+  spørge og uanset om auto-opdatering er slået fra.
+- Flaget indeholder et versionsnummer og intet andet. Det indeholder aldrig en
+  download-adresse, så det værste et forfalsket flag kan gøre er at sende
+  klienter hen til den GitHub-release de i forvejen henter fra. Det kan ikke
+  sende dem et nyt sted hen.
+
 ## 4.14.0
 
 - **Freecam.** Kameraet kobles af spilleren og flyver frit, mens du selv står
